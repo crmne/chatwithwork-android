@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Material 3 with Live Wire's palette, type, and corners instead of dynamic
+  color: the native bars sit right against web pages drawn with Live Wire, so
+  they use the same neutrals. Ink is the primary color, the way the web's
+  primary button is ink. Signal colors only mark state (errors).
+-->
+<resources>
+    <style name="Base.Theme.ChatWithWork" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/lw_ink</item>
+        <item name="colorOnPrimary">@color/lw_ink_inverted</item>
+        <item name="colorPrimaryContainer">@color/lw_surface_selected</item>
+        <item name="colorOnPrimaryContainer">@color/lw_ink</item>
+        <item name="colorPrimaryInverse">@color/lw_ink_inverted</item>
+        <item name="colorSecondary">@color/lw_ink_muted</item>
+        <item name="colorOnSecondary">@color/lw_ink_inverted</item>
+        <item name="colorSecondaryContainer">@color/lw_surface_selected</item>
+        <item name="colorOnSecondaryContainer">@color/lw_ink</item>
+        <item name="colorTertiary">@color/lw_ink_muted</item>
+        <item name="colorOnTertiary">@color/lw_ink_inverted</item>
+        <item name="colorTertiaryContainer">@color/lw_surface_selected</item>
+        <item name="colorOnTertiaryContainer">@color/lw_ink</item>
+        <item name="colorError">@color/lw_negative_ink</item>
+        <item name="colorOnError">@color/lw_ink_inverted</item>
+        <item name="colorErrorContainer">@color/lw_surface_selected</item>
+        <item name="colorOnErrorContainer">@color/lw_negative_ink</item>
+
+        <item name="android:colorBackground">@color/lw_canvas</item>
+        <item name="colorOnBackground">@color/lw_ink</item>
+        <item name="colorSurface">@color/lw_canvas</item>
+        <item name="colorOnSurface">@color/lw_ink</item>
+        <item name="colorSurfaceVariant">@color/lw_surface_hover</item>
+        <item name="colorOnSurfaceVariant">@color/lw_ink_muted</item>
+        <item name="colorSurfaceInverse">@color/lw_ink</item>
+        <item name="colorOnSurfaceInverse">@color/lw_ink_inverted</item>
+        <item name="colorSurfaceBright">@color/lw_surface</item>
+        <item name="colorSurfaceDim">@color/lw_canvas_sunken</item>
+        <item name="colorSurfaceContainerLowest">@color/lw_surface</item>
+        <item name="colorSurfaceContainerLow">@color/lw_surface</item>
+        <item name="colorSurfaceContainer">@color/lw_canvas_sunken</item>
+        <item name="colorSurfaceContainerHigh">@color/lw_surface_raised</item>
+        <item name="colorSurfaceContainerHighest">@color/lw_surface_selected</item>
+        <item name="colorOutline">@color/lw_line_strong</item>
+        <item name="colorOutlineVariant">@color/lw_line</item>
+        <item name="colorControlNormal">@color/lw_ink_muted</item>
+        <item name="colorControlHighlight">@color/ripple</item>
+        <!-- Live Wire's surfaces are flat colors: no tint creeping in with elevation. -->
+        <item name="elevationOverlayEnabled">false</item>
+
+        <item name="android:windowBackground">@color/lw_canvas</item>
+
+        <item name="android:fontFamily">@font/geist</item>
+        <item name="fontFamily">@font/geist</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.ChatWithWork.HeadlineSmall</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.ChatWithWork.TitleLarge</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.ChatWithWork.TitleMedium</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.ChatWithWork.TitleSmall</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.ChatWithWork.BodyLarge</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.ChatWithWork.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.ChatWithWork.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.ChatWithWork.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.ChatWithWork.LabelMedium</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.ChatWithWork.LabelSmall</item>
+
+        <item name="shapeAppearanceCornerExtraSmall">@style/ShapeAppearance.ChatWithWork.Corner.ExtraSmall</item>
+        <item name="shapeAppearanceCornerSmall">@style/ShapeAppearance.ChatWithWork.Corner.Small</item>
+        <item name="shapeAppearanceCornerMedium">@style/ShapeAppearance.ChatWithWork.Corner.Medium</item>
+        <item name="shapeAppearanceCornerLarge">@style/ShapeAppearance.ChatWithWork.Corner.Large</item>
+        <item name="shapeAppearanceCornerExtraLarge">@style/ShapeAppearance.ChatWithWork.Corner.ExtraLarge</item>
+
+        <!-- Text actions in the top app bar, like a form's Save: Geist, as written, in ink. -->
+        <item name="actionMenuTextAppearance">@style/TextAppearance.ChatWithWork.ActionMenu</item>
+        <item name="actionMenuTextColor">@color/action_menu_text</item>
+
+        <item name="toolbarStyle">@style/Widget.ChatWithWork.Toolbar</item>
+        <item name="appBarLayoutStyle">@style/Widget.ChatWithWork.AppBarLayout</item>
+        <item name="bottomNavigationStyle">@style/Widget.ChatWithWork.BottomNavigation</item>
+        <item name="popupMenuStyle">@style/Widget.ChatWithWork.PopupMenu</item>
+        <item name="actionOverflowMenuStyle">@style/Widget.ChatWithWork.PopupMenu.Overflow</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.ChatWithWork.Dialog</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.ChatWithWork.BottomSheet</item>
+        <item name="snackbarStyle">@style/Widget.ChatWithWork.Snackbar</item>
+        <item name="snackbarButtonStyle">@style/Widget.ChatWithWork.Snackbar.Button</item>
+        <item name="circularProgressIndicatorStyle">@style/Widget.ChatWithWork.Progress</item>
+        <item name="swipeRefreshLayoutProgressSpinnerBackgroundColor">@color/lw_surface_raised</item>
+    </style>
+
+    <style name="Theme.ChatWithWork" parent="Base.Theme.ChatWithWork" />
+
+    <!-- The system splash: the mark on its dark circle, on the canvas. -->
+    <style name="Theme.ChatWithWork.Starting" parent="Theme.SplashScreen.IconBackground">
+        <item name="windowSplashScreenBackground">@color/lw_canvas</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/icon_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.ChatWithWork</item>
+    </style>
+
+    <!-- Type: Geist, tight on titles like the web's headings. -->
+    <style name="TextAppearance.ChatWithWork.HeadlineSmall" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:fontFamily">@font/geist</item>
+        <item name="fontFamily">@font/geist</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:letterSpacing">-0.015</item>
+    </style>
+
+    <style name="TextAppearance.ChatWithWork.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:fontFamily">@font/geist</item>
+        <item name="fontFamily">@font/geist</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:letterSpacing">-0.015</item>
+    </style>
+
+    <style name="TextAppearance.ChatWithWork.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:fontFamily">@font/geist</item>
+        <item name="fontFamily">@font/geist</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:letterSpacing">-0.01</item>
+    </style>
+
+    <style name="TextAppearance.ChatWithWork.TitleSmall" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:fontFamily">@font/geist</item>
+        <item name="fontFamily">@font/geist</item>
+        <item name="android:textFontWeight">500</item>
+    </style>
+
+    <style name="TextAppearance.ChatWithWork.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:fontFamily">@font/geist</item>
+        <item name="fontFamily">@font/geist</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.ChatWithWork.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:fontFamily">@font/geist</item>
+        <item name="fontFamily">@font/geist</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.ChatWithWork.BodySmall" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:fontFamily">@font/geist</item>
+        <item name="fontFamily">@font/geist</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.ChatWithWork.LabelLarge" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:fontFamily">@font/geist</item>
+        <item name="fontFamily">@font/geist</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.ChatWithWork.ActionMenu" parent="TextAppearance.ChatWithWork.LabelLarge">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="textAllCaps">false</item>
+    </style>
+
+    <style name="TextAppearance.ChatWithWork.LabelMedium" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:fontFamily">@font/geist</item>
+        <item name="fontFamily">@font/geist</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.ChatWithWork.LabelSmall" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:fontFamily">@font/geist</item>
+        <item name="fontFamily">@font/geist</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <!-- Corners: Live Wire's control, card, and panel radii. -->
+    <style name="ShapeAppearance.ChatWithWork.Corner.ExtraSmall" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">6dp</item>
+    </style>
+
+    <style name="ShapeAppearance.ChatWithWork.Corner.Small" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
+    </style>
+
+    <style name="ShapeAppearance.ChatWithWork.Corner.Medium" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">10dp</item>
+    </style>
+
+    <style name="ShapeAppearance.ChatWithWork.Corner.Large" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">14dp</item>
+    </style>
+
+    <style name="ShapeAppearance.ChatWithWork.Corner.ExtraLarge" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">20dp</item>
+    </style>
+
+    <!-- Top app bar: the page's canvas, ink title, a hairline below. -->
+    <style name="Widget.ChatWithWork.AppBarLayout" parent="Widget.Material3.AppBarLayout">
+        <item name="android:background">?attr/colorSurface</item>
+        <item name="liftOnScroll">false</item>
+    </style>
+
+    <!-- On the app bar's canvas, which draws the background. -->
+    <style name="Widget.ChatWithWork.Toolbar" parent="Widget.Material3.Toolbar.Surface">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="materialThemeOverlay">@style/ThemeOverlay.ChatWithWork.Toolbar</item>
+        <item name="titleTextAppearance">?attr/textAppearanceTitleLarge</item>
+        <item name="titleTextColor">?attr/colorOnSurface</item>
+        <item name="navigationIconTint">?attr/colorOnSurface</item>
+        <item name="titleMarginStart">4dp</item>
+    </style>
+
+    <!-- Icons in the bar stay muted, as Material has them; a text action ("Save") is ink. -->
+    <style name="ThemeOverlay.ChatWithWork.Toolbar" parent="ThemeOverlay.Material3.Toolbar.Surface">
+        <item name="actionMenuTextColor">@color/action_menu_text</item>
+        <item name="actionMenuTextAppearance">@style/TextAppearance.ChatWithWork.ActionMenu</item>
+    </style>
+
+    <!-- The organization switcher's button in the top app bar. -->
+    <style name="Widget.ChatWithWork.ToolbarChooser" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textAppearance">@style/TextAppearance.ChatWithWork.ActionMenu</item>
+        <item name="android:textColor">@color/lw_ink</item>
+        <item name="android:maxWidth">200dp</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:layout_marginEnd">4dp</item>
+        <item name="icon">@drawable/ic_expand_more</item>
+        <item name="iconGravity">textEnd</item>
+        <item name="iconPadding">2dp</item>
+        <item name="iconSize">20dp</item>
+        <item name="iconTint">@color/lw_ink_muted</item>
+        <item name="rippleColor">@color/ripple</item>
+    </style>
+
+    <!-- Bottom bar: the sunken canvas the web's sidebar uses. -->
+    <style name="Widget.ChatWithWork.BottomNavigation" parent="Widget.Material3.BottomNavigationView">
+        <item name="android:background">@drawable/bottom_bar_background</item>
+        <item name="backgroundTint">@null</item>
+        <item name="itemIconTint">@color/navigation_item</item>
+        <item name="itemTextColor">@color/navigation_item</item>
+        <item name="itemTextAppearanceActive">?attr/textAppearanceLabelMedium</item>
+        <item name="itemTextAppearanceInactive">?attr/textAppearanceLabelMedium</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.ChatWithWork.BottomNavigation.ActiveIndicator</item>
+        <item name="labelVisibilityMode">labeled</item>
+    </style>
+
+    <style name="Widget.ChatWithWork.BottomNavigation.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/lw_line</item>
+    </style>
+
+    <!-- New chat: ink, like the web's primary button (Material's "primary" FAB is a tonal container). -->
+    <style name="Widget.ChatWithWork.NewChatButton" parent="Widget.Material3.ExtendedFloatingActionButton.Icon.Primary">
+        <item name="materialThemeOverlay">@style/ThemeOverlay.ChatWithWork.NewChatButton</item>
+        <item name="android:textAppearance">?attr/textAppearanceLabelLarge</item>
+    </style>
+
+    <style name="ThemeOverlay.ChatWithWork.NewChatButton" parent="">
+        <item name="colorContainer">@color/lw_ink</item>
+        <item name="colorOnContainer">@color/lw_ink_inverted</item>
+    </style>
+
+    <!-- The welcome screen's two ways in. -->
+    <style name="Widget.ChatWithWork.WelcomeButton" parent="Widget.Material3.Button">
+        <item name="android:minHeight">52dp</item>
+        <item name="android:textAppearance">?attr/textAppearanceTitleSmall</item>
+        <item name="shapeAppearance">?attr/shapeAppearanceCornerMedium</item>
+    </style>
+
+    <style name="Widget.ChatWithWork.WelcomeButton.Secondary" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">52dp</item>
+        <item name="android:textAppearance">?attr/textAppearanceTitleSmall</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="strokeColor">?attr/colorOutline</item>
+        <item name="shapeAppearance">?attr/shapeAppearanceCornerMedium</item>
+    </style>
+
+    <style name="Widget.ChatWithWork.PopupMenu" parent="Widget.Material3.PopupMenu">
+        <item name="android:popupBackground">@drawable/menu_background</item>
+    </style>
+
+    <style name="Widget.ChatWithWork.PopupMenu.Overflow" parent="Widget.Material3.PopupMenu.Overflow">
+        <item name="android:popupBackground">@drawable/menu_background</item>
+    </style>
+
+    <style name="ThemeOverlay.ChatWithWork.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurfaceContainerHigh">@color/lw_surface_raised</item>
+    </style>
+
+    <style name="ThemeOverlay.ChatWithWork.BottomSheet" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.ChatWithWork.BottomSheet</item>
+    </style>
+
+    <style name="Widget.ChatWithWork.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">@color/lw_surface_raised</item>
+        <item name="behavior_skipCollapsed">true</item>
+    </style>
+
+    <style name="Widget.ChatWithWork.Snackbar" parent="Widget.Material3.Snackbar" />
+
+    <style name="Widget.ChatWithWork.Snackbar.Button" parent="Widget.Material3.Button.TextButton.Snackbar">
+        <item name="android:textColor">?attr/colorOnSurfaceInverse</item>
+    </style>
+
+    <style name="Widget.ChatWithWork.Progress" parent="Widget.Material3.CircularProgressIndicator">
+        <item name="indicatorColor">?attr/colorOnSurfaceVariant</item>
+        <item name="indicatorSize">32dp</item>
+        <item name="trackThickness">3dp</item>
+    </style>
+</resources>

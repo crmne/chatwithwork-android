@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Live Wire, dark theme. See values/colors.xml. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedResources">
+    <color name="lw_canvas">#06070B</color>
+    <color name="lw_canvas_sunken">#0A0C12</color>
+    <color name="lw_surface">#0F121A</color>
+    <color name="lw_surface_raised">#141824</color>
+    <color name="lw_surface_hover">#161B27</color>
+    <color name="lw_surface_selected">#1A2030</color>
+    <color name="lw_ink">#E9ECF4</color>
+    <color name="lw_ink_muted">#8D96AA</color>
+    <color name="lw_ink_faint">#636B80</color>
+    <color name="lw_ink_inverted">#06070B</color>
+    <color name="lw_line">#1C2130</color>
+    <color name="lw_line_strong">#2A3144</color>
+    <color name="lw_positive">#44FF9A</color>
+    <color name="lw_positive_ink">#44FF9A</color>
+    <color name="lw_live">#44B0FF</color>
+    <color name="lw_live_ink">#44B0FF</color>
+    <color name="lw_attention">#FFC247</color>
+    <color name="lw_attention_ink">#FFC247</color>
+    <color name="lw_negative">#FF6644</color>
+    <color name="lw_dot">#14E9ECF4</color>
+    <color name="ripple">#1FE9ECF4</color>
+    <color name="lw_negative_ink">#FF7F61</color>
+</resources>

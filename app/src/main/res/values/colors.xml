@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Live Wire, the web app's design tokens (app/assets/tailwind/base/tokens.css
+  in the Rails app), light theme. values-night holds the dark theme. Keep the
+  two in step with the web: the native bars sit right against web content.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedResources">
+    <color name="lw_canvas">#F3F5F9</color>
+    <color name="lw_canvas_sunken">#EAEEF4</color>
+    <color name="lw_surface">#FFFFFF</color>
+    <color name="lw_surface_raised">#FFFFFF</color>
+    <color name="lw_surface_hover">#F1F4F8</color>
+    <color name="lw_surface_selected">#E7EBF2</color>
+    <color name="lw_ink">#0A0D14</color>
+    <color name="lw_ink_muted">#5A6374</color>
+    <color name="lw_ink_faint">#7C8599</color>
+    <color name="lw_ink_inverted">#FFFFFF</color>
+    <color name="lw_line">#D6DCE7</color>
+    <color name="lw_line_strong">#C3CBDA</color>
+    <color name="lw_positive">#13C977</color>
+    <color name="lw_positive_ink">#0A8A50</color>
+    <color name="lw_live">#1E8FE6</color>
+    <color name="lw_live_ink">#1569B5</color>
+    <color name="lw_attention">#D99A06</color>
+    <color name="lw_attention_ink">#8A5F00</color>
+    <color name="lw_negative">#F0552F</color>
+    <color name="lw_dot">#1A0A0D14</color>
+    <color name="ripple">#1A0A0D14</color>
+    <color name="lw_negative_ink">#C93A17</color>
+
+    <!-- The canvas of each theme, for browser tabs that pick their own. -->
+    <color name="lw_canvas_light_mode">#F3F5F9</color>
+    <color name="lw_canvas_dark_mode">#06070B</color>
+
+    <!-- The mark's own colors, the same in both themes. -->
+    <color name="mark_bubble">#FFFFFF</color>
+    <color name="mark_scribble">#000000</color>
+    <color name="icon_background">#06070B</color>
+</resources>

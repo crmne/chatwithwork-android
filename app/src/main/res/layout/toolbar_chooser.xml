@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The organization switcher in the top app bar: the current one and a chevron. -->
+<com.google.android.material.button.MaterialButton xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Widget.ChatWithWork.ToolbarChooser"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content" />

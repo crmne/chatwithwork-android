@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <queries>
+        <!-- Browsers that can show Custom Tabs, for sign-ins and links out. -->
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+    </queries>
+
+    <!--
+      No backups: the web view's cookies hold the session, and restoring them
+      on another phone would sign it in without the person.
+    -->
+    <application
+        android:name=".ChatWithWorkApplication"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:enableOnBackInvokedCallback="true"
+        android:fullBackupContent="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.ChatWithWork"
+        tools:targetApi="36">
+
+        <!--
+          singleTask: links from notifications, app links, and the end of a
+          browser sign-in come back to the running activity (onNewIntent),
+          which also clears the browser tab off the top.
+          Rotation and keyboard changes keep the web views; a light or dark
+          switch recreates the activity, so every bar takes the new colors.
+        -->
+        <activity
+            android:name=".main.MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.ChatWithWork.Starting"
+            android:windowSoftInputMode="adjustResize">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+              App links: the app's own pages open here instead of the
+              browser, once the site's assetlinks.json names this app. Only
+              pages inside the app: marketing pages stay in the browser.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" />
+                <data android:host="${appLinkHost}" />
+
+                <data android:path="/chats" />
+                <data android:pathPrefix="/chats/" />
+                <data android:path="/projects" />
+                <data android:pathPrefix="/projects/" />
+                <data android:path="/settings" />
+                <data android:pathPrefix="/settings/" />
+                <data android:pathPattern="/.*/chats" />
+                <data android:pathPattern="/.*/chats/.*" />
+                <data android:pathPattern="/.*/projects" />
+                <data android:pathPattern="/.*/projects/.*" />
+                <data android:pathPattern="/.*/settings" />
+                <data android:pathPattern="/.*/settings/.*" />
+                <data android:pathPattern="/.*/join/.*" />
+                <data android:path="/accounts" />
+                <data android:pathPrefix="/accounts/" />
+                <data android:path="/device" />
+                <data android:pathPattern="/.*/device" />
+                <data android:pathPrefix="/invitations/" />
+                <data android:pathPrefix="/shared/" />
+                <data android:pathPrefix="/users/password/edit" />
+                <data android:pathPrefix="/users/confirmation" />
+            </intent-filter>
+
+            <!-- The end of a sign-in in the browser: chatwithwork://... (as on iOS). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="chatwithwork" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".push.PushMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Nothing talks to Firebase until the person turns notifications on. -->
+        <meta-data
+            android:name="firebase_messaging_auto_init_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="firebase_analytics_collection_deactivated"
+            android:value="true" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="approvals" />
+
+    </application>
+
+</manifest>

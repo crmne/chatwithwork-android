@@ -1,0 +1,85 @@
+{
+  "settings": {},
+  "rules": [
+    {
+      "patterns": [
+        ".*"
+      ],
+      "properties": {
+        "context": "default",
+        "uri": "hotwire://fragment/web",
+        "pull_to_refresh_enabled": true
+      }
+    },
+    {
+      "patterns": [
+        "/new(\\?|$)",
+        "/edit(\\?|$)"
+      ],
+      "properties": {
+        "context": "modal",
+        "uri": "hotwire://fragment/web/modal",
+        "pull_to_refresh_enabled": false
+      }
+    },
+    {
+      "patterns": [
+        "^/users/sign_in(\\?|$)",
+        "^/users/sign_up(\\?|$)",
+        "^/users(\\?|$)",
+        "^/users/password(/new|/edit)?(\\?|$)",
+        "^/users/confirmation(/new|/sent)?(\\?|$)",
+        "^/users/unlock(/new)?(\\?|$)"
+      ],
+      "properties": {
+        "context": "modal",
+        "uri": "hotwire://fragment/web/modal",
+        "pull_to_refresh_enabled": false
+      }
+    },
+    {
+      "patterns": [
+        "/chats/new(\\?|$)"
+      ],
+      "properties": {
+        "context": "modal",
+        "uri": "hotwire://fragment/web/modal",
+        "pull_to_refresh_enabled": false
+      }
+    },
+    {
+      "patterns": [
+        "/chats/\\d+(\\?|#|$)",
+        "^/shared/"
+      ],
+      "properties": {
+        "context": "default",
+        "pull_to_refresh_enabled": false
+      }
+    },
+    {
+      "patterns": [
+        "/chats(\\?|$)",
+        "/projects(\\?|$)",
+        "/settings(\\?|$)"
+      ],
+      "properties": {
+        "context": "default",
+        "pull_to_refresh_enabled": true
+      }
+    },
+    {
+      "patterns": [
+        "^/rails/active_storage/",
+        "^/$",
+        "^/(pricing|security|self-hosted|imprint|privacy-policy|terms-of-service|survey)(\\?|$)",
+        "^/(compare|use-cases|integrations)(/|\\?|$)",
+        "^/(robots\\.txt|llms\\.txt|llms-full\\.txt|sitemap\\.xml)(\\?|$)"
+      ],
+      "properties": {
+        "presentation": "none",
+        "open_in_browser": true
+      }
+    }
+  ]
+}

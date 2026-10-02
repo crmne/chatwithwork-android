@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The bottom bar: the sunken canvas with a hairline on top, like the web's panels. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <color android:color="?attr/colorOutlineVariant" />
+    </item>
+    <item android:top="1dp">
+        <color android:color="?attr/colorSurfaceContainer" />
+    </item>
+</layer-list>

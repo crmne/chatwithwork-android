@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- The mark and logotype are long paths drawn once; they're fine. -->
+    <issue id="VectorPath" severity="ignore" />
+    <!-- Library versions are pinned on purpose and bumped deliberately. -->
+    <issue id="GradleDependency" severity="informational" />
+    <issue id="NewerVersionAvailable" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="informational" />
+    <!--
+      The launcher icons live in mipmap-anydpi-v26 although minSdk is 28:
+      Joe Masilotti's bridge-components AAR ships its demo app's icons there,
+      and only the same folder name lets the app's own override them.
+    -->
+    <issue id="ObsoleteSdkInt">
+        <ignore path="src/main/res/mipmap-anydpi-v26" />
+    </issue>
+</lint>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Text actions in the top app bar ("Save"): ink, faded while the form submits. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:alpha="0.38" android:color="@color/lw_ink" android:state_enabled="false" />
+    <item android:color="@color/lw_ink" />
+</selector>

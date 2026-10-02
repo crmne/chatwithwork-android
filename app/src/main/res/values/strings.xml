@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name" translatable="false">Chat with Work</string>
+
+    <!-- Tabs -->
+    <string name="tab_chats">Chats</string>
+    <string name="tab_projects">Projects</string>
+    <string name="tab_settings">Settings</string>
+    <string name="new_chat">New chat</string>
+
+    <!-- Toolbar actions -->
+    <string name="share">Share</string>
+    <string name="copied">Copied</string>
+    <string name="selected">Selected</string>
+    <string name="close">Close</string>
+    <string name="menu">Menu</string>
+
+    <!-- Signed out -->
+    <string name="welcome_tagline">Private AI search for your work.</string>
+    <string name="sign_up">Create an account</string>
+
+    <!-- States the native screens draw -->
+    <string name="signed_out_title">Sign in to Chat with Work</string>
+    <string name="signed_out_message">Ask about your documents, mail, and chats, wherever they live.</string>
+    <string name="sign_in">Sign in</string>
+    <string name="offline_title">You\'re offline</string>
+    <string name="offline_message">Check your connection, then try again.</string>
+    <string name="error_title">This page didn\'t load</string>
+    <string name="error_message">Something went wrong on our side. Try again in a moment.</string>
+    <string name="not_found_title">Nothing here</string>
+    <string name="not_found_message">This page doesn\'t exist, or you don\'t have access to it.</string>
+    <string name="try_again">Try again</string>
+    <string name="error_code">Error %1$d</string>
+    <string name="external_link_failed">No app on this phone can open that link.</string>
+    <string name="sign_in_interrupted">Signing in didn\'t finish. Try again.</string>
+
+    <!-- Hotwire Native's own strings, in our words. -->
+    <string name="hotwire_error_message" tools:ignore="UnusedResources">This page didn\'t load</string>
+    <string name="hotwire_dialog_ok" tools:ignore="UnusedResources">OK</string>
+    <string name="hotwire_dialog_cancel" tools:ignore="UnusedResources">Cancel</string>
+
+    <!-- Notifications -->
+    <string name="channel_approvals">Approvals and questions</string>
+    <string name="channel_approvals_description">A change the assistant wants to make is waiting for your approval, or a service is asking you something.</string>
+    <string name="push_approval_body">A change is waiting for your approval.</string>
+    <string name="push_input_body">A question is waiting for your answer.</string>
+</resources>

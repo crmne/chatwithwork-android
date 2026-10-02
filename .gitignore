@@ -1,0 +1,23 @@
+# Gradle and Android Studio
+.gradle/
+build/
+/local.properties
+/.idea/
+*.iml
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Secrets never live in this public repository: signing keys, their
+# passwords, and the Firebase configuration are supplied by the machine that
+# builds a release (see README.md).
+*.jks
+*.keystore
+*.p12
+*.pem
+keystore.properties
+google-services.json
+app/google-services.json
+
+.DS_Store
