@@ -88,8 +88,12 @@ flashes as toasts). What differs on Android:
 
 ## 3. The stylesheet
 
-Copy the iOS repository's `web/native.css` as the iOS contract says. Add,
-for Android:
+Copy the iOS repository's `web/native.css` as the iOS contract says. It
+hides, in the apps, `.native-hidden`, the drawer toggle
+(`.app-main__toggle`), the staging band (`.environment-label`), tooltips
+(`.tooltip`'s bubbles), and keyboard-shortcut hints (`.kbd-hint`, such as
+the composer's "⌘ /" or "Ctrl /"), which mean nothing on a touch screen.
+Add, for Android:
 
 ```css
 @layer components {
@@ -279,7 +283,9 @@ the apps. On Android:
   Share link, Rename, Move to project and Delete are in its overflow menu,
   Delete in red, behind the native confirm. A message's "More actions"
   button opens the context menu as a popup at the button. The approval and
-  composer haptics vibrate as in the table above.
+  composer haptics vibrate as in the table above. The composer's
+  keyboard-shortcut hint (`.kbd-hint`, "⌘ /" or "Ctrl /") stays in the
+  markup: native.css hides it in the apps, where it means nothing.
 - **New chat** (`chats/new`): a full-screen modal with a close button.
   After the first message the server redirects to the new chat: the app
   closes the modal and pushes the chat in Chats.
