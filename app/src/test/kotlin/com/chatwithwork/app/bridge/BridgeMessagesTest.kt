@@ -87,6 +87,20 @@ class BridgeMessagesTest {
     }
 
     @Test
+    fun `context menu copy items may carry the answer as html`() {
+        val items =
+            json.decodeFromString<ContextMenuComponent.Data>(
+                """{"items":[{"title":"Copy","copy":"**Hi**","copyHtml":"<p><strong>Hi</strong></p>"},{"title":"Copy","copy":"Plain"},{"title":"Retry"}]}"""
+            ).items
+        assertThat(items[0].copyText).isEqualTo("**Hi**")
+        assertThat(items[0].copyHtml).isEqualTo("<p><strong>Hi</strong></p>")
+        // Older payloads, and readers who copy Markdown, send no html.
+        assertThat(items[1].copyText).isEqualTo("Plain")
+        assertThat(items[1].copyHtml).isNull()
+        assertThat(items[2].copyText).isNull()
+    }
+
+    @Test
     fun `auth session takes a url and replies with the callback or an error`() {
         val request = json.decodeFromString<AuthSessionComponent.Request>(
             """{"url":"/native/handoffs/abc","ephemeral":true}"""

@@ -32,7 +32,7 @@ import kotlinx.serialization.Serializable
  * contract as the iOS app's component:
  *
  * - Web to native: `show` with `{items: [{title, iosImage?, androidImage?,
- *   destructive?, disabled?, copy?}], rect: {x, y, width, height},
+ *   destructive?, disabled?, copy?, copyHtml?}], rect: {x, y, width, height},
  *   scroll?: {x, y}, title?}`. `rect` is the anchor's
  *   `getBoundingClientRect()` in CSS pixels; `scroll` is for iOS and ignored
  *   here.
@@ -41,7 +41,9 @@ import kotlinx.serialization.Serializable
  *
  * An item with `copy` text is copied here, with Android's clipboard, and gets
  * no reply: a page can't write the clipboard from a callback that no tap of
- * its own started.
+ * its own started. With `copyHtml` too (an answer rendered as HTML), the clip
+ * carries both, so rich editors paste the formatting and plain ones the
+ * Markdown.
  *
  * With a rect, it's a Material popup menu at the element, the way Android
  * shows an item's overflow. Without one (a long press has no button to
@@ -148,15 +150,15 @@ class ContextMenuComponent(name: String, private val bridgeDelegate: BridgeDeleg
     }
 
     private fun choose(item: Item, index: Int) {
-        val copy = item.copyText
-        if (copy == null) {
+        val clip = item.clip()
+        if (clip == null) {
             replyTo("show", Selection(index))
             return
         }
 
         val activity = bridgeDelegate.destination.fragment.activity ?: return
         val clipboard = activity.getSystemService<ClipboardManager>() ?: return
-        clipboard.setPrimaryClip(ClipData.newPlainText(item.title, copy))
+        clipboard.setPrimaryClip(clip)
         // Android 13 and later confirm a copy themselves.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             (activity as? SnackbarHost)?.showSnackbar(activity.getString(R.string.copied))
@@ -182,9 +184,21 @@ class ContextMenuComponent(name: String, private val bridgeDelegate: BridgeDeleg
         val destructive: Boolean? = null,
         val disabled: Boolean? = null,
         @SerialName("copy") val copyText: String? = null,
+        /** The answer as HTML, copied beside [copyText] when present. */
+        @SerialName("copyHtml") val copyHtml: String? = null,
         /** A stable name for the action, for native code that needs one; never the title. */
         val nativeAction: String? = null
-    )
+    ) {
+        /** The clip for a copy item: HTML and text together when there's HTML; null for other items. */
+        fun clip(): ClipData? {
+            val text = copyText ?: return null
+            return if (copyHtml != null) {
+                ClipData.newHtmlText(title, text, copyHtml)
+            } else {
+                ClipData.newPlainText(title, text)
+            }
+        }
+    }
 
     @Serializable
     data class Rect(val x: Double, val y: Double, val width: Double, val height: Double)
