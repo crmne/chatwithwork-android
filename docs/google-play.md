@@ -85,8 +85,9 @@ with the iOS repository's `script/frame-screenshots.mjs` and its captions.
 - **News app:** no. **Government app:** no. **Financial features:** none.
   **Health:** no.
 - **Account deletion:** yes, in the app (Settings > Account > Delete
-  account), and the web link https://chatwithwork.com/privacy-policy#7-retention
-  until there's a page of its own with the steps.
+  account), and the web link https://chatwithwork.com/account-deletion, which
+  gives the steps, what's deleted at once and after 30 days, what stays, and
+  how to ask by email without signing in.
 
 ## Data safety
 
