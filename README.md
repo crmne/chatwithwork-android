@@ -69,6 +69,21 @@ Push notifications need `app/google-services.json` from the Firebase
 project (git-ignored; see [docs/push-notifications.md](docs/push-notifications.md)).
 Without it the app builds and runs, with push off.
 
+## Permissions
+
+| Permission | Why |
+|---|---|
+| `INTERNET` | the server |
+| `POST_NOTIFICATIONS` | push notifications, asked for when the person turns them on ([docs/push-notifications.md](docs/push-notifications.md)) |
+| `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS` | dictation: the composer's microphone records in the page (`getUserMedia`) |
+
+The web view gets the microphone only for pages on the build's own server,
+and nothing else: `AppWebChromeClient` (`fragments/AppWebChromeClient.kt`)
+denies the camera and any other site, such as an MCP App's frame, and
+hands the rest to Hotwire Native, which asks Android for `RECORD_AUDIO` the
+first time someone dictates. The microphone is optional hardware, so
+devices without one can still install the app.
+
 ## Signing
 
 This repository is public: keystores, `google-services.json` and keys never

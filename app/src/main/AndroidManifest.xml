@@ -4,6 +4,17 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!--
+      Dictation in the composer: the page records with getUserMedia. Android
+      asks for the microphone the first time; the web view needs
+      MODIFY_AUDIO_SETTINGS (granted at install) to pick the input.
+    -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Not every tablet or Chromebook has one; the app works without it. -->
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
 
     <queries>
         <!-- Browsers that can show Custom Tabs, for sign-ins and links out. -->

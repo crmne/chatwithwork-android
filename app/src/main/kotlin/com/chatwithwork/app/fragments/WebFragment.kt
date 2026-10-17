@@ -14,6 +14,7 @@ import dev.hotwire.core.turbo.config.title
 import dev.hotwire.core.turbo.errors.HttpError
 import dev.hotwire.core.turbo.errors.VisitError
 import dev.hotwire.core.turbo.nav.PresentationContext
+import dev.hotwire.core.turbo.webview.HotwireWebChromeClient
 import dev.hotwire.navigation.destinations.HotwireDestination
 import dev.hotwire.navigation.destinations.HotwireDestinationDeepLink
 import dev.hotwire.navigation.fragments.HotwireWebFragment
@@ -71,6 +72,8 @@ open class WebFragment : HotwireWebFragment() {
 
     // The bar shows the page's own name, tidied (see onViewCreated).
     override fun shouldObserveTitleChanges(): Boolean = false
+
+    override fun createWebChromeClient(): HotwireWebChromeClient = AppWebChromeClient(navigator.session)
 
     @SuppressLint("InflateParams") // Hotwire Native adds it to its own container.
     override fun createProgressView(location: String): View = layoutInflater.inflate(R.layout.view_progress, null)
