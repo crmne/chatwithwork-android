@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Creates the Google Play upload key once and keeps it in 1Password, never on
+# disk: a PKCS12 keystore with one RSA key (alias "upload"), in the item
+# "Android upload key" of the chatwithwork vault, with its password.
+#
+#   script/upload-key
+#
+# Google Play signs what it distributes with its own app signing key (Play
+# App Signing). This key only signs uploads, and Play support can reset it
+# if it's ever lost. /.well-known/assetlinks.json names the app signing
+# key's fingerprint, from Play Console > Test and release > App integrity,
+# not this one.
+set -euo pipefail
+
+vault="${VAULT:-chatwithwork}"
+item="Android upload key"
+
+if op item get "$item" --vault "$vault" >/dev/null 2>&1; then
+  echo "\"$item\" is already in 1Password ($vault). Not making another." >&2
+  exit 1
+fi
+
+dir="$(mktemp -d)"
+trap 'rm -rf "$dir"' EXIT
+chmod 700 "$dir"
+
+UPLOAD_KEY_PASSWORD="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | cut -c1-32)"
+export UPLOAD_KEY_PASSWORD
+
+keytool -genkeypair -keystore "$dir/upload.jks" -storetype PKCS12 \
+  -alias upload -keyalg RSA -keysize 4096 -validity 10000 \
+  -storepass:env UPLOAD_KEY_PASSWORD -keypass:env UPLOAD_KEY_PASSWORD \
+  -dname "CN=Chat with Work, O=PlentyLabs UG (haftungsbeschraenkt) und Co. KG, L=Berlin, C=DE"
+
+fingerprint="$(keytool -list -v -keystore "$dir/upload.jks" -storepass:env UPLOAD_KEY_PASSWORD -alias upload |
+  awk '/SHA256:/ { print $2; exit }')"
+
+# The password goes in through a template file only this user can read, so
+# it's never on a command line.
+umask 077
+cat > "$dir/item.json" <<JSON
+{
+  "title": "$item",
+  "category": "SECURE_NOTE",
+  "fields": [
+    { "id": "password", "label": "password", "type": "CONCEALED", "value": "$UPLOAD_KEY_PASSWORD" },
+    { "id": "alias", "label": "alias", "type": "STRING", "value": "upload" },
+    { "id": "sha256", "label": "sha256", "type": "STRING", "value": "$fingerprint" },
+    { "id": "notesPlain", "label": "notesPlain", "type": "STRING", "purpose": "NOTES",
+      "value": "Google Play upload key for com.chatwithwork.app (chatwithwork-android, script/upload-key). The keystore and key share the password." }
+  ]
+}
+JSON
+op item create --vault "$vault" --template "$dir/item.json" "upload.jks[file]=$dir/upload.jks" >/dev/null
+
+echo "Saved \"$item\" in 1Password ($vault)."
+echo "Upload key SHA-256: $fingerprint"

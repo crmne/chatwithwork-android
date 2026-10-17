@@ -166,6 +166,12 @@ to Google Play:
 ./gradlew bundleRelease -PversionName=1.2.3 -PversionCode=10203
 ```
 
+`script/bundle-release v1.2.3` does both, with the upload key from
+1Password (`script/upload-key` makes it once).
+[docs/google-play.md](docs/google-play.md) has the rest: the listing and
+screenshots in `fastlane/`, the Data safety answers, the content rating,
+and the demo login for review.
+
 ## Third-party assets
 
 - [Geist](https://vercel.com/font) by Vercel, under the SIL Open Font
