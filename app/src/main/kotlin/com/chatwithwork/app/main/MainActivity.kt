@@ -141,7 +141,7 @@ class MainActivity :
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
         enableEdgeToEdge()
-        val link = takeLink(intent)
+        val link = takeLink(intent, restored = savedInstanceState != null)
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // The bottom bar and the canvas give the navigation buttons their
@@ -594,12 +594,11 @@ class MainActivity :
      * Takes the link an intent carries, if it's one of ours, and removes it
      * from the intent so the Navigation library doesn't act on it too.
      */
-    private fun takeLink(intent: Intent?): String? {
+    private fun takeLink(intent: Intent?, restored: Boolean = false): String? {
         intent ?: return null
-        if (intent.action != Intent.ACTION_VIEW) return null
-        val url = intent.dataString ?: return null
-        intent.data = null
-        return url.takeIf { AppUrls.isAppUrl(it) || AppUrls.isAuthCallback(it) }
+        val link = LaunchLinks.from(intent.action, intent.dataString, intent.flags, restored)
+        if (intent.action == Intent.ACTION_VIEW) intent.data = null
+        return link
     }
 
     private fun open(url: String) {
@@ -663,12 +662,9 @@ class MainActivity :
 
     /** Opens the waiting link in [navigator] if it belongs there and the navigator can take it. */
     private fun openPendingLink(navigator: Navigator) {
-        val url = viewModel.pendingLink ?: return
+        val ready = navigator.isReady() && navigator.currentDestination?.fragment?.view != null
+        val url = viewModel.takePendingLink(navigator.configuration.name, ready, currentTab) ?: return
         val tab = MainTab.forUrl(url) ?: currentTab
-        if (navigator.configuration.name != tab.configuration.name) return
-        if (!navigator.isReady() || navigator.currentDestination?.fragment?.view == null) return
-
-        viewModel.pendingLink = null
         if (tab != currentTab) tabs.selectTab(tab.ordinal)
         navigator.route(url, VisitOptions())
     }

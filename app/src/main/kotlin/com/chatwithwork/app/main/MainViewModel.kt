@@ -25,6 +25,19 @@ class MainViewModel : ViewModel() {
     /** A link to open once its tab (and the session) is ready. */
     var pendingLink: String? = null
 
+    /**
+     * The waiting link, taken if it opens in [navigatorName]'s tab and that
+     * navigator can show it now ([navigatorReady]); otherwise it keeps
+     * waiting for the tab's first page (a cold start from a notification).
+     */
+    fun takePendingLink(navigatorName: String, navigatorReady: Boolean, currentTab: MainTab): String? {
+        val url = pendingLink ?: return null
+        val tab = MainTab.forUrl(url) ?: currentTab
+        if (navigatorName != tab.configuration.name || !navigatorReady) return null
+        pendingLink = null
+        return url
+    }
+
     private val createdAt = SystemClock.elapsedRealtime()
     var firstPageShown = false
 
