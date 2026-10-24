@@ -240,6 +240,8 @@ class MainActivity :
         memory.hiddenTabs.mapNotNull { key -> MainTab.entries.firstOrNull { it.key == key } }
             .forEach { tabs.setHidden(it.shellTab, true) }
         tabs.load(viewModel.selectedTab.shellTab)
+        // A hidden tab can't be the one showing.
+        viewModel.selectedTab = MainTab.forShellTab(tabs.selected)
         tabs.onTabSelected = { tab ->
             viewModel.selectedTab = MainTab.forShellTab(tab)
             updateChrome()
