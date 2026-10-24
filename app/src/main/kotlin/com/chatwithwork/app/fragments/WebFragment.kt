@@ -18,6 +18,9 @@ import dev.hotwire.core.turbo.webview.HotwireWebChromeClient
 import dev.hotwire.navigation.destinations.HotwireDestination
 import dev.hotwire.navigation.destinations.HotwireDestinationDeepLink
 import dev.hotwire.navigation.fragments.HotwireWebFragment
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * A page in a tab: the native top app bar over the shared web view.
@@ -88,6 +91,15 @@ open class WebFragment : HotwireWebFragment() {
     override fun onVisitCompleted(location: String, completedOffline: Boolean) {
         super.onVisitCompleted(location, completedOffline)
         host?.onVisitCompleted(this, location)
+        readNativeTabs()
+    }
+
+    /** The tabs the page says the person may use (its native-tabs meta tag; a guest has no Bots). */
+    private fun readNativeTabs() {
+        navigator.session.webView.evaluateJavascript(NATIVE_TABS_SCRIPT) { result ->
+            val content = runCatching { Json.parseToJsonElement(result).jsonPrimitive.contentOrNull }.getOrNull()
+            if (content != null) host?.onTabsNamed(content)
+        }
     }
 
     override fun onVisitErrorReceived(location: String, error: VisitError) {
@@ -104,6 +116,8 @@ open class WebFragment : HotwireWebFragment() {
         get() = activity as? WebScreenHost
 }
 
+private const val NATIVE_TABS_SCRIPT = "document.querySelector('meta[name=\"native-tabs\"]')?.content ?? null"
+
 /**
  * A page presented over the tabs: new chat, signing in. It slides up, has a
  * close button, and hides the bottom bar.
@@ -119,4 +133,7 @@ interface WebScreenHost {
     fun onSignedOut(destination: HotwireDestination)
 
     fun presentSignIn()
+
+    /** A page's native-tabs meta tag, like "chats bots settings". */
+    fun onTabsNamed(content: String)
 }

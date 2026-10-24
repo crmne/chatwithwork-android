@@ -39,6 +39,8 @@ class PathConfigurationTest {
             assertThat(it["pull_to_refresh_enabled"]).isEqualTo(true)
         }
         assertThat(properties("/projects")["pull_to_refresh_enabled"]).isEqualTo(true)
+        assertThat(properties("/482139075/bots")["pull_to_refresh_enabled"]).isEqualTo(true)
+        assertThat(properties("/482139075/bots/new")["context"]).isEqualTo("modal")
         assertThat(properties("/482139075/projects/3")["context"]).isEqualTo("default")
     }
 

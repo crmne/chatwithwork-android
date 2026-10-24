@@ -21,7 +21,7 @@ version it.
 
 | Step | What | Android needs |
 |---|---|---|
-| 1 | [Recognize the apps](#1-recognize-the-apps), [layout](#2-the-layout-in-the-apps), [native.css](#3-the-stylesheet) | the iOS steps, plus `overflow-x: clip` and room under the floating button |
+| 1 | [Recognize the apps](#1-recognize-the-apps), [layout](#2-the-layout-in-the-apps), [native.css](#3-the-stylesheet) | the iOS steps, plus `overflow-x: clip`, the tabs to show, and room under the floating toolbar |
 | 2 | [Authentication](#4-authentication) | nothing beyond iOS |
 | 3 | [Path configuration](#5-path-configuration) | `public/configurations/android_v1.json` |
 | 4 | [Bridge components](#6-bridge-components), [page by page](#7-page-by-page) | nothing beyond iOS: the same controllers drive both apps |
@@ -67,11 +67,25 @@ Everything in the iOS contract's section 2 applies (`data-native-app` on
 document scrolls, no environment label, `bridge--confirm` on `<body>`,
 flashes as toasts). What differs on Android:
 
-- **The page sits between the bars.** The app puts the web view below its
-  top app bar and above the bottom bar (or the gesture bar, on pushed
-  screens), and moves it above the keyboard. `env(safe-area-inset-*)` is 0
+- **The tabs float.** The app's tabs are Chats, Bots and Settings in
+  Material 3's floating toolbar, with New chat as a floating button beside
+  it (iOS keeps Chats, Projects and Settings). Projects open in Chats,
+  whose list switcher picks them (section 7). The toolbar shows on a tab's
+  first page and hides on pushed pages, in modals and under the keyboard.
+- **The page sits under the top app bar, above the gesture bar.** The app
+  puts the web view below its top app bar and above the gesture bar, and
+  moves it above the keyboard. On a tab's first page the page scrolls under
+  the floating toolbar, so it leaves room for it (section 3). `env(safe-area-inset-*)` is 0
   in the Android web view: don't pad for it. `viewport-fit=cover` makes no
   difference here.
+- **The tabs to show.** Every signed-in page names the tabs the person may
+  use: `<meta name="native-tabs" content="chats bots settings">`, without
+  `bots` for a guest (whom `/bots` refuses). The app hides the tabs a page
+  leaves out (Chats and Settings always show) and remembers that for the
+  next launch; a page without the tag hides nothing.
+- **A tab's first page says so**: `<body data-native-tab-root>` on Chats,
+  Bots and Settings' list of sections (`content_for :native_tab_root`), for
+  the stylesheet's room under the toolbar.
 - **Titles.** The app shows `<title>` in its top app bar. Until the server
   sends bare titles, the app strips a leading `Staging · ` or
   `Development · ` and a trailing ` | Chat with Work` itself, but the
@@ -103,19 +117,20 @@ Add, for Android:
     overflow-x: clip;
   }
 
-  /* On Android, a list's primary action (New chat, New project) floats at
-     the bottom right, above the bottom bar: leave room for it under the
-     last row. */
-  html[data-bridge-platform="android"] :is(.chat-history, .page):has([data-controller~="bridge--button"]) {
-    padding-block-end: 6rem;
+  /* On Android, a tab's first page (Chats, Bots, Settings) scrolls under
+     the floating toolbar and New chat beside it: leave room for them under
+     the last row (64px of toolbar, 16px above it and below). */
+  html[data-bridge-platform="android"] body[data-native-tab-root] .native-main {
+    padding-block-end: 6.5rem;
   }
 }
 ```
 
-The second rule gives the Chats list (`.chat-history`) and the Projects
-list (`.page`), whose `button` becomes the floating button (section 7),
-room under their last row. A project's page matches too; the extra space
-at its end does no harm.
+The second rule gives each tab's first page room under its last row for
+the toolbar. Pages pushed on top have no toolbar and get none.
+
+In the apps, only a chat opens at its end (the scroll controller's
+`opensAtEnd`, for `body.chat-view`); every other page opens at its top.
 
 ## 4. Authentication
 
@@ -182,7 +197,7 @@ unless written with `^`):
       "properties": { "context": "default", "pull_to_refresh_enabled": false }
     },
     {
-      "patterns": ["/chats(\\?|$)", "/projects(\\?|$)", "/settings(\\?|$)"],
+      "patterns": ["/chats(\\?|$)", "/projects(\\?|$)", "/bots(\\?|$)", "/settings(\\?|$)"],
       "properties": { "context": "default", "pull_to_refresh_enabled": true }
     },
     {
@@ -230,12 +245,12 @@ draws each one its own way:
 
 | Component | On Android |
 |---|---|
-| `button` | On a tab's first page (the Chats list, the Projects list) the page's button is the **floating action button** above the bottom bar, with its `title` and `androidImage`. Elsewhere it's an icon in the top app bar (its `title` is the tooltip and accessibility label), or a text action without an image. `left` buttons join the right side, since Android keeps the left for back and close. |
+| `button` | An icon in the top app bar (its `title` is the tooltip and accessibility label), or a text action without an image. `left` buttons join the right side, since Android keeps the left for back and close. On a tab's first page, a button with `nativeAction: "new-chat"` (the Chats list's New chat) is left out: the floating New chat beside the tabs does it. |
 | `menu` | The page's actions in the **overflow menu** (the three dots): `destructive` items in red, `checked` items with a check. A menu with `side: "left"` or a `header` is a chooser, as on iOS (the organization switcher): a button in the top app bar showing its `label` and a chevron, which opens a sheet titled with its `header`, the `checked` item marked. `iosImage` is ignored. |
 | `search` | Joe Masilotti's component: a search action in the top app bar that opens a search field there, replying `{query}` on every change. |
 | `form` | The submit as a text action in the top app bar ("Save", "Create"), faded and disabled between `disableSubmit` and `enableSubmit`. |
 | `share` | `connect` adds a share icon to the top app bar; `share` opens Android's share sheet at once. The reply is `{completed, activityType}`: `completed` is whether an app was picked, `activityType` that app's package name (`com.google.android.gm`). |
-| `toast` | A snackbar above the bottom bar or the floating button; `alert` and `error` stay up longer. |
+| `toast` | A snackbar above the floating toolbar when it shows; `alert` and `error` stay up longer. |
 | `haptic` | `success` confirms, `warning` and `error` reject, `selection` ticks, `light` and `soft` tick lightly, `medium` and `rigid` tap, `heavy` presses long. Android's touch feedback setting applies. |
 | `alert` | A Material dialog: `title`, `description` as its message, `dismiss` and `confirm` buttons, the confirm in red when `destructive`. |
 | `theme` | Accepted: `light` or `dark` would set the whole app's appearance (remembered across launches), `null` follows the system. Not used yet, as on iOS. |
@@ -266,19 +281,28 @@ way):
   and may be translated. Where native code must recognize an action, the
   payload names it in `nativeAction` (`data-bridge-native-action`), a
   stable kebab-case name such as `new-chat`, listed in the contract. The
-  Android app accepts `nativeAction` but needs none today: the floating
-  button is chosen by where the button is (a tab's first page), menus and
-  alerts answer by index, and sign-out is recognized by its redirect to
-  `/users/sign_in`, not by a button's label.
+  Android app reads one today: `new-chat` on the Chats list's `button`,
+  which it leaves to its floating button. Menus and alerts answer by index,
+  and sign-out is recognized by its redirect to `/users/sign_in`, not by a
+  button's label.
 
 ## 7. Page by page
 
 The iOS contract's section 7 is the source for what each page renders in
 the apps. On Android:
 
-- **Chats** (`chats/index`): New chat (`bridge--button`, `edit_square`)
-  is the floating button. Search is in the top app bar. Leave room under
-  the last row (section 3).
+- **Chats** (`chats/index`): the floating New chat starts a chat; the
+  page's own New chat (`bridge--button`, `bridge_native_action: "new-chat"`)
+  stays out of the bar. Search is in the top app bar, and so is the **list
+  switcher**, the web sidebar's: a `bridge--menu` chooser
+  (`chats/_native_list_switcher`, `data-bridge-side="left"`,
+  `data-bridge-header="Show chats from"`, its `label` the list's name) with
+  Private chats (not for guests), All chats, and each project the person is
+  on (`ChatList.choices`), each a link to `chats_path(list:)` (`recent`, or
+  a project's number) with `data-turbo-action="replace"`, so the list is
+  replaced in place and the tab never stacks lists; then All projects… and
+  New project, which open on top. While the list shows a project
+  (`/chats?list=3`), New chat starts in it (`/chats/new?project_id=3`).
 - **A chat** (`chats/show`): New chat is an icon in the top app bar; Pin,
   Share link, Rename, Move to project and Delete are in its overflow menu,
   Delete in red, behind the native confirm. A message's "More actions"
@@ -289,9 +313,12 @@ the apps. On Android:
 - **New chat** (`chats/new`): a full-screen modal with a close button.
   After the first message the server redirects to the new chat: the app
   closes the modal and pushes the chat in Chats.
-- **Projects** (`projects/index`): New project (`add`) is the floating
-  button. A project's page shows its New chat in the top app bar and the
-  rest in the overflow menu.
+- **Bots** (`bots/index`): New bot (`add`) is in the top app bar. A bot,
+  its triggers (`/triggers/...`, once routines) and its conversations open
+  on top in the Bots tab.
+- **Projects** (`projects/index`, from the list switcher's All projects…):
+  pushed in Chats, New project (`add`) in the top app bar. A project's page
+  shows its New chat in the top app bar and the rest in the overflow menu.
 - **Settings**: `/settings` is the list of sections and `/settings?tab=...`
   is pushed over it with a back arrow, as on iOS. The organization switcher
   is the "Acme" button with a chevron in the top app bar; picking another
@@ -319,7 +346,7 @@ Links the app handles itself:
   `mailto:`, `tel:`, `sms:`, `geo:` and Play Store links go to their apps.
 - Files and the marketing site open in a Custom Tab (the path
   configuration's last rule).
-- A link to another tab's list (`/482139075/projects` from a chat) switches
+- A link to another tab's list (`/482139075/bots` from a chat) switches
   tabs instead of pushing a copy of the list.
 - A link into another organization rebuilds every tab inside it.
 - `notice` and `alert` on `/recede_historical_location`,

@@ -1,6 +1,5 @@
 package com.chatwithwork.app.bridge
 
-import android.graphics.drawable.Drawable
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
 import dev.hotwire.core.bridge.BridgeComponentFactory
@@ -15,13 +14,12 @@ import kotlinx.serialization.Serializable
  * as Joe Masilotti's component and the iOS app's (`left`, `right`,
  * `disconnect`), one button per page: a second one replaces the first.
  *
- * On a tab's first page (the chat list, the project list), the button is the
- * screen's primary action, so it becomes the floating action button above
- * the bottom bar ("New chat", "New project"), the way Android apps show it.
- * Everywhere else it's an action in the top app bar. Android has no left side
- * for actions (the navigation icon lives there), so a `left` button sits on
- * the right too. Where it goes depends on the page, never on its title,
- * which the server may translate.
+ * It's an action in the top app bar. Android has no left side for actions
+ * (the navigation icon lives there), so a `left` button sits on the right
+ * too. New chat (`nativeAction: "new-chat"`) is the exception on a tab's
+ * first page: the floating button beside the tabs already starts a chat, so
+ * the bar leaves it out. Where it goes depends on the page and the stable
+ * `nativeAction`, never on its title, which the server may translate.
  *
  * `androidImage` is a Material Symbols name; a `.fill` suffix
  * ("keep.fill", like iOS's "pin.fill") draws the filled symbol.
@@ -30,7 +28,6 @@ class ButtonComponent(name: String, delegate: BridgeDelegate<HotwireDestination>
     override val menuGroup = GROUP_BUTTON
 
     private var button: Message? = null
-    private var started = true
 
     override fun onReceive(message: Message) {
         when (message.event) {
@@ -45,24 +42,12 @@ class ButtonComponent(name: String, delegate: BridgeDelegate<HotwireDestination>
                 redraw()
             }
         }
-        if (toolbar == null) publishFloatingAction()
-    }
-
-    override fun onStart() {
-        started = true
-        publishFloatingAction()
-    }
-
-    override fun onStop() {
-        // A page that's no longer on screen gives up the floating button.
-        started = false
-        floatingActionHost?.setFloatingAction(destination.navigator.configuration.name, null)
     }
 
     override fun render(toolbar: Toolbar) {
-        if (publishFloatingAction()) return
         val message = button ?: return
         val data = message.data<Data>() ?: return
+        if (data.nativeAction == NEW_CHAT && isTabRoot()) return
 
         toolbar.menu.add(menuGroup, ITEM_ID, ORDER_BUTTON, data.title).apply {
             val symbol = SymbolDrawable.from(toolbar.context, data.image)
@@ -81,37 +66,7 @@ class ButtonComponent(name: String, delegate: BridgeDelegate<HotwireDestination>
         }
     }
 
-    /**
-     * Hands the button to the activity as the floating action when this page
-     * is a tab's first page. Returns whether it did.
-     */
-    private fun publishFloatingAction(): Boolean {
-        val host = floatingActionHost ?: return false
-        val navigator = destination.navigator
-        val name = navigator.configuration.name
-        val isTabRoot = !destination.isModal && navigator.isAtStartDestination()
-        val message = button
-        val data = message?.data<Data>()
-
-        if (!started || !isTabRoot || message == null || data == null) {
-            if (started && isTabRoot) host.setFloatingAction(name, null)
-            return false
-        }
-
-        val context = destination.fragment.context ?: return false
-        host.setFloatingAction(
-            name,
-            FloatingAction(
-                title = data.title,
-                icon = SymbolDrawable.from(context, data.image),
-                onClick = { replyWith(message) }
-            )
-        )
-        return true
-    }
-
-    private val floatingActionHost: FloatingActionHost?
-        get() = destination.fragment.activity as? FloatingActionHost
+    private fun isTabRoot(): Boolean = !destination.isModal && destination.navigator.isAtStartDestination()
 
     @Serializable
     data class Data(
@@ -125,15 +80,9 @@ class ButtonComponent(name: String, delegate: BridgeDelegate<HotwireDestination>
     companion object {
         private const val ITEM_ID = 0x0C300
 
+        /** The Chats list's New chat, which the floating button stands for on a tab's first page. */
+        const val NEW_CHAT = "new-chat"
+
         val factory = BridgeComponentFactory("button", ::ButtonComponent)
     }
-}
-
-/** A screen's primary action, shown as the floating action button. */
-class FloatingAction(val title: String, val icon: Drawable?, val onClick: () -> Unit)
-
-/** Implemented by the activity, which owns the floating action button. */
-interface FloatingActionHost {
-    /** Sets (or with null, clears) the floating action for a tab's first page. */
-    fun setFloatingAction(navigatorName: String, action: FloatingAction?)
 }

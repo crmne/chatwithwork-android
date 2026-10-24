@@ -61,6 +61,7 @@
       "patterns": [
         "/chats(\\?|$)",
         "/projects(\\?|$)",
+        "/bots(\\?|$)",
         "/settings(\\?|$)"
       ],
       "properties": {
