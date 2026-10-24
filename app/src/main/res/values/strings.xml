@@ -44,4 +44,8 @@
     <string name="channel_approvals_description">A change the assistant wants to make is waiting for your approval, or a service is asking you something.</string>
     <string name="push_approval_body">A change is waiting for your approval.</string>
     <string name="push_input_body">A question is waiting for your answer.</string>
+    <string name="notifications_offer_title">Turn on notifications?</string>
+    <string name="notifications_offer_message">Chat with Work lets you know when an answer is ready or a change waits for your approval. Notifications never show what you asked or what was answered.</string>
+    <string name="notifications_offer_continue">Continue</string>
+    <string name="notifications_offer_not_now">Not now</string>
 </resources>

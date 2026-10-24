@@ -117,7 +117,8 @@ payments policy.
 
 ## Permissions
 
-`INTERNET`; `POST_NOTIFICATIONS`, asked for from Settings > Notifications;
+`INTERNET`; `POST_NOTIFICATIONS`, asked for once after signing in (with a
+short explanation first) or from Settings > Notifications;
 `RECORD_AUDIO` (with `MODIFY_AUDIO_SETTINGS`, which the web view needs to
 record), asked for the first time someone taps the composer's microphone,
 and granted to the web view for the app's own server only. The microphone

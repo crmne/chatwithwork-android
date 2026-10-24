@@ -12,11 +12,23 @@ organization.
 
 ## What the app does
 
-- **Nothing until the person asks for it.** Firebase's token auto-init and
-  analytics are off in the manifest. The app registers with Firebase only
-  when a page asks for a token (`notification-token`'s `get`, from the
-  "Turn on" button in Settings › Notifications), after Android 13's
-  permission prompt where there is one.
+- **Asked once, after signing in.** The first time the signed-in tabs
+  show (after a sign-in, or at launch for someone signed in who was never
+  asked), Android 13 and later get a short explanation, "Turn on
+  notifications?", with Continue and Not now; Continue shows Android's
+  permission prompt. The app remembers that it asked (`push` preferences,
+  kept when someone signs out, so once per install) and never asks again
+  after a decision, here or in Android's prompt. Android 12 and earlier
+  have no prompt: push stays off until "Turn on" in Settings ›
+  Notifications, which also asks anyone who chose Not now.
+- **Nothing reaches Firebase until the person allows it.** Firebase's token
+  auto-init and analytics are off in the manifest. The app registers with
+  Firebase only when a page asks for a token after the person allowed
+  notifications.
+- **Pages hear about it at once.** When the person allows notifications,
+  every `notification-token` on screen gets its latest `connect` answered
+  again with the token, so the page registers it without waiting for
+  another page (Hotwire Native's bridge keeps the page's callback).
 - **The page registers the token, not the app.** The bridge component
   replies with the token; the page posts it to `/native/push_registrations`
   with its own session and CSRF token, and posts it again at most once a
@@ -76,10 +88,15 @@ adb shell am broadcast -n com.chatwithwork.app.debug/com.chatwithwork.app.push.D
 
 Grant the permission first if the app hasn't asked yet:
 `adb shell pm grant com.chatwithwork.app.debug android.permission.POST_NOTIFICATIONS`.
+A granted permission also keeps the prompt after sign-in from showing,
+which is how UI tests skip it (or `GrantPermissionRule` in an instrumented
+test). To see the prompt again, clear the app's data
+(`adb shell pm clear com.chatwithwork.app.debug`).
 Against the iOS repository's playground (`server.py`), `/1000001/chats/42`
 is a chat waiting for an approval.
 
-With Firebase configured, turn push on in Settings › Notifications, copy
+With Firebase configured, allow notifications when the app asks (or turn
+push on in Settings › Notifications), copy
 the token the page registered (the server's `PushRegistration`), and send a
 data message with the HTTP v1 API (`docs/server-contract.md`), or from the
 Firebase console's messaging test with the same data keys.

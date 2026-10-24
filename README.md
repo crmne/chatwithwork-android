@@ -74,7 +74,7 @@ Without it the app builds and runs, with push off.
 | Permission | Why |
 |---|---|
 | `INTERNET` | the server |
-| `POST_NOTIFICATIONS` | push notifications, asked for when the person turns them on ([docs/push-notifications.md](docs/push-notifications.md)) |
+| `POST_NOTIFICATIONS` | push notifications, asked for once after signing in, with a short explanation first, or from Settings › Notifications ([docs/push-notifications.md](docs/push-notifications.md)) |
 | `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS` | dictation: the composer's microphone records in the page (`getUserMedia`) |
 
 The web view gets the microphone only for pages on the build's own server,

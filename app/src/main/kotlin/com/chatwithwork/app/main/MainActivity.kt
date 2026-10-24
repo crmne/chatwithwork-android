@@ -33,6 +33,7 @@ import com.chatwithwork.app.bridge.BrowserReturnHost
 import com.chatwithwork.app.bridge.FloatingAction
 import com.chatwithwork.app.bridge.FloatingActionHost
 import com.chatwithwork.app.bridge.NotificationPermissionHost
+import com.chatwithwork.app.bridge.NotificationTokenComponent
 import com.chatwithwork.app.bridge.SnackbarHost
 import com.chatwithwork.app.fragments.WebScreenHost
 import com.chatwithwork.app.push.PushNotifications
@@ -40,6 +41,7 @@ import com.chatwithwork.app.routing.AppUrls
 import com.chatwithwork.app.routing.BrowserTabs
 import com.chatwithwork.app.routing.RouteDecisionHandlers
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import dev.hotwire.core.turbo.config.context
@@ -111,8 +113,12 @@ class MainActivity :
     private val notificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             PushNotifications.markAsked(this)
+            if (granted) PushNotifications.optIn(this)
             permissionCallback?.invoke(granted)
             permissionCallback = null
+            // Pages register the token themselves: the ones on screen hear
+            // the new state now, rather than on the next page.
+            if (granted) NotificationTokenComponent.answerConnected()
         }
 
     // Sign-ins in the browser come back here when it has Auth Tabs; a
@@ -460,6 +466,7 @@ class MainActivity :
         AppUrls.account(shown)?.let(::onAccount)
         openPendingLink(destination.navigator)
         updateChrome()
+        if (AppUrls.account(shown) != null) offerNotifications()
     }
 
     private fun isSignedInPage(url: String): Boolean =
@@ -690,6 +697,25 @@ class MainActivity :
             bottomBar.isVisible && bottomBar.translationY == 0f -> snackbar.anchorView = bottomBar
         }
         snackbar.show()
+    }
+
+    /**
+     * Once per install, the first time the signed-in tabs show: a word on
+     * what notifications are for, then Android 13's prompt. Never again after
+     * a decision, here or in Settings › Notifications.
+     */
+    private fun offerNotifications() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || isFinishing) return
+        val rationale = shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
+        if (!PushNotifications.shouldOffer(this, rationale)) return
+
+        PushNotifications.markOffered(this)
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.notifications_offer_title)
+            .setMessage(R.string.notifications_offer_message)
+            .setNegativeButton(R.string.notifications_offer_not_now, null)
+            .setPositiveButton(R.string.notifications_offer_continue) { _, _ -> requestNotificationPermission {} }
+            .show()
     }
 
     override fun requestNotificationPermission(onResult: (granted: Boolean) -> Unit) {

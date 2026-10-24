@@ -9,6 +9,8 @@ import dev.hotwire.core.bridge.BridgeComponentFactory
 import dev.hotwire.core.bridge.BridgeDelegate
 import dev.hotwire.core.bridge.Message
 import dev.hotwire.navigation.destinations.HotwireDestination
+import java.util.Collections
+import java.util.WeakHashMap
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
@@ -19,6 +21,10 @@ import kotlinx.serialization.Serializable
  *
  * - `connect` replies with the current state and never asks the person.
  *   Pages send it on load, so a token Firebase rotated reaches the server.
+ *   When the person allows notifications (the prompt after signing in, or
+ *   Turn on), every component on screen answers its latest `connect` again
+ *   with the new state ([answerConnected]): the page keeps the callback, so
+ *   it posts the token without waiting for another page.
  * - `get` asks for the notification permission if Android hasn't asked yet
  *   (Android 13 and later), then replies. Send it from a tap.
  * - `openSettings` opens this app's notification settings, for someone who
@@ -37,8 +43,13 @@ class NotificationTokenComponent(name: String, private val bridgeDelegate: Bridg
 
     override fun onReceive(message: Message) {
         when (message.event) {
-            "connect" -> answer("connect")
+            "connect" -> {
+                connected += this
+                answer("connect")
+            }
+
             "get" -> requestThenAnswer()
+
             "openSettings" -> openSettings()
         }
     }
@@ -48,10 +59,8 @@ class NotificationTokenComponent(name: String, private val bridgeDelegate: Bridg
         val host = fragment.activity as? NotificationPermissionHost
 
         if (PushNotifications.needsRuntimePermission(context) && host != null) {
-            host.requestNotificationPermission { granted ->
-                if (granted) PushNotifications.optIn(context)
-                answer("get")
-            }
+            // The activity turns push on when the person allows it.
+            host.requestNotificationPermission { answer("get") }
         } else {
             // Allowed already (Android 12 and earlier, or given in Settings):
             // asking is the person turning push on.
@@ -103,6 +112,18 @@ class NotificationTokenComponent(name: String, private val bridgeDelegate: Bridg
 
     companion object {
         val factory = BridgeComponentFactory("notification-token", ::NotificationTokenComponent)
+
+        /** Components that got a `connect`, for as long as their pages live. */
+        private val connected = Collections.newSetFromMap(WeakHashMap<NotificationTokenComponent, Boolean>())
+
+        /**
+         * Answers every component's latest `connect` again, after the person
+         * allowed notifications. Components whose page left the screen have
+         * no bridge to answer through, and drop the reply.
+         */
+        fun answerConnected() {
+            connected.toList().forEach { it.answer("connect") }
+        }
     }
 }
 

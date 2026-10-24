@@ -25,7 +25,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 /**
  * Push notifications through Firebase Cloud Messaging.
  *
- * Nothing talks to Firebase until the person turns notifications on: token
+ * Nothing talks to Firebase until the person turns notifications on (the
+ * prompt the app shows once after signing in, or Settings' Turn on): token
  * auto-init is off in the manifest and only switched on by [token]. Builds
  * without google-services.json (forks, CI) have no Firebase at all and report
  * push as unavailable. See docs/push-notifications.md.
@@ -36,6 +37,7 @@ object PushNotifications {
     private const val PREFERENCES = "push"
     private const val KEY_ASKED = "asked_for_permission"
     private const val KEY_OPTED_IN = "opted_in"
+    private const val KEY_OFFERED = "offered_after_sign_in"
     private const val KEY_TOKEN = "token"
 
     /** The permission, with the names the iOS app uses for the same states. */
@@ -70,7 +72,7 @@ object PushNotifications {
 
     fun optedIn(context: Context): Boolean = preferences(context).getBoolean(KEY_OPTED_IN, false)
 
-    /** The person turned push on (the page's "Turn on", `get`). */
+    /** The person turned push on: allowed notifications when the app asked, or the page's "Turn on" (`get`). */
     fun optIn(context: Context) {
         preferences(context).edit { putBoolean(KEY_OPTED_IN, true) }
     }
@@ -82,6 +84,22 @@ object PushNotifications {
 
     fun markAsked(context: Context) {
         preferences(context).edit { putBoolean(KEY_ASKED, true) }
+    }
+
+    /**
+     * Whether to offer notifications now: once per install, after signing in,
+     * on Android 13 and later, while they aren't allowed and nobody has
+     * decided yet. [rationale] is Android's shouldShowRequestPermissionRationale,
+     * true after the person said no once. Signing out keeps the offer made.
+     */
+    fun shouldOffer(context: Context, rationale: Boolean): Boolean =
+        !preferences(context).getBoolean(KEY_OFFERED, false) &&
+            needsRuntimePermission(context) &&
+            !askedBefore(context) &&
+            !rationale
+
+    fun markOffered(context: Context) {
+        preferences(context).edit { putBoolean(KEY_OFFERED, true) }
     }
 
     /**
