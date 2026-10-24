@@ -455,7 +455,8 @@ names are fine.
 
 - Every `data` value is a string.
 - `kind`: `approval_waiting`, `input_requested` (body "A question is
-  waiting for your answer in Notion."), or `resolved`, Android's own: the
+  waiting for your answer in Notion."), `answered`, `failed`, `handed_off`
+  (send `answered` with `"priority": "normal"`), or `resolved`, Android's own: the
   change was decided or the question answered somewhere else, so the app
   removes that chat's notification. Send `resolved` with `"priority":
   "normal"` and only `kind`, `path` and `thread`. (Unknown kinds are
@@ -466,7 +467,9 @@ names are fine.
   to `path`.
 - `title` and `body`: what the notification says. Without them the app
   shows "Chat with Work" and "A change is waiting for your approval." (or
-  "A question is waiting for your answer.").
+  "A question is waiting for your answer.", "Your answer is ready.", "A
+  chat couldn't finish its answer.", "A bot handed a conversation to your
+  team.").
 - High priority wakes the phone from Doze. Android lowers the priority of
   apps whose high-priority messages don't end in a notification, which is
   why `resolved` goes out as normal.
@@ -475,9 +478,10 @@ FCM answers `404` with `UNREGISTERED`, or `400` with `INVALID_ARGUMENT`
 naming the token, for a token that's gone: destroy the registration. Retry
 `429` and `5xx` with backoff, honoring `Retry-After`.
 
-When to send is the iOS contract's "When", unchanged. The notification
-channel the app files them under is "Approvals and questions", which the
-person can silence in Android's settings without turning off the rest.
+When to send is the iOS contract's "When", unchanged. The app files
+approvals and questions under the "Approvals and questions" channel, and
+answers, failures and hand-offs under "Answers", which the person can
+silence in Android's settings apart.
 
 ## 10. Browser sign-in and connecting services
 

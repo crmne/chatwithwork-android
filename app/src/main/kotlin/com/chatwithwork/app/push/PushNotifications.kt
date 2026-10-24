@@ -33,6 +33,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  */
 object PushNotifications {
     const val CHANNEL_APPROVALS = "approvals"
+    const val CHANNEL_ANSWERS = "answers"
 
     private const val PREFERENCES = "push"
     private const val KEY_ASKED = "asked_for_permission"
@@ -167,12 +168,14 @@ object PushNotifications {
         val body = push.body ?: context.getString(push.defaultBody)
         val notification =
             NotificationCompat
-                .Builder(context, CHANNEL_APPROVALS)
+                .Builder(context, if (push.waitsForPerson) CHANNEL_APPROVALS else CHANNEL_ANSWERS)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(push.title ?: context.getString(R.string.app_name))
                 .setContentText(body)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(
+                    if (push.waitsForPerson) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT
+                )
                 .setAutoCancel(true)
                 .setContentIntent(openIntent(context, push.url))
                 .build()
@@ -204,6 +207,13 @@ object PushNotifications {
                 context.getString(R.string.channel_approvals),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply { description = context.getString(R.string.channel_approvals_description) }
+        )
+        manager.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ANSWERS,
+                context.getString(R.string.channel_answers),
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply { description = context.getString(R.string.channel_answers_description) }
         )
     }
 

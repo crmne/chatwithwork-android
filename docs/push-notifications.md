@@ -7,8 +7,10 @@ The first notification is **"A change is waiting for your approval"**: the
 assistant parked a reply at a change (a Slack message, a calendar event)
 that only its driver can approve. Then **"A question is waiting for your
 answer"**, when a connected service asks the person something while its
-tool runs. Tapping one opens that chat, in Chats, inside the right
-organization.
+tool runs. The server also sends **"Your answer is ready"**, "A chat
+couldn't finish its answer" and "A bot handed a conversation to your team",
+which the person chooses in Settings › Notifications. Tapping one opens
+that chat, in Chats, inside the right organization.
 
 ## What the app does
 
@@ -41,8 +43,9 @@ organization.
   `title` and `body` as FCM data, never content from the chat. The app
   checks them (`Push.from`: a known kind, a path on this app's server) and
   writes the notification itself:
-  - on the "Approvals and questions" channel (high importance), which the
-    person can silence in Android's settings on its own;
+  - approvals and questions on the "Approvals and questions" channel (high
+    importance), answers, failures and hand-offs on "Answers" (default
+    importance), which the person can silence in Android's settings apart;
   - one per chat (`thread` is the notification's tag), so a newer one
     replaces it;
   - tapping it opens the page in the app, as an App Link would;
@@ -106,5 +109,6 @@ Firebase console's messaging test with the same data keys.
 - **Actions on the notification** (Approve, Deny): an approval needs the
   preview of what will be written, so it stays in the chat.
 - **Other kinds of notification.** Add a setting for each in Settings ›
-  Notifications first, as the server contract says, and a channel for each
-  in `PushNotifications.createChannels`, so people can silence them apart.
+  Notifications first, as the server contract says, a kind in `Push.Kind`
+  (unknown kinds are dropped), and a channel in
+  `PushNotifications.createChannels` where people should silence it apart.

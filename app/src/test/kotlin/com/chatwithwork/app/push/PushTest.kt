@@ -34,6 +34,17 @@ class PushTest {
     }
 
     @Test
+    fun `reads the server's other kinds, which don't ring like approvals`() {
+        val answered = Push.from(mapOf("kind" to "answered", "path" to path))
+        assertThat(answered?.kind).isEqualTo(Push.Kind.ANSWERED)
+        assertThat(answered?.waitsForPerson).isFalse()
+        assertThat(Push.from(mapOf("kind" to "handed_off", "path" to path))?.kind).isEqualTo(Push.Kind.HANDED_OFF)
+        assertThat(Push.from(mapOf("kind" to "failed", "path" to path))?.kind).isEqualTo(Push.Kind.FAILED)
+        assertThat(Push.from(mapOf("kind" to "approval_waiting", "path" to path))?.waitsForPerson).isTrue()
+        assertThat(Push.from(mapOf("kind" to "input_requested", "path" to path))?.waitsForPerson).isTrue()
+    }
+
+    @Test
     fun `knows when a change was decided elsewhere`() {
         assertThat(Push.from(mapOf("kind" to "resolved", "path" to path))?.kind).isEqualTo(Push.Kind.RESOLVED)
     }

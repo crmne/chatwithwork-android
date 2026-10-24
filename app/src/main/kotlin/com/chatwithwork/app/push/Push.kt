@@ -13,13 +13,30 @@ data class Push(val kind: Kind, val url: String, val thread: String, val title: 
     enum class Kind(val wire: String) {
         APPROVAL_WAITING("approval_waiting"),
         INPUT_REQUESTED("input_requested"),
+        ANSWERED("answered"),
+
+        /** A bot handed a conversation to the person's team. */
+        HANDED_OFF("handed_off"),
+
+        /** A chat couldn't finish its answer. */
+        FAILED("failed"),
 
         /** The change was approved, denied, or answered elsewhere: take the notification away. */
         RESOLVED("resolved")
     }
 
     val defaultBody: Int
-        get() = if (kind == Kind.INPUT_REQUESTED) R.string.push_input_body else R.string.push_approval_body
+        get() = when (kind) {
+            Kind.INPUT_REQUESTED -> R.string.push_input_body
+            Kind.ANSWERED -> R.string.push_answered_body
+            Kind.HANDED_OFF -> R.string.push_handed_off_body
+            Kind.FAILED -> R.string.push_failed_body
+            Kind.APPROVAL_WAITING, Kind.RESOLVED -> R.string.push_approval_body
+        }
+
+    /** Whether it waits for the person (an approval, a question): those ring, on their own channel. */
+    val waitsForPerson: Boolean
+        get() = kind == Kind.APPROVAL_WAITING || kind == Kind.INPUT_REQUESTED
 
     companion object {
         fun from(data: Map<String, String>): Push? {
