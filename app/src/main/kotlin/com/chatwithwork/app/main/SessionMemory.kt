@@ -5,8 +5,9 @@ import androidx.core.content.edit
 
 /**
  * The little the app remembers between launches about the session the web
- * views hold: whether someone signed in, and which organization they were
- * in. The session itself is the server's cookie in the web view's cookie
+ * views hold: whether someone signed in, which organization they were in,
+ * and the tabs their pages hid (Bots, for a guest), so a tab doesn't flash
+ * up before the first page says so. The session itself is the server's cookie in the web view's cookie
  * store; this only decides what to show before the first page answers.
  */
 class SessionMemory(context: Context) {
@@ -20,8 +21,13 @@ class SessionMemory(context: Context) {
         get() = preferences.getString(KEY_ACCOUNT, null)
         set(value) = preferences.edit { putString(KEY_ACCOUNT, value) }
 
+    var hiddenTabs: Set<String>
+        get() = preferences.getStringSet(KEY_HIDDEN_TABS, null).orEmpty()
+        set(value) = preferences.edit { putStringSet(KEY_HIDDEN_TABS, value) }
+
     private companion object {
         const val KEY_SIGNED_IN = "signed_in"
         const val KEY_ACCOUNT = "account"
+        const val KEY_HIDDEN_TABS = "hidden_tabs"
     }
 }

@@ -8,13 +8,14 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.content.res.AppCompatResources
+import androidx.appcompat.widget.TooltipCompat
 import androidx.browser.auth.AuthTabColorSchemeParams
 import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabsIntent
@@ -24,14 +25,13 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.BuildConfig
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.AuthTabHost
 import com.chatwithwork.app.bridge.BrowserReturnHost
-import com.chatwithwork.app.bridge.FloatingAction
-import com.chatwithwork.app.bridge.FloatingActionHost
 import com.chatwithwork.app.bridge.NotificationPermissionHost
 import com.chatwithwork.app.bridge.NotificationTokenComponent
 import com.chatwithwork.app.bridge.SnackbarHost
@@ -40,9 +40,10 @@ import com.chatwithwork.app.push.PushNotifications
 import com.chatwithwork.app.routing.AppUrls
 import com.chatwithwork.app.routing.BrowserTabs
 import com.chatwithwork.app.routing.RouteDecisionHandlers
-import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.chatwithwork.app.shell.TabShell
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.snackbar.Snackbar
 import dev.hotwire.core.turbo.config.context
 import dev.hotwire.core.turbo.nav.PresentationContext
@@ -55,11 +56,10 @@ import dev.hotwire.navigation.destinations.HotwireDestination
 import dev.hotwire.navigation.navigator.Navigator
 import dev.hotwire.navigation.navigator.NavigatorConfiguration
 import dev.hotwire.navigation.routing.Router
-import dev.hotwire.navigation.tabs.HotwireBottomNavigationController
 
 /**
- * The app's one activity: the bottom bar with a navigator per tab, the New
- * chat button, the welcome screen when nobody is signed in, and everything
+ * The app's one activity: the floating toolbar with a navigator per tab, New
+ * chat beside it, the welcome screen when nobody is signed in, and everything
  * that reacts to what the pages do.
  *
  * The server tells it when things change, and it listens in the navigators'
@@ -73,6 +73,7 @@ import dev.hotwire.navigation.tabs.HotwireBottomNavigationController
  * - A link into another organization means the person switched: every tab
  *   starts afresh, inside it.
  * - A link to another tab's list switches tabs instead of pushing.
+ * - Each page names the tabs the person may use (a guest has no Bots).
  * - A form in a modal that recedes closes the modal.
  *
  * See docs/server-contract.md for the server's half.
@@ -84,24 +85,20 @@ class MainActivity :
     SnackbarHost,
     NotificationPermissionHost,
     AuthTabHost,
-    BrowserReturnHost,
-    FloatingActionHost {
+    BrowserReturnHost {
     private val viewModel: MainViewModel by viewModels()
     private val memory by lazy { SessionMemory(this) }
 
     private lateinit var root: View
     private lateinit var hosts: View
-    private lateinit var bottomBar: BottomNavigationView
-    private lateinit var tabs: HotwireBottomNavigationController
-    private lateinit var newChatButton: ExtendedFloatingActionButton
+    private lateinit var dock: View
+    private lateinit var tabs: TabShell
+    private lateinit var newChatButton: FloatingActionButton
     private lateinit var welcome: View
 
     private var keyboardVisible = false
     private var bottomInset = 0
     private var sideInsets = 0 to 0
-
-    /** Each tab's floating action, from its first page's `button`. */
-    private val floatingActions = mutableMapOf<String, FloatingAction>()
 
     /** True while the app itself opens the sign-in form (see presentSignIn). */
     private var presentingSignIn = false
@@ -140,7 +137,7 @@ class MainActivity :
     private val backToChats =
         object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
-                tabs.selectTab(MainTab.CHATS.ordinal)
+                selectTab(MainTab.CHATS)
             }
         }
 
@@ -150,7 +147,7 @@ class MainActivity :
         val link = takeLink(intent, restored = savedInstanceState != null)
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // The bottom bar and the canvas give the navigation buttons their
+            // The canvas gives the navigation buttons their
             // contrast; the system's scrim would only tint them.
             window.isNavigationBarContrastEnforced = false
         }
@@ -159,7 +156,7 @@ class MainActivity :
 
         root = findViewById(R.id.root)
         hosts = findViewById(R.id.navigator_hosts)
-        bottomBar = findViewById(R.id.bottom_bar)
+        dock = findViewById(R.id.dock)
         newChatButton = findViewById(R.id.new_chat)
         welcome = findViewById(R.id.welcome)
 
@@ -226,39 +223,49 @@ class MainActivity :
     // region Tabs and chrome
 
     private fun setUpTabs() {
+        val toolbar = findViewById<View>(R.id.floating_toolbar)
+        // Live Wire's raised surfaces carry a hairline, like the web's menus.
+        (toolbar.background as? MaterialShapeDrawable)?.setStroke(
+            resources.displayMetrics.density,
+            ContextCompat.getColor(this, R.color.lw_line)
+        )
         tabs =
-            HotwireBottomNavigationController(
+            TabShell(
                 activity = this,
-                view = bottomBar,
-                lazyLoadTabs = true
+                tabs = MainTab.entries.map { it.shellTab },
+                buttons = findViewById(R.id.tab_buttons),
+                dock = dock,
+                buttonLayout = R.layout.view_floating_tab
             )
-        tabs.load(MainTab.bottomTabs(this), viewModel.selectedTab.ordinal)
-        tabs.setOnTabSelectedListener { index, _ ->
-            viewModel.selectedTab = MainTab.entries[index]
+        memory.hiddenTabs.mapNotNull { key -> MainTab.entries.firstOrNull { it.key == key } }
+            .forEach { tabs.setHidden(it.shellTab, true) }
+        tabs.load(viewModel.selectedTab.shellTab)
+        // A hidden tab can't be the one showing.
+        viewModel.selectedTab = MainTab.forShellTab(tabs.selected)
+        tabs.onTabSelected = { tab ->
+            viewModel.selectedTab = MainTab.forShellTab(tab)
             updateChrome()
         }
+        tabs.onTabReselected = { tab -> navigator(MainTab.forShellTab(tab))?.clearAll() }
     }
 
     private fun setUpNewChatButton() {
-        newChatButton.setOnClickListener { floatingAction()?.onClick?.invoke() }
+        TooltipCompat.setTooltipText(newChatButton, getString(R.string.new_chat))
+        newChatButton.setOnClickListener { startNewChat() }
     }
 
-    /**
-     * The current tab's primary action: the `button` its first page sends,
-     * or for Chats, New chat until the server sends one.
-     */
-    private fun floatingAction(): FloatingAction? = floatingActions[currentTab.configuration.name]
-        ?: if (currentTab == MainTab.CHATS) {
-            FloatingAction(getString(R.string.new_chat), AppCompatResources.getDrawable(this, R.drawable.ic_new_chat)) {
-                startNewChat()
-            }
-        } else {
-            null
-        }
-
-    override fun setFloatingAction(navigatorName: String, action: FloatingAction?) {
-        if (action == null) floatingActions.remove(navigatorName) else floatingActions[navigatorName] = action
+    private fun selectTab(tab: MainTab) {
+        if (viewModel.selectedTab == tab && tabs.selected === tab.shellTab) return
+        viewModel.selectedTab = tab
+        tabs.select(tab.shellTab)
         updateChrome()
+    }
+
+    /** A page named the tabs the person may use: hide the others (Bots, for a guest). */
+    override fun onTabsNamed(content: String) {
+        val hidden = MainTab.hiddenBy(content)
+        MainTab.entries.forEach { tabs.setHidden(it.shellTab, it in hidden) }
+        memory.hiddenTabs = hidden.map { it.key }.toSet()
     }
 
     private val currentTab: MainTab
@@ -276,42 +283,32 @@ class MainActivity :
     }
 
     /**
-     * The bottom bar shows on each tab's first page and hides on the pages
-     * pushed from it (a chat gets the whole screen, as in Messages), in
-     * modals, and under the keyboard. New chat floats over the chat list only.
+     * The floating toolbar and New chat show on each tab's first page and
+     * hide on the pages pushed from it (a chat gets the whole screen, as in
+     * Messages), in modals, and under the keyboard. On a tab's first page the
+     * page scrolls under them: the server leaves room under its last row
+     * (`body[data-native-tab-root]`, docs/server-contract.md).
      */
     private fun updateChrome() {
         val navigator = delegate.currentNavigator
         val destination = navigator?.currentDestination
         val modal = destination?.pathProperties?.context == PresentationContext.MODAL
         val atStart = navigator?.isAtStartDestination() != false
-        val tabsHidden = !atStart || viewModel.signedOut
 
-        tabs.visibility =
-            if (tabsHidden) {
-                HotwireBottomNavigationController.Visibility.HIDDEN
-            } else {
-                HotwireBottomNavigationController.Visibility.DEFAULT
-            }
-
-        val bottomBarShown = !tabsHidden && !modal && !keyboardVisible
-        val action = floatingAction().takeIf { bottomBarShown }
-        if (action != null) {
-            newChatButton.text = action.title
-            newChatButton.contentDescription = action.title
-            newChatButton.icon = action.icon
-        }
-        newChatButton.isVisible = action != null
+        tabs.setShown(atStart && !modal && !keyboardVisible && !viewModel.signedOut)
 
         backToChats.isEnabled = currentTab != MainTab.CHATS && atStart && !modal && !viewModel.signedOut
 
-        // Without the bottom bar, the pages reach the screen's bottom edge, so
-        // they keep clear of the gesture bar themselves.
+        // The pages keep clear of the gesture bar; the keyboard pushes them
+        // up instead (setUpInsets).
         hosts.updatePadding(
             left = sideInsets.first,
             right = sideInsets.second,
-            bottom = if (bottomBarShown || keyboardVisible) 0 else bottomInset
+            bottom = if (keyboardVisible) 0 else bottomInset
         )
+        dock.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            bottomMargin = bottomInset + resources.getDimensionPixelSize(R.dimen.dock_margin)
+        }
     }
 
     private fun setUpInsets() {
@@ -335,10 +332,21 @@ class MainActivity :
 
     // region New chat
 
-    /** New chat opens as a modal over the chat list, so the chat it starts lands in Chats. */
+    /**
+     * New chat opens as a modal over the chat list, so the chat it starts
+     * lands in Chats. When the list shows a project, the chat starts in it,
+     * as New chat does in the web's sidebar.
+     */
     private fun startNewChat() {
+        val project =
+            navigator(MainTab.CHATS)
+                ?.takeIf { currentTab == MainTab.CHATS && it.isAtStartDestination() }
+                ?.session
+                ?.webView
+                ?.url
+                ?.let(AppUrls::listProject)
         showTab(MainTab.CHATS) {
-            navigator(MainTab.CHATS)?.route(AppUrls.newChat(viewModel.account ?: memory.lastAccount))
+            navigator(MainTab.CHATS)?.route(AppUrls.newChat(viewModel.account ?: memory.lastAccount, project))
         }
     }
 
@@ -382,7 +390,7 @@ class MainActivity :
         welcome.isVisible = visible
         val hidden =
             if (visible) View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS else View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
-        listOf(hosts, bottomBar, newChatButton).forEach { it.importantForAccessibility = hidden }
+        listOf(hosts, dock).forEach { it.importantForAccessibility = hidden }
     }
 
     private fun presentSignIn(url: String) {
@@ -497,11 +505,10 @@ class MainActivity :
         viewModel.account = account
         viewModel.tabsAccount = account
         memory.lastAccount = account
-        floatingActions.clear()
         viewModel.pendingLink = location.takeIf { opensOnTop(it) }
 
         val tab = MainTab.forUrl(location) ?: currentTab
-        if (currentTab != tab) tabs.selectTab(tab.ordinal)
+        selectTab(tab)
         delegate.resetNavigators()
         updateChrome()
     }
@@ -672,13 +679,13 @@ class MainActivity :
         val ready = navigator.isReady() && navigator.currentDestination?.fragment?.view != null
         val url = viewModel.takePendingLink(navigator.configuration.name, ready, currentTab) ?: return
         val tab = MainTab.forUrl(url) ?: currentTab
-        if (tab != currentTab) tabs.selectTab(tab.ordinal)
+        selectTab(tab)
         navigator.route(url, VisitOptions())
     }
 
     /** Selects [tab], then runs [then] once its navigator exists. */
     private fun showTab(tab: MainTab, then: () -> Unit = {}) {
-        if (currentTab != tab) tabs.selectTab(tab.ordinal)
+        selectTab(tab)
         root.post(then)
     }
 
@@ -692,10 +699,7 @@ class MainActivity :
 
     override fun showSnackbar(message: String, long: Boolean) {
         val snackbar = Snackbar.make(root, message, if (long) Snackbar.LENGTH_LONG else Snackbar.LENGTH_SHORT)
-        when {
-            newChatButton.isVisible -> snackbar.anchorView = newChatButton
-            bottomBar.isVisible && bottomBar.translationY == 0f -> snackbar.anchorView = bottomBar
-        }
+        if (tabs.isShown && dock.isVisible) snackbar.anchorView = dock
         snackbar.show()
     }
 

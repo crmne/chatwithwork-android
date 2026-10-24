@@ -7,8 +7,8 @@ chats wherever they live, hosted in the EU or on your own servers.
 The app is built with [Hotwire Native](https://native.hotwired.dev). Its
 screens are the web app's own pages, so every feature the web app gains
 reaches the app without a release, and it goes native wherever that makes it
-feel like an Android app: a bottom bar with a navigator per tab, a floating
-New chat button, Material top app bars with the page's actions and overflow
+feel like an Android app: Material 3's floating toolbar with a navigator per
+tab and New chat beside it, Material top app bars with the page's actions and overflow
 menu, full-screen modals, a welcome screen, native dialogs, snackbars,
 haptics, search, the share sheet, sign-in through Chrome's Auth Tab, push
 notifications, App Links, predictive back, edge to edge, and Live Wire's
@@ -120,9 +120,9 @@ app/src/test/            unit tests (JUnit, Truth)
 docs/                    the server contract and design notes
 ```
 
-- **MainActivity** owns the bottom bar (Chats, Projects, Settings, each with
-  its own navigator, loaded lazily), the floating button, and the welcome
-  screen. It watches the navigators' traffic for what the server says: a
+- **MainActivity** owns the floating toolbar (Chats, Bots, Settings, each
+  with its own navigator, loaded when first shown, through `TabShell`), New
+  chat beside it, and the welcome screen. It watches the navigators' traffic for what the server says: a
   401 or the sign-in page means no session, a recede while signed out means
   signed in, a link into another organization rebuilds the tabs there.
 - **Web screens** are `HotwireWebFragment`s with the app's own layout: a

@@ -74,7 +74,6 @@
 
         <item name="toolbarStyle">@style/Widget.ChatWithWork.Toolbar</item>
         <item name="appBarLayoutStyle">@style/Widget.ChatWithWork.AppBarLayout</item>
-        <item name="bottomNavigationStyle">@style/Widget.ChatWithWork.BottomNavigation</item>
         <item name="popupMenuStyle">@style/Widget.ChatWithWork.PopupMenu</item>
         <item name="actionOverflowMenuStyle">@style/Widget.ChatWithWork.PopupMenu.Overflow</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.ChatWithWork.Dialog</item>
@@ -234,31 +233,49 @@
         <item name="rippleColor">@color/ripple</item>
     </style>
 
-    <!-- Bottom bar: the sunken canvas the web's sidebar uses. -->
-    <style name="Widget.ChatWithWork.BottomNavigation" parent="Widget.Material3.BottomNavigationView">
-        <item name="android:background">@drawable/bottom_bar_background</item>
-        <item name="backgroundTint">@null</item>
-        <item name="itemIconTint">@color/navigation_item</item>
-        <item name="itemTextColor">@color/navigation_item</item>
-        <item name="itemTextAppearanceActive">?attr/textAppearanceLabelMedium</item>
-        <item name="itemTextAppearanceInactive">?attr/textAppearanceLabelMedium</item>
-        <item name="itemActiveIndicatorStyle">@style/Widget.ChatWithWork.BottomNavigation.ActiveIndicator</item>
-        <item name="labelVisibilityMode">labeled</item>
+    <!--
+      The floating toolbar (Material 3's, TabShell): a raised surface with a
+      hairline, like the web's menus, the tabs on it as icons, the chosen one
+      with its label on the selected surface.
+    -->
+    <style name="Widget.ChatWithWork.FloatingToolbar" parent="Widget.Material3.FloatingToolbar">
+        <item name="backgroundTint">@color/lw_surface_raised</item>
+        <!-- The dock keeps clear of the system bars itself, for New chat too. -->
+        <item name="marginLeftSystemWindowInsets">false</item>
+        <item name="marginRightSystemWindowInsets">false</item>
+        <item name="marginBottomSystemWindowInsets">false</item>
     </style>
 
-    <style name="Widget.ChatWithWork.BottomNavigation.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
-        <item name="android:color">@color/lw_line</item>
-    </style>
-
-    <!-- New chat: ink, like the web's primary button (Material's "primary" FAB is a tonal container). -->
-    <style name="Widget.ChatWithWork.NewChatButton" parent="Widget.Material3.ExtendedFloatingActionButton.Icon.Primary">
-        <item name="materialThemeOverlay">@style/ThemeOverlay.ChatWithWork.NewChatButton</item>
+    <style name="Widget.ChatWithWork.FloatingTab" parent="Widget.Material3.Button.TextButton.Icon">
+        <item name="android:minWidth">@dimen/floating_tab_size</item>
+        <item name="android:minHeight">@dimen/floating_tab_size</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
+        <item name="android:layout_marginHorizontal">2dp</item>
         <item name="android:textAppearance">?attr/textAppearanceLabelLarge</item>
+        <item name="android:textColor">@color/floating_tab_content</item>
+        <item name="iconTint">@color/floating_tab_content</item>
+        <item name="iconSize">24dp</item>
+        <item name="iconGravity">textStart</item>
+        <item name="backgroundTint">@color/floating_tab_container</item>
+        <item name="rippleColor">@color/ripple</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.ChatWithWork.Pill</item>
     </style>
 
-    <style name="ThemeOverlay.ChatWithWork.NewChatButton" parent="">
-        <item name="colorContainer">@color/lw_ink</item>
-        <item name="colorOnContainer">@color/lw_ink_inverted</item>
+    <style name="ShapeAppearance.ChatWithWork.Pill" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <!-- New chat: ink, like the web's primary button (Material's "primary" FAB is a tonal container), as tall as the toolbar. -->
+    <style name="Widget.ChatWithWork.NewChatButton" parent="Widget.Material3.FloatingActionButton.Primary">
+        <item name="backgroundTint">@color/lw_ink</item>
+        <item name="tint">@color/lw_ink_inverted</item>
+        <item name="fabCustomSize">@dimen/floating_toolbar_height</item>
+        <item name="maxImageSize">26dp</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.ChatWithWork.Corner.ExtraLarge</item>
     </style>
 
     <!-- The welcome screen's two ways in. -->

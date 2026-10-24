@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The tab shell: one navigator host per tab (each keeps its own history),
-  the New chat button, and the bottom bar. The hosts share a container so the
-  activity can keep page content clear of the gesture bar when the bottom
-  bar is hidden (chats, modals). The welcome screen covers it all while
-  nobody is signed in.
+  The tab shell: a container per tab, which gets its navigator host the
+  first time the tab shows (TabShell), and the dock floating over them at the
+  bottom: the floating toolbar with the tabs and New chat beside it. The root
+  doesn't clip the dock, so their shadows show. The hosts share a container
+  so the activity can keep page content clear of the gesture bar. The welcome
+  screen covers it all while nobody is signed in.
 -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root"
+    android:clipChildren="false"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".main.MainActivity">
@@ -18,53 +20,68 @@
         android:id="@+id/navigator_hosts"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/bottom_bar"
         app:layout_constraintTop_toTopOf="parent">
 
-        <androidx.fragment.app.FragmentContainerView
+        <FrameLayout
             android:id="@+id/chats_navigator_host"
-            android:name="dev.hotwire.navigation.navigator.NavigatorHost"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <FrameLayout
+            android:id="@+id/bots_navigator_host"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:defaultNavHost="false" />
+            android:visibility="gone" />
 
-        <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/projects_navigator_host"
-            android:name="dev.hotwire.navigation.navigator.NavigatorHost"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:defaultNavHost="false" />
-
-        <androidx.fragment.app.FragmentContainerView
+        <FrameLayout
             android:id="@+id/settings_navigator_host"
-            android:name="dev.hotwire.navigation.navigator.NavigatorHost"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:defaultNavHost="false" />
+            android:visibility="gone" />
 
     </FrameLayout>
 
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-        android:id="@+id/new_chat"
-        style="@style/Widget.ChatWithWork.NewChatButton"
+    <LinearLayout
+        android:id="@+id/dock"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:text="@string/new_chat"
-        android:visibility="gone"
-        app:icon="@drawable/ic_new_chat"
-        app:layout_constraintBottom_toTopOf="@id/bottom_bar"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottom_bar"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/dock_margin"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.google.android.material.floatingtoolbar.FloatingToolbarLayout
+            android:id="@+id/floating_toolbar"
+            style="@style/Widget.ChatWithWork.FloatingToolbar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:id="@+id/tab_buttons"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" />
+
+        </com.google.android.material.floatingtoolbar.FloatingToolbarLayout>
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/new_chat"
+            style="@style/Widget.ChatWithWork.NewChatButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/dock_gap"
+            android:contentDescription="@string/new_chat"
+            app:srcCompat="@drawable/ic_new_chat" />
+
+    </LinearLayout>
 
     <include
         layout="@layout/view_welcome"
