@@ -621,7 +621,7 @@ lays the web view out above its composer, never under it.
 
 | Event | Direction | Data |
 |---|---|---|
-| `connect`, then `state` | web to app | `{placeholder, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb}], webSearch: {on, disabled, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
+| `connect`, then `state` | web to app | `{placeholder, text?, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb}], webSearch: {on, disabled, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
 | reply to `connect` | app to web | `{action: "send", text}`, `{action: "stop"}`, `{action: "model", index}`, `{action: "webSearch", on}`, `{action: "attach", files: [{name, type, data}]}` (data base64), `{action: "remove", id}`, `{action: "text", text}` |
 
 A chat draws its composer again as an answer starts and ends; each new one
@@ -630,7 +630,8 @@ without a composer never connects, and the native one stays hidden there.
 
 What the app does with it:
 
-- **The field** keeps what's typed until Send, which sends `send {text}`
+- **The field** starts with `text` on `connect` when it's empty (words
+  shared in, or a draft the web restored), and keeps what's typed until Send, which sends `send {text}`
   (with a confirming haptic) and clears it. Send needs words or a file and
   waits while a file uploads (the web would refuse). While `working`, an
   empty field turns the button into Stop (disabled while `stopping`);
