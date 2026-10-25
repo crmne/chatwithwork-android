@@ -150,6 +150,7 @@ dependencies {
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.splashscreen)
     implementation(libs.androidx.webkit)
+    implementation(libs.mlkit.document.scanner)
     implementation(libs.material)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)

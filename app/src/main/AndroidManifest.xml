@@ -118,6 +118,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Photos the composer's Camera takes, handed to the camera app and back. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <service
             android:name=".push.PushMessagingService"
             android:exported="false">

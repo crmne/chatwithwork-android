@@ -13,7 +13,7 @@ import dev.hotwire.core.bridge.BridgeComponentFactory
  * Stimulus controllers work as they are. Where his Android version draws its
  * own buttons, this app's version uses the native toolbar, menus, sheets,
  * dialogs, and snackbars instead. `review-prompt` and `search` are his,
- * unchanged. `auth-session`, `context-menu`, `notification-token`, and `sidebar` are
+ * unchanged. `auth-session`, `composer`, `context-menu`, `notification-token`, and `sidebar` are
  * Chat with Work's own, with the same names and messages as in the iOS app,
  * so the server serves both apps the same pages.
  */
@@ -23,6 +23,7 @@ object BridgeComponents {
             AlertComponent.factory,
             AuthSessionComponent.factory,
             ButtonComponent.factory,
+            ComposerComponent.factory,
             ContextMenuComponent.factory,
             FormComponent.factory,
             HapticComponent.factory,

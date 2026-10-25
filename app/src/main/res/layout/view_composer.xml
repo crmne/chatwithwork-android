@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The native composer: what the web one has (attach, the field, the model,
+  Send or Stop), docked above the keyboard and the gesture bar, on the
+  rainbow edge that is the brand's. It drives the web composer, hidden in
+  the page, through the composer bridge component (ComposerComponent).
+-->
+<com.chatwithwork.app.composer.ComposerView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/composer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="12dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="10dp"
+    android:visibility="gone"
+    tools:visibility="visible">
+
+    <TextView
+        android:id="@+id/composer_lock"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="6dp"
+        android:layout_marginBottom="6dp"
+        android:drawablePadding="8dp"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:text="Connect at least one service to start chatting."
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/composer_box"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/composer_background"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+        <HorizontalScrollView
+            android:id="@+id/composer_files_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/composer_files"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingBottom="6dp" />
+
+        </HorizontalScrollView>
+
+        <EditText
+            android:id="@+id/composer_field"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@null"
+            android:gravity="top|start"
+            android:hint="@string/composer_placeholder"
+            android:importantForAutofill="no"
+            android:inputType="textMultiLine|textCapSentences"
+            android:maxLines="6"
+            android:minHeight="40dp"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="8dp"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="?attr/colorOnSurface"
+            android:textColorHint="?attr/colorOnSurfaceVariant" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/composer_plus"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/composer_round_button"
+                android:contentDescription="@string/composer_add" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/composer_model"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/composer_chip"
+                android:drawablePadding="4dp"
+                android:ellipsize="end"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:maxWidth="180dp"
+                android:paddingHorizontal="12dp"
+                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="GPT-6 Luna" />
+
+            <ImageButton
+                android:id="@+id/composer_send"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/composer_send_background"
+                android:contentDescription="@string/composer_send" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.chatwithwork.app.composer.ComposerView>

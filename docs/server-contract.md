@@ -29,6 +29,7 @@ version it.
 | 6 | [Push notifications](#9-push-notifications) | FCM HTTP v1 sending |
 | 7 | [Browser sign-in and connecting services](#10-browser-sign-in-and-connecting-services) | nothing beyond iOS |
 | 8 | [The sidebar](#11-the-sidebar) | its JSON and the `sidebar` component's `changed` |
+| 9 | [The composer](#12-the-composer) | the `composer` component on the web composer, and dictation's URL |
 
 Steps 1 to 4 are enough for a first internal test track on Google Play.
 
@@ -584,3 +585,55 @@ element, subscribed to the person's own chat-list streams. It sends:
 | `changed` | `{}` | fetches the JSON again (debounced, 500 ms) if the sidebar is open, else on its next opening |
 
 No replies.
+
+## 12. The composer
+
+Builds that register the `composer` component draw the composer
+themselves, docked above the keyboard and the gesture bar, under the page:
+"+", the field, the model, and Send or Stop, on the composer's rainbow
+edge. The web composer (`#new_message`, with `bridge--composer`) stays in
+the page out of sight (native.css, once `data-bridge-components` lists
+`composer`), and the app drives it, so every rule it carries holds: locks,
+who may steer, the queue, files waiting for their scan, the model, and web
+search. The conversation then ends 1.5rem above the page's bottom; the app
+lays the web view out above its composer, never under it.
+
+| Event | Direction | Data |
+|---|---|---|
+| `connect`, then `state` | web to app | `{placeholder, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb}], webSearch: {on, disabled, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
+| reply to `connect` | app to web | `{action: "send", text}`, `{action: "stop"}`, `{action: "model", index}`, `{action: "webSearch", on}`, `{action: "attach", files: [{name, type, data}]}` (data base64), `{action: "remove", id}`, `{action: "text", text}` |
+
+A chat draws its composer again as an answer starts and ends; each new one
+connects again, and the app always replies to the latest `connect`. A page
+without a composer never connects, and the native one stays hidden there.
+
+What the app does with it:
+
+- **The field** keeps what's typed until Send, which sends `send {text}`
+  (with a confirming haptic) and clears it. Send needs words or a file and
+  waits while a file uploads (the web would refuse). While `working`, an
+  empty field turns the button into Stop (disabled while `stopping`);
+  words typed then are sent as `send`, and the web decides whether they
+  steer the answer or wait for it.
+- **Locked**: the field and "+" are disabled and `lockReason` shows above
+  the composer.
+- **The model**: a chip with the selected model's name, hidden while locked
+  or working, which opens a sheet of `models` (name and rate, the selected
+  one checked) and answers `model {index}`.
+- **"+"** opens a sheet: Camera, Photos (Android's photo picker, no
+  permission needed), Files, Scan (ML Kit's document scanner, one PDF),
+  Dictate when `dictation` is set, and Web search as a switch with its
+  `note` when `webSearch` is set (`webSearch {on}`). Files go to the page
+  as `attach`, base64, at most 25 MB each (larger ones are named in a
+  snackbar and left out). Each attachment shows as a chip with its name, its
+  size or upload progress, and remove (`remove {id}`).
+- **Dictation**: Android 10 and later record OGG/Opus (at most five
+  minutes, with a level meter, Stop and Cancel), never Android's speech
+  recognizer, and post it as multipart field `audio` to `{base}{dictation.url}`
+  with the web view's cookies, `X-CSRF-Token: csrfToken` and `Accept:
+  application/json`. `200 {text}` puts the words in the field and sends
+  `text {text}`; an empty text says nothing was heard; `{error}` (403 for no
+  credits, 413, 415, 429, 502) shows the server's words. Earlier versions
+  leave Dictate out.
+- Files shared into the app from elsewhere (section 7, "Sharing into the
+  app") wait for the next composer that connects and go to it as `attach`.

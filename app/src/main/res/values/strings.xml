@@ -25,6 +25,31 @@
     <string name="sidebar_chat_waiting">waiting for you</string>
     <string name="sidebar_chat_answering">answering</string>
 
+    <!-- The composer -->
+    <string name="composer_placeholder">Ask anything…</string>
+    <string name="composer_add">Add photos, files, or a scan</string>
+    <string name="composer_send">Send</string>
+    <string name="composer_stop">Stop</string>
+    <string name="composer_model_description">Model: %1$s. Choose another.</string>
+    <string name="composer_remove_file">Remove %1$s</string>
+    <string name="composer_models_title">Model</string>
+    <string name="composer_camera">Camera</string>
+    <string name="composer_photos">Photos</string>
+    <string name="composer_files">Files</string>
+    <string name="composer_scan">Scan</string>
+    <string name="composer_dictate">Dictate</string>
+    <string name="composer_web_search">Web search</string>
+    <string name="composer_file_too_big">%1$s is over 25 MB, too big to attach here.</string>
+    <string name="composer_file_unreadable">That file couldn\'t be read.</string>
+    <string name="composer_scan_unavailable">Scanning needs Google Play services, which this phone doesn\'t have.</string>
+    <string name="dictation_listening">Listening…</string>
+    <string name="dictation_transcribing">Writing down what you said…</string>
+    <string name="dictation_stop">Stop</string>
+    <string name="dictation_cancel">Cancel</string>
+    <string name="dictation_failed">Dictation didn\'t work. Try again.</string>
+    <string name="dictation_no_speech">Nothing was heard. Try again a little closer.</string>
+    <string name="dictation_needs_microphone">Dictation needs the microphone. Allow it in the app\'s settings.</string>
+
     <!-- Toolbar actions -->
     <string name="share">Share</string>
     <string name="copied">Copied</string>

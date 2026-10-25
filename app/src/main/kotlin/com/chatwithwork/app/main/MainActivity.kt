@@ -12,12 +12,15 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.browser.auth.AuthTabColorSchemeParams
 import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.GravityCompat
@@ -34,6 +37,7 @@ import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.ActionSheet
 import com.chatwithwork.app.bridge.AuthTabHost
 import com.chatwithwork.app.bridge.BrowserReturnHost
+import com.chatwithwork.app.bridge.ComposerHost
 import com.chatwithwork.app.bridge.NotificationPermissionHost
 import com.chatwithwork.app.bridge.NotificationTokenComponent
 import com.chatwithwork.app.bridge.OfferReason
@@ -50,6 +54,9 @@ import com.chatwithwork.app.sidebar.SidebarDrawer
 import com.chatwithwork.app.sidebar.SidebarRow
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import dev.hotwire.core.turbo.config.context
 import dev.hotwire.core.turbo.nav.PresentationContext
 import dev.hotwire.core.turbo.visit.VisitOptions
@@ -96,6 +103,7 @@ class MainActivity :
     AuthTabHost,
     BrowserReturnHost,
     SidebarHost,
+    ComposerHost,
     SidebarDrawer.Actions {
     private val viewModel: MainViewModel by viewModels()
     private val memory by lazy { SessionMemory(this) }
@@ -136,6 +144,50 @@ class MainActivity :
         val uri = result.resultUri
         if (result.resultCode == AuthTabIntent.RESULT_OK && uri != null) deliverAuthCallback(uri.toString())
     }
+
+    // The composer's "+" sheet: the system's photo picker, files, camera, and
+    // ML Kit's document scanner; each hands its result to whoever asked.
+    private var photosResult: ((List<Uri>) -> Unit)? = null
+    private val photoPicker =
+        registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(MAX_PICKED)) { uris ->
+            photosResult?.invoke(uris)
+            photosResult = null
+        }
+
+    private var filesResult: ((List<Uri>) -> Unit)? = null
+    private val filePicker =
+        registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+            filesResult?.invoke(uris)
+            filesResult = null
+        }
+
+    private var cameraResult: ((Uri?) -> Unit)? = null
+    private var cameraUri: Uri? = null
+    private val camera =
+        registerForActivityResult(ActivityResultContracts.TakePicture()) { taken ->
+            cameraResult?.invoke(cameraUri.takeIf { taken })
+            cameraResult = null
+        }
+
+    private var scanResult: ((Uri?) -> Unit)? = null
+    private val scanner =
+        registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+            val pdf =
+                if (result.resultCode == RESULT_OK) {
+                    GmsDocumentScanningResult.fromActivityResultIntent(result.data)?.pdf?.uri
+                } else {
+                    null
+                }
+            scanResult?.invoke(pdf)
+            scanResult = null
+        }
+
+    private var microphoneResult: ((Boolean) -> Unit)? = null
+    private val microphonePermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            microphoneResult?.invoke(granted)
+            microphoneResult = null
+        }
 
     // Development builds on Android 17 need the local network permission to
     // reach a server at 10.0.2.2 or on the LAN; the pages reload once it's given.
@@ -974,6 +1026,59 @@ class MainActivity :
         notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
+    override fun pickPhotos(onResult: (List<Uri>) -> Unit) {
+        photosResult = onResult
+        photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+    }
+
+    override fun pickFiles(onResult: (List<Uri>) -> Unit) {
+        filesResult = onResult
+        filePicker.launch(arrayOf("*/*"))
+    }
+
+    override fun takePhoto(onResult: (Uri?) -> Unit) {
+        val folder = java.io.File(cacheDir, "camera").apply { mkdirs() }
+        val file = java.io.File(
+            folder,
+            "Photo ${java.text.SimpleDateFormat(
+                "yyyy-MM-dd HH.mm.ss",
+                java.util.Locale.ROOT
+            ).format(java.util.Date())}.jpg"
+        )
+        val uri = FileProvider.getUriForFile(this, "$packageName.files", file)
+        cameraUri = uri
+        cameraResult = onResult
+        try {
+            camera.launch(uri)
+        } catch (_: ActivityNotFoundException) {
+            cameraResult = null
+            showSnackbar(getString(R.string.external_link_failed))
+        }
+    }
+
+    override fun scanDocument(onResult: (Uri?) -> Unit) {
+        val options =
+            GmsDocumentScannerOptions.Builder()
+                .setGalleryImportAllowed(true)
+                .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_PDF)
+                .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
+                .build()
+        GmsDocumentScanning.getClient(options).getStartScanIntent(this)
+            .addOnSuccessListener { sender ->
+                scanResult = onResult
+                scanner.launch(IntentSenderRequest.Builder(sender).build())
+            }.addOnFailureListener { showSnackbar(getString(R.string.composer_scan_unavailable), long = true) }
+    }
+
+    override fun requestMicrophone(onResult: (granted: Boolean) -> Unit) {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            onResult(true)
+            return
+        }
+        microphoneResult = onResult
+        microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
     override fun onNextReturn(action: () -> Unit) {
         returnActions += action
     }
@@ -1002,6 +1107,9 @@ class MainActivity :
 
     private companion object {
         const val NAVIGATOR = "main"
+
+        /** The most photos one pick adds to the composer. */
+        const val MAX_PICKED = 10
         const val ANDROID_17 = 37
         const val ACCESS_LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
 

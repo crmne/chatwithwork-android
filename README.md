@@ -10,7 +10,8 @@ reaches the app without a release, and it goes native wherever that makes it
 feel like an Android app: it opens on a chat, with Material 3's navigation
 drawer as a native sidebar (your chats, projects, what waits for you, bots),
 Material top app bars with the page's actions and overflow
-menu, full-screen modals, a welcome screen, native dialogs, snackbars,
+menu, a native composer (with the photo picker, camera, ML Kit's document
+scanner, and dictation recorded on the phone and transcribed on the server), full-screen modals, a welcome screen, native dialogs, snackbars,
 haptics, search, the share sheet (both ways: sharing text into a new chat too), sign-in through Chrome's Auth Tab, push
 notifications, App Links, predictive back, edge to edge, and Live Wire's
 colors in light and dark.
@@ -76,7 +77,7 @@ Without it the app builds and runs, with push off.
 |---|---|
 | `INTERNET` | the server |
 | `POST_NOTIFICATIONS` | push notifications, offered once, the first time a change waits for approval or an answer takes a while, with a short explanation first, or from Settings › Notifications ([docs/push-notifications.md](docs/push-notifications.md)) |
-| `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS` | dictation: the composer's microphone records in the page (`getUserMedia`) |
+| `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS` | dictation: the native composer records (OGG/Opus, sent to the server to transcribe; Android 10 and later), and the page's microphone in pages that record themselves (`getUserMedia`) |
 
 The web view gets the microphone only for pages on the build's own server,
 and nothing else: `AppWebChromeClient` (`fragments/AppWebChromeClient.kt`)
@@ -111,6 +112,7 @@ app/src/main/kotlin/com/chatwithwork/app/
   ChatWithWorkApplication.kt  Hotwire configuration, bridge components, path configuration
   main/        MainActivity (the sidebar shell, welcome screen, sign-in, links), view model
   sidebar/     the native sidebar: the server's JSON, its rows, the drawer's views
+  composer/    the native composer: its state, view, "+" sheet, files, and dictation
   fragments/   the web screen (top app bar over the shared web view), page titles, error states
   bridge/      the bridge components (native halves) and the action sheet they share
   routing/     the app's URLs, Custom Tabs, route decisions for other sites and apps
@@ -136,9 +138,10 @@ docs/                    the server contract and design notes
   crash.
 - **Bridge components**: the app's own `button`, `menu`, `form`, `share`,
   `alert`, `toast`, `haptic`, `theme`, `context-menu`, `auth-session`,
-  `notification-token` and `sidebar`, with Joe Masilotti's messages where
-  his component exists, plus his `search` and `review-prompt` as they are.
-  All 14 are the same names and messages as the iOS app's.
+  `notification-token`, `sidebar` and `composer`, with Joe Masilotti's
+  messages where his component exists, plus his `search` and
+  `review-prompt` as they are. All 15 are the same names and messages as
+  the iOS app's.
 - **Path configuration**: bundled, and replaced at launch by the server's
   `/configurations/android_v2.json`.
 

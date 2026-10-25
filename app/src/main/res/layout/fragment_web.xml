@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  A web screen: the native top app bar, a hairline, then the page. The ids
+  A web screen: the native top app bar, a hairline, the page, then the
+  native composer on chat pages (hidden elsewhere). The ids
   are Hotwire Native's: it finds the toolbar (titles from the page's <title>)
   and the hotwire_view (the shared web view, progress, and error states).
 -->
@@ -36,5 +37,8 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
+
+    <!-- The native composer, on pages whose web composer connects to it (ComposerComponent). -->
+    <include layout="@layout/view_composer" />
 
 </LinearLayout>
