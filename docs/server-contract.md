@@ -468,6 +468,15 @@ names are fine.
   apps whose high-priority messages don't end in a notification, which is
   why `resolved` goes out as normal.
 
+**Decisions digest (server, 2026-10-26).** Once 3 or more decisions wait for
+someone, a new one's push becomes `decisions_waiting` instead of
+`approval_waiting` or `input_requested`, at most every 30 minutes: title the
+organization, body "4 decisions are waiting for you.", `path` the
+organization's `/decisions`, `thread` `decisions-<account>`. The server keeps
+sending Android each wait's own push until this app says it knows
+`decisions_waiting`; iOS gets the digest now, and opens its `path` like any
+other.
+
 FCM answers `404` with `UNREGISTERED`, or `400` with `INVALID_ARGUMENT`
 naming the token, for a token that's gone: destroy the registration. Retry
 `429` and `5xx` with backoff, honoring `Retry-After`.
@@ -578,6 +587,23 @@ Links that don't apply are `null` (a guest's `bots`, `projects` and
 `recent`, `all` or `project`; a waiting item's `approval`, `question` or
 `bot`; a chat's `state` `idle`, `processing` or `error`. Every URL is a
 path on this server. The app ignores keys it doesn't know.
+
+**Decisions (server, 2026-10-26).** `waiting` now lists decisions, not chats:
+everything waiting for the person across their chats, agents, bots' runs
+and the bots they handle (the server's `Decision`, `docs/decisions.md`).
+`waiting.count` is what waits now, `waiting.snoozed` how many they put off,
+and `waiting.url` the web Decisions page (`/:account/decisions`), also in
+`links.decisions`. Each of the first 50 `items` keeps `title` (its chat's),
+`kind` and `project` as before, and its `url` now opens the Decisions page
+on it (`/:account/decisions?decision=<key>`), one decision at a time with its
+card, "Why you" and the context below it; `chat_url` is its chat. New keys:
+`key`, `decision` (`approval`, `question` (a server's), `ask` (the
+assistant's own question with options, `ask_decision`), `draft`, `editor`,
+`handoff`), `summary` (one line saying what's to decide) and `since`.
+Opening `waiting.url` or an item's `url` in the web view is all a first
+version needs: the page decides through the chat's own cards, swiping left
+or right on it moves between decisions, and the sidebar's `changed` follows
+its count.
 
 What the app draws from it, top to bottom: the list switcher (`list`; a
 chooser of `lists`, then "All projects..." and "New project"), a search
