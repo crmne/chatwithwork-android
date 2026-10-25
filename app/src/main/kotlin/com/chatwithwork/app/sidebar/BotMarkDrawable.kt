@@ -14,12 +14,14 @@ import kotlin.math.max
 import kotlin.random.Random
 
 /**
- * The bots' mark, as the web draws it (BotMark in the Rails app): a pixel
- * chat bubble with two eyes on its 10 by 10 grid. Each square is a whole
- * number of pixels (4 at xhdpi for 20dp, 6 at xxhdpi), so it stays sharp.
+ * The bots' mark, as the web draws it (BotMark in the Rails app): our pixel
+ * chat bubble with two tall eyes, from its 20px master. Each master
+ * pixel is a whole number of device pixels (2 at xhdpi for 20dp, 3 at
+ * xxhdpi), so nothing is resampled.
  *
- * It blinks now and then: the eyes close to their last row for a tenth of a
- * second every 4 to 9 seconds while it's shown, never with animations turned
+ * It blinks now and then: for a tenth of a second every 4 to 9 seconds while
+ * it's shown it draws its closed frame, the same grid with each eye only its
+ * bottom row, as whole squares like the open one, never with animations turned
  * off (Remove animations, or an animator scale of 0).
  */
 class BotMarkDrawable(
@@ -85,18 +87,28 @@ class BotMarkDrawable(
     private fun nextBlink() = Random.nextLong(4_000, 9_001)
 
     companion object {
-        /** `#` the outline, `E` an eye that closes, `e` an eye's last row, which stays. */
+        /** The 20px master: `#` the outline, `E` eye pixels of the open frame only, `e` of both frames. */
         val GRID = listOf(
-            ".########.",
-            "#oooooooo#",
-            "#oooooooo#",
-            "#oEEooEEo#",
-            "#oeeooeeo#",
-            "#oooooooo#",
-            "#oooooooo#",
-            ".##oo####.",
-            "..#o#.....",
-            "..##......"
+            "....................",
+            "....................",
+            ".##################.",
+            "#..................#",
+            "#..................#",
+            "#..................#",
+            "#.....EE....EE.....#",
+            "#.....EE....EE.....#",
+            "#.....EE....EE.....#",
+            "#.....ee....ee.....#",
+            "#..................#",
+            "#..................#",
+            "#..................#",
+            ".####....##########.",
+            "....#...#...........",
+            "....#..#............",
+            "....#.#.............",
+            "....##..............",
+            "....................",
+            "...................."
         )
 
         private const val CLOSED_MS = 120L
