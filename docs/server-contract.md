@@ -286,6 +286,13 @@ the apps. On Android:
   links to them: the plan, the credits, and "Billing is managed on
   chatwithwork.com" as plain text. (`native_app&.android?`.)
 
+- **Sharing into the app**: text and links shared from another app
+  (Android's share sheet, `text/plain`) open a new chat in the sidebar's
+  list as `/chats/new?title=<subject>&text=<text>` (`title` only when the
+  other app gave a subject), which the server puts in the composer
+  (`ChatsHelper#shared_prompt`, as for the installed web app). Nothing is
+  sent until the person sends it. Files aren't shared in yet.
+
 Links the app handles itself:
 
 - Links to other sites open in a Chrome Custom Tab, in the app's colors;

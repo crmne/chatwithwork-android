@@ -21,4 +21,30 @@ object LaunchLinks {
         if (restored || flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return null
         return data.takeIf { AppUrls.isAppUrl(it) || AppUrls.isAuthCallback(it) }
     }
+
+    /**
+     * What another app shared (ACTION_SEND, text/plain): its text and,
+     * if it gave one, its subject, which the new chat page joins into the
+     * composer (`title`, `text`). Null when there's nothing to share.
+     */
+    fun shared(action: String?, type: String?, text: CharSequence?, subject: CharSequence?): Shared? {
+        if (action != Intent.ACTION_SEND || type?.startsWith("text/") != true) return null
+        val body = text?.toString()?.trim()?.take(SHARED_LIMIT).orEmpty()
+        if (body.isEmpty()) return null
+        return Shared(text = body, title = subject?.toString()?.trim()?.take(SHARED_LIMIT)?.takeIf { it.isNotEmpty() })
+    }
+
+    data class Shared(val text: String, val title: String?) {
+        /** [newChat] (a new chat page's URL) with the shared words as its query. */
+        fun into(newChat: String): String {
+            val query =
+                listOfNotNull(title?.let { "title=" + encode(it) }, "text=" + encode(text)).joinToString("&")
+            return newChat + (if (newChat.contains('?')) "&" else "?") + query
+        }
+
+        private fun encode(value: String) = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
+    }
+
+    /** More than a composer takes is more than a URL should carry. */
+    private const val SHARED_LIMIT = 4000
 }

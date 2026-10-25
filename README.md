@@ -11,7 +11,7 @@ feel like an Android app: it opens on a chat, with Material 3's navigation
 drawer as a native sidebar (your chats, projects, what waits for you, bots),
 Material top app bars with the page's actions and overflow
 menu, full-screen modals, a welcome screen, native dialogs, snackbars,
-haptics, search, the share sheet, sign-in through Chrome's Auth Tab, push
+haptics, search, the share sheet (both ways: sharing text into a new chat too), sign-in through Chrome's Auth Tab, push
 notifications, App Links, predictive back, edge to edge, and Live Wire's
 colors in light and dark.
 

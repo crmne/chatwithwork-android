@@ -383,11 +383,16 @@ class MainActivity :
      */
     override fun startNewChat() {
         closeSidebarNow()
-        val account = viewModel.account
+        navigator?.route(newChatUrl())
+    }
+
+    /** The new chat in the list the sidebar shows (or last showed) in the organization showing. */
+    private fun newChatUrl(): String {
+        val account = viewModel.account ?: memory.lastAccount
         val path =
             viewModel.sidebar?.takeIf { it.organization.id == account }?.links?.newChat
                 ?: account?.let { memory.newChatPath(it) }
-        navigator?.route(path?.let(AppUrls::absolute) ?: AppUrls.newChat(account))
+        return path?.let(AppUrls::absolute) ?: AppUrls.newChat(account)
     }
 
     override fun openBots() {
@@ -826,6 +831,18 @@ class MainActivity :
      */
     private fun takeLink(intent: Intent?, restored: Boolean = false): String? {
         intent ?: return null
+        if (!restored && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0) {
+            LaunchLinks
+                .shared(
+                    intent.action,
+                    intent.type,
+                    intent.getCharSequenceExtra(Intent.EXTRA_TEXT),
+                    intent.getCharSequenceExtra(Intent.EXTRA_SUBJECT)
+                )?.let { shared ->
+                    intent.action = Intent.ACTION_MAIN
+                    return shared.into(newChatUrl())
+                }
+        }
         val link = LaunchLinks.from(intent.action, intent.dataString, intent.flags, restored)
         if (intent.action == Intent.ACTION_VIEW) intent.data = null
         return link

@@ -96,6 +96,18 @@
                 <data android:pathPrefix="/users/confirmation" />
             </intent-filter>
 
+            <!--
+              Share into a new chat: text and links shared from another app
+              wait in a new chat's composer, never sent by themselves
+              (the server's /chats/new?text=..., as for the installed web app).
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
             <!-- The end of a sign-in in the browser: chatwithwork://... (as on iOS). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

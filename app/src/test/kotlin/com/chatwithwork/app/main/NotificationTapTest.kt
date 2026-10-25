@@ -69,4 +69,25 @@ class NotificationTapTest {
         assertThat(viewModel.takePendingLink(navigatorReady = true)).isEqualTo("$base/482139075/bots")
         assertThat(viewModel.takePendingLink(navigatorReady = true)).isNull()
     }
+
+    @Test
+    fun `text shared from another app waits in a new chat's composer`() {
+        val shared = LaunchLinks.shared(
+            Intent.ACTION_SEND,
+            "text/plain",
+            " Look at this https://example.com/a?b=1 ",
+            "Q3 plan"
+        )!!
+        assertThat(shared.into("$base/482139075/chats/new"))
+            .isEqualTo(
+                "$base/482139075/chats/new?title=Q3%20plan&text=Look%20at%20this%20https%3A%2F%2Fexample.com%2Fa%3Fb%3D1"
+            )
+        assertThat(
+            LaunchLinks.shared(Intent.ACTION_SEND, "text/plain", "hi", null)!!.into("$base/1/chats/new?project_id=3")
+        )
+            .isEqualTo("$base/1/chats/new?project_id=3&text=hi")
+        assertThat(LaunchLinks.shared(Intent.ACTION_SEND, "image/png", "hi", null)).isNull()
+        assertThat(LaunchLinks.shared(Intent.ACTION_SEND, "text/plain", "  ", null)).isNull()
+        assertThat(LaunchLinks.shared(Intent.ACTION_VIEW, "text/plain", "hi", null)).isNull()
+    }
 }
