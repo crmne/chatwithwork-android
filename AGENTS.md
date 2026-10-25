@@ -22,10 +22,13 @@ Live Wire design system and the chat UI. Read the README here first, then
 
 ## Architecture rules
 
-- One activity (`MainActivity`) with a navigator per tab. Changes of
-  session or organization reset the navigators rather than patching
-  screens.
-- Screens are `WebFragment` (in a tab) and `WebModalFragment` (modal),
+- One activity (`MainActivity`) with one navigator, whose root is always a
+  chat, and the native sidebar (`sidebar/`) in a `DrawerLayout`. Changes of
+  session or organization reset the navigator rather than patching
+  screens. The sidebar draws only what the server's JSON says
+  (docs/server-contract.md, "The sidebar"); visibility and permissions stay
+  on the server.
+- Screens are `WebFragment` (pushed or the root) and `WebModalFragment` (modal),
   chosen by the path configuration's `uri`. Modals stay full-screen
   fragments: Hotwire Native's bottom-sheet fragments have no top app bar,
   and bridge components that put actions there crash in them.
@@ -39,7 +42,7 @@ Live Wire design system and the chat UI. Read the README here first, then
   bridge-components has the component, keep his messages and only add
   optional keys.
 - Never key native behavior off a title or label: they're translated.
-  Use where something is (a tab's first page), an index, a URL, or a
+  Use where something is (the root screen), an index, a URL, or a
   stable `nativeAction` from the payload.
 - Path configuration rules live in
   `app/src/main/assets/json/path-configuration.json`; the server serves a

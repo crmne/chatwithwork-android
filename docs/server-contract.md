@@ -21,13 +21,14 @@ version it.
 
 | Step | What | Android needs |
 |---|---|---|
-| 1 | [Recognize the apps](#1-recognize-the-apps), [layout](#2-the-layout-in-the-apps), [native.css](#3-the-stylesheet) | the iOS steps, plus `overflow-x: clip`, the tabs to show, and room under the floating toolbar |
+| 1 | [Recognize the apps](#1-recognize-the-apps), [layout](#2-the-layout-in-the-apps), [native.css](#3-the-stylesheet) | the iOS steps, plus `overflow-x: clip` |
 | 2 | [Authentication](#4-authentication) | nothing beyond iOS |
 | 3 | [Path configuration](#5-path-configuration) | `public/configurations/android_v1.json` |
 | 4 | [Bridge components](#6-bridge-components), [page by page](#7-page-by-page) | nothing beyond iOS: the same controllers drive both apps |
 | 5 | [App Links](#8-app-links) | `/.well-known/assetlinks.json` |
 | 6 | [Push notifications](#9-push-notifications) | FCM HTTP v1 sending |
 | 7 | [Browser sign-in and connecting services](#10-browser-sign-in-and-connecting-services) | nothing beyond iOS |
+| 8 | [The sidebar](#11-the-sidebar) | its JSON and the `sidebar` component's `changed` |
 
 Steps 1 to 4 are enough for a first internal test track on Google Play.
 
@@ -67,25 +68,22 @@ Everything in the iOS contract's section 2 applies (`data-native-app` on
 document scrolls, no environment label, `bridge--confirm` on `<body>`,
 flashes as toasts). What differs on Android:
 
-- **The tabs float.** The app's tabs are Chats, Bots and Settings in
-  Material 3's floating toolbar, with New chat as a floating button beside
-  it (iOS keeps Chats, Projects and Settings). Projects open in Chats,
-  whose list switcher picks them (section 7). The toolbar shows on a tab's
-  first page and hides on pushed pages, in modals and under the keyboard.
+- **No tabs: one chat screen and a sidebar.** The app opens on a chat (a
+  new one, or one the person left answering under ten minutes ago), and
+  every chat replaces that one screen (the path configuration's
+  `replace_root`), so chats never stack. Bots, projects and the other pages
+  are pushed over it; Settings and forms are modals. The sidebar, Material
+  3's modal navigation drawer, opens from the menu button on the chat or a
+  swipe from the edge, and the app draws it from the server's JSON
+  (section 11). Every screen but a modal has New chat in its top app bar.
+  Earlier builds had tabs (Chats, Bots and Settings in a floating
+  toolbar) and read `android_v1.json`, the `native-tabs` meta tag and
+  `data-native-tab-root`; keep serving those for them.
 - **The page sits under the top app bar, above the gesture bar.** The app
   puts the web view below its top app bar and above the gesture bar, and
-  moves it above the keyboard. On a tab's first page the page scrolls under
-  the floating toolbar, so it leaves room for it (section 3). `env(safe-area-inset-*)` is 0
-  in the Android web view: don't pad for it. `viewport-fit=cover` makes no
-  difference here.
-- **The tabs to show.** Every signed-in page names the tabs the person may
-  use: `<meta name="native-tabs" content="chats bots settings">`, without
-  `bots` for a guest (whom `/bots` refuses). The app hides the tabs a page
-  leaves out (Chats and Settings always show) and remembers that for the
-  next launch; a page without the tag hides nothing.
-- **A tab's first page says so**: `<body data-native-tab-root>` on Chats,
-  Bots and Settings' list of sections (`content_for :native_tab_root`), for
-  the stylesheet's room under the toolbar.
+  moves it above the keyboard. `env(safe-area-inset-*)` is 0 in the Android
+  web view: don't pad for it. `viewport-fit=cover` makes no difference
+  here.
 - **Titles.** The app shows `<title>` in its top app bar. Until the server
   sends bare titles, the app strips a leading `Staging · ` or
   `Development · ` and a trailing ` | Chat with Work` itself, but the
@@ -116,18 +114,13 @@ Add, for Android:
   [data-native-app] body {
     overflow-x: clip;
   }
-
-  /* On Android, a tab's first page (Chats, Bots, Settings) scrolls under
-     the floating toolbar and New chat beside it: leave room for them under
-     the last row (64px of toolbar, 16px above it and below). */
-  html[data-bridge-platform="android"] body[data-native-tab-root] .native-main {
-    padding-block-end: 6.5rem;
-  }
 }
 ```
 
-The second rule gives each tab's first page room under its last row for
-the toolbar. Pages pushed on top have no toolbar and get none.
+The tab builds also gave a tab's first page room under its last row for
+the floating toolbar (`html[data-bridge-platform="android"]
+body[data-native-tab-root] .native-main { padding-block-end: 6.5rem }`);
+sidebar builds have no toolbar and no tab roots.
 
 In the apps, only a chat opens at its end (the scroll controller's
 `opensAtEnd`, for `body.chat-view`); every other page opens at its top.
@@ -143,10 +136,10 @@ How the Android app reads it:
 
 | The server... | The app... |
 |---|---|
-| answers a tab's page with `401` | shows its welcome screen; if someone was signed in, opens the sign-in form over it |
-| redirects a tab's page to `/users/sign_in` instead | the same, so the app works before the `401` ships |
-| sends `/recede_historical_location` while signing in | starts every tab again (now signed in), then opens any link that waited |
-| moves the sign-in form on to a page inside an organization, a tab's list, or `/accounts` | the same as a recede |
+| answers the chat or a page with `401` | shows its welcome screen; if someone was signed in, opens the sign-in form over it |
+| redirects a page to `/users/sign_in` instead | the same, so the app works before the `401` ships |
+| sends `/recede_historical_location` while signing in | starts again on a new chat (now signed in), then opens any link that waited |
+| moves the sign-in form on to a page inside an organization, or `/accounts` | the same as a recede (a chat list it lands on isn't opened: the sidebar is the list) |
 | redirects the logout form to `/users/sign_in` | shows the welcome screen without opening the sign-in form |
 | renders a Devise page again (wrong password) | keeps the sign-in form open |
 
@@ -156,85 +149,50 @@ never moves to another phone.
 
 ## 5. Path configuration
 
-Serve `public/configurations/android_v1.json` as a static file, an exact
+Serve `public/configurations/android_v2.json` as a static file, an exact
 copy of [`app/src/main/assets/json/path-configuration.json`](../app/src/main/assets/json/path-configuration.json)
-in this repository. The app fetches it on every launch from
-`https://chatwithwork.com/configurations/android_v1.json` (staging and
-development builds from their own server), caches it, and the server's copy
-**replaces** the bundled one entirely. Change both together; bump the name
-(`android_v2.json`) only when old builds must not read the new rules, and
-keep serving the old file for them.
+in this repository (the server's test compares them). The app fetches it on
+every launch from `https://chatwithwork.com/configurations/android_v2.json`
+(staging and development builds from their own server), caches it, and the
+server's copy **replaces** the bundled one entirely. Change both together;
+bump the name only when old builds must not read the new rules, and keep
+serving the old file for them: the tab builds read `android_v1.json`.
 
-The rules today, in order (later matches override earlier ones; patterns
-are regular expressions searched for in the path and query, unanchored
-unless written with `^`):
+The rules, in order (later matches override earlier ones; patterns are
+regular expressions searched for in the path and query, unanchored unless
+written with `^`):
 
-```json
-{
-  "settings": {},
-  "rules": [
-    {
-      "patterns": [".*"],
-      "properties": { "context": "default", "uri": "hotwire://fragment/web", "pull_to_refresh_enabled": true }
-    },
-    {
-      "patterns": ["/new(\\?|$)", "/edit(\\?|$)"],
-      "properties": { "context": "modal", "uri": "hotwire://fragment/web/modal", "pull_to_refresh_enabled": false }
-    },
-    {
-      "patterns": [
-        "^/users/sign_in(\\?|$)", "^/users/sign_up(\\?|$)", "^/users(\\?|$)",
-        "^/users/password(/new|/edit)?(\\?|$)", "^/users/confirmation(/new|/sent)?(\\?|$)", "^/users/unlock(/new)?(\\?|$)"
-      ],
-      "properties": { "context": "modal", "uri": "hotwire://fragment/web/modal", "pull_to_refresh_enabled": false }
-    },
-    {
-      "patterns": ["/chats/new(\\?|$)"],
-      "properties": { "context": "modal", "uri": "hotwire://fragment/web/modal", "pull_to_refresh_enabled": false }
-    },
-    {
-      "patterns": ["/chats/\\d+(\\?|#|$)", "^/shared/"],
-      "properties": { "context": "default", "pull_to_refresh_enabled": false }
-    },
-    {
-      "patterns": ["/chats(\\?|$)", "/projects(\\?|$)", "/bots(\\?|$)", "/settings(\\?|$)"],
-      "properties": { "context": "default", "pull_to_refresh_enabled": true }
-    },
-    {
-      "patterns": [
-        "^/rails/active_storage/", "^/$",
-        "^/(pricing|security|self-hosted|imprint|privacy-policy|terms-of-service|survey)(\\?|$)",
-        "^/(compare|use-cases|integrations)(/|\\?|$)",
-        "^/(robots\\.txt|llms\\.txt|llms-full\\.txt|sitemap\\.xml)(\\?|$)"
-      ],
-      "properties": { "presentation": "none", "open_in_browser": true }
-    }
-  ]
-}
-```
+| Pattern | Context | Presentation | Pull to refresh | Notes |
+|---|---|---|---|---|
+| `.*` | default | push | on | `uri: hotwire://fragment/web` |
+| `/new(\?\|$)`, `/edit(\?\|$)` | modal | | off | every new and edit form; `uri: hotwire://fragment/web/modal` |
+| `^/users/sign_in`, `^/users/sign_up`, `^/users(\?\|$)`, `^/users/password...`, `^/users/confirmation...`, `^/users/unlock...` | modal | | off | the sign-in pages |
+| `/chats/new(\?\|$)`, `/chats/\d+(\?\|#\|$)` | default | `replace_root` | off | a chat is always the one screen |
+| `^/shared/` | default | push | off | |
+| `/settings(\?\|$)` | modal | | on | a section (`?tab=`) pushes inside the modal |
+| `/chats(\?\|$)`, `/projects(\?\|$)`, `/bots(\?\|$)` | default | push | on | pushed over the chat |
+| files and the marketing site | | `none` | | `open_in_browser: true`: a Chrome Custom Tab |
 
-(The bundled file has the same rules, one value per line.) Compared with
-`ios_v1.json`:
+Compared with `ios_v2.json`:
 
 - The patterns and the order are the same, so a page is pushed, modal, or
   refreshable alike on both phones.
-- `uri` picks the Android screen: `hotwire://fragment/web` for pages in a
-  tab, `hotwire://fragment/web/modal` for modals. Modals are full-screen
-  on Android, not Hotwire Native's bottom sheets: Joe Masilotti's form,
-  menu, share and button components crash in those (Cluster Headache
-  Tracker's app found out), and this app's put their actions in a top app
-  bar, which a sheet doesn't have.
+- `uri` picks the Android screen: `hotwire://fragment/web` or
+  `hotwire://fragment/web/modal`. Modals are full-screen on Android, not
+  Hotwire Native's bottom sheets: Joe Masilotti's form, menu, share and
+  button components crash in those (Cluster Headache Tracker's app found
+  out), and this app's put their actions in a top app bar, which a sheet
+  doesn't have.
 - `modal_style` and `modal_dismiss_gesture_enabled` are iOS's and Android
   ignores them; `uri` and `open_in_browser` are Android's and iOS ignores
   them.
 - The last rule is Android's own: files (`/rails/active_storage/...`) and
-  the marketing site open in a Chrome Custom Tab over the app instead of
-  inside a tab. iOS could adopt it (Hotwire Native iOS has no
-  `open_in_browser`, but a route decision handler can do the same).
+  the marketing site open in a Chrome Custom Tab over the app.
 
 Hotwire Native adds its own rules for `/recede_historical_location`,
 `/resume_historical_location` and `/refresh_historical_location` after
-these.
+these. A recede on the chat itself (deleting it from its menu) has nothing
+to go back to: the app starts a new chat instead.
 
 ## 6. Bridge components
 
@@ -245,12 +203,12 @@ draws each one its own way:
 
 | Component | On Android |
 |---|---|
-| `button` | An icon in the top app bar (its `title` is the tooltip and accessibility label), or a text action without an image. `left` buttons join the right side, since Android keeps the left for back and close. On a tab's first page, a button with `nativeAction: "new-chat"` (the Chats list's New chat) is left out: the floating New chat beside the tabs does it. |
+| `button` | An icon in the top app bar (its `title` is the tooltip and accessibility label), or a text action without an image. `left` buttons join the right side, since Android keeps the left for back, close and the sidebar. A button with `nativeAction: "new-chat"` is left out: every screen's bar has the app's own New chat. |
 | `menu` | The page's actions in the **overflow menu** (the three dots): `destructive` items in red, `checked` items with a check. A menu with `side: "left"` or a `header` is a chooser, as on iOS (the organization switcher): a button in the top app bar showing its `label` and a chevron, which opens a sheet titled with its `header`, the `checked` item marked. `iosImage` is ignored. |
 | `search` | Joe Masilotti's component: a search action in the top app bar that opens a search field there, replying `{query}` on every change. |
 | `form` | The submit as a text action in the top app bar ("Save", "Create"), faded and disabled between `disableSubmit` and `enableSubmit`. |
 | `share` | `connect` adds a share icon to the top app bar; `share` opens Android's share sheet at once. The reply is `{completed, activityType}`: `completed` is whether an app was picked, `activityType` that app's package name (`com.google.android.gm`). |
-| `toast` | A snackbar above the floating toolbar when it shows; `alert` and `error` stay up longer. |
+| `toast` | A snackbar; `alert` and `error` stay up longer. |
 | `haptic` | `success` confirms, `warning` and `error` reject, `selection` ticks, `light` and `soft` tick lightly, `medium` and `rigid` tap, `heavy` presses long. Android's touch feedback setting applies. |
 | `alert` | A Material dialog: `title`, `description` as its message, `dismiss` and `confirm` buttons, the confirm in red when `destructive`. |
 | `theme` | Accepted: `light` or `dark` would set the whole app's appearance (remembered across launches), `null` follows the system. Not used yet, as on iOS. |
@@ -281,8 +239,9 @@ way):
   and may be translated. Where native code must recognize an action, the
   payload names it in `nativeAction` (`data-bridge-native-action`), a
   stable kebab-case name such as `new-chat`, listed in the contract. The
-  Android app reads one today: `new-chat` on the Chats list's `button`,
-  which it leaves to its floating button. Menus and alerts answer by index,
+  Android app reads one today: `new-chat` on a page's `button` (the
+  Chats list's, a chat's, a project's), which it leaves out for its own
+  New chat in the bar. Menus and alerts answer by index,
   and sign-out is recognized by its redirect to `/users/sign_in`, not by a
   button's label.
 
@@ -291,40 +250,27 @@ way):
 The iOS contract's section 7 is the source for what each page renders in
 the apps. On Android:
 
-- **Chats** (`chats/index`): the floating New chat starts a chat; the
-  page's own New chat (`bridge--button`, `bridge_native_action: "new-chat"`)
-  stays out of the bar. Search is in the top app bar, and so is the **list
-  switcher**, the web sidebar's: a `bridge--menu` chooser
-  (`chats/_native_list_switcher`, `data-bridge-side="left"`,
-  `data-bridge-header="Show chats from"`, its `label` the list's name) with
-  Private chats (not for guests), All chats, and each project the person is
-  on (`ChatList.choices`), each a link to `chats_path(list:)` (`recent`, or
-  a project's number) with `data-turbo-action="replace"`, so the list is
-  replaced in place and the tab never stacks lists; then All projects… and
-  New project, which open on top. While the list shows a project
-  (`/chats?list=3`), New chat starts in it (`/chats/new?project_id=3`).
-- **A chat** (`chats/show`): New chat is an icon in the top app bar; Pin,
-  Share link, Rename, Move to project and Delete are in its overflow menu,
-  Delete in red, behind the native confirm. A message's "More actions"
-  button opens the context menu as a popup at the button. The approval and
-  composer haptics vibrate as in the table above. The composer's
-  keyboard-shortcut hint (`.kbd-hint`, "⌘ /" or "Ctrl /") stays in the
-  markup: native.css hides it in the apps, where it means nothing.
-- **New chat** (`chats/new`): a full-screen modal with a close button.
-  After the first message the server redirects to the new chat: the app
-  closes the modal and pushes the chat in Chats.
-- **Bots** (`bots/index`): New bot (`add`) is in the top app bar. A bot,
-  its triggers (`/triggers/...`, once routines) and its conversations open
-  on top in the Bots tab.
-- **Projects** (`projects/index`, from the list switcher's All projects…):
-  pushed in Chats, New project (`add`) in the top app bar. A project's page
-  shows its New chat in the top app bar and the rest in the overflow menu.
-- **Settings**: `/settings` is the list of sections and `/settings?tab=...`
-  is pushed over it with a back arrow, as on iOS. The organization switcher
-  is the "Acme" button with a chevron in the top app bar; picking another
-  organization rebuilds every tab inside it, landing on its chat list
-  (link to `chats_path(script_name: account.slug)`, as the iOS contract
-  says).
+- **New chat and a chat** (`chats/new`, `chats/show`): the app's root.
+  The top app bar has the sidebar's menu button, the page's title, New
+  chat, and the chat's own actions: Pin, Share link, Rename, Move to
+  project and Delete in the overflow menu, Delete in red, behind the native
+  confirm. After the first message the server redirects to the new chat,
+  which replaces the new chat page. A message's "More actions" button opens
+  the context menu as a popup at the button. The approval and composer
+  haptics vibrate as in the table above. The composer's keyboard-shortcut
+  hint (`.kbd-hint`) stays in the markup: native.css hides it in the apps.
+- **The chat list** (`chats/index`) and **projects** (`projects/index`,
+  from the sidebar's "All projects..."): pushed over the chat, when a link
+  leads there. The sidebar is the app's list, so the app opens neither by
+  itself.
+- **Bots** (`bots/index`, from the sidebar): pushed over the chat, New bot
+  (`add`) in the top app bar. A bot, its triggers and its conversations
+  push on top.
+- **Settings** (from the person at the sidebar's foot): a modal. `/settings`
+  is the list of sections and `/settings?tab=...` pushes inside it with a
+  back arrow. Its organization switcher still works (a link into another
+  organization starts the app over there), but the sidebar's person menu
+  is the usual way to switch.
 - **Forms in modals** (every `new` and `edit`): the `form` component puts
   the submit in the top app bar. When the form recedes
   (`recede_or_redirect_to ..., notice: "Chat renamed."`), the app closes
@@ -332,8 +278,8 @@ the apps. On Android:
   modal again. (Hotwire Native Android would also go back from that page;
   the app stops it, to match iOS.) A create that redirects to the new
   record closes the modal and pushes it.
-- **Deleting** from a pushed page: `recede_or_redirect_to chats_path,
-  notice: "Chat deleted."` goes back to the list and shows the notice.
+- **Deleting** a chat from its menu: `recede_or_redirect_to chats_path,
+  notice: "Chat deleted."` shows the notice and starts a new chat.
 - **Billing**: Google Play requires its own billing for digital
   subscriptions sold in an app in most countries. Until that's decided,
   render Settings › Billing in the Android app without checkout, top-ups or
@@ -346,9 +292,10 @@ Links the app handles itself:
   `mailto:`, `tel:`, `sms:`, `geo:` and Play Store links go to their apps.
 - Files and the marketing site open in a Custom Tab (the path
   configuration's last rule).
-- A link to another tab's list (`/482139075/bots` from a chat) switches
-  tabs instead of pushing a copy of the list.
-- A link into another organization rebuilds every tab inside it.
+- A link to a chat replaces the one screen; a link to any other page
+  pushes it over the chat.
+- A link into another organization starts the app over there: on that
+  chat, or on its new chat with the page on top.
 - `notice` and `alert` on `/recede_historical_location`,
   `/resume_historical_location` and `/refresh_historical_location` show as
   snackbars.
@@ -459,7 +406,8 @@ FCM for `android` registrations.
 ### The payload
 
 **Data only**: no `notification` block, so the app writes the notification
-itself (its channel, one per chat, the tap opening the right tab), and,
+itself (its channel, one per chat, the tap opening the chat as the app's
+one screen), and,
 as on iOS, **no content**: never a chat title, a question, an answer, a
 tool's arguments or a file name. The organization's and the service's
 names are fine.
@@ -558,3 +506,74 @@ On Android:
   `ANDROID_UA` (section 1), and a test that `/configurations/android_v1.json`
   is the Android repository's file and `/.well-known/assetlinks.json`
   answers JSON without a redirect.
+
+## 11. The sidebar
+
+Builds that draw the sidebar themselves register the `sidebar` bridge
+component, so the user agent's `bridge-components` lists `sidebar`
+(`native_app.supports?(:sidebar)`). The server shows those builds Connect,
+Reconnect and "Sign in with ..." (section 10), puts the chat's New chat
+under `nativeAction: "new-chat"`, and adds two things:
+
+### Its JSON
+
+`GET /:account/native/sidebar`, with the web view's own session (its
+cookies and user agent, no token of its own) and `Accept:
+application/json`. `list=<key>` picks the list (`recent`, `all`, or a
+project's number; the app remembers the person's choice per organization),
+`all=1` sends every chat (for searching), and `next` is the URL of the
+following page. A 401 means the session is gone.
+
+```json
+{
+  "organization": {"id": "482139075", "name": "Northwind Studio", "initials": "NS"},
+  "organizations": [{"id": "482139075", "name": "Northwind Studio", "initials": "NS", "current": true, "role": "admin", "url": "/482139075/chats/new"}],
+  "person": {"name": "Maya Hart", "email": "maya@northwind.example", "initials": "MH", "avatar_url": null},
+  "list": {"key": "recent", "name": "Private chats", "kind": "recent", "hq": false},
+  "lists": [{"key": "recent", "name": "Private chats", "kind": "recent", "hq": false, "pinned": false, "current": true}],
+  "links": {"new_chat": "/482139075/chats/new", "bots": "/482139075/bots", "settings": "/482139075/settings",
+            "projects": "/482139075/projects", "new_project": "/482139075/projects/new",
+            "organizations": "/accounts", "new_organization": "/accounts/new"},
+  "waiting": {"count": 1, "items": [{"title": "Launch date in #launch", "url": "/482139075/chats/42", "kind": "approval", "project": "Website relaunch"}]},
+  "bots": {"count": 0, "attention": false, "next_run": "08:30"},
+  "pins": [CHAT],
+  "chats": [CHAT],
+  "next": "/482139075/native/sidebar?list=recent&before=41&asked=2026-10-24T09:00:00.000000Z"
+}
+CHAT = {"number": 42, "title": "Launch date in #launch", "url": "/482139075/chats/42", "state": "idle",
+        "waiting": false, "project": "Website relaunch", "asked_at": "2026-10-25T08:12:00Z", "group": "Today"}
+```
+
+Links that don't apply are `null` (a guest's `bots`, `projects` and
+`new_project`), and `bots` is `null` for guests. A list's `kind` is
+`recent`, `all` or `project`; a waiting item's `approval`, `question` or
+`bot`; a chat's `state` `idle`, `processing` or `error`. Every URL is a
+path on this server. The app ignores keys it doesn't know.
+
+What the app draws from it, top to bottom: the list switcher (`list`; a
+chooser of `lists`, then "All projects..." and "New project"), a search
+that filters titles on the phone, New chat (`links.new_chat`, also where
+the bar's New chat and a cold start go), Waiting for you (`waiting`, a
+sheet of its items), Bots (`bots`: the count with an attention dot, else
+the next run), Pinned, then the chats by `group`, a live dot on those
+answering and an attention dot on those waiting, loading `next` near the
+end. The person at the foot opens a sheet of `organizations` (each `url`
+starts the app over there), All organizations, New organization and
+Settings. Without the JSON (offline, an older server), the sidebar still
+offers New chat, Bots and Settings.
+
+It fetches the JSON as the sidebar opens, when the app comes back to the
+foreground, after a page in another organization, every 5 seconds while
+it's open and something answers, and on `changed`.
+
+### The `sidebar` component
+
+Every signed-in page in these builds has one hidden `bridge--sidebar`
+element, subscribed to the person's own chat-list streams. It sends:
+
+| Event | Data | The app |
+|---|---|---|
+| `connect` | `{}` | nothing |
+| `changed` | `{}` | fetches the JSON again (debounced, 500 ms) if the sidebar is open, else on its next opening |
+
+No replies.

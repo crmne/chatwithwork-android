@@ -7,8 +7,9 @@ chats wherever they live, hosted in the EU or on your own servers.
 The app is built with [Hotwire Native](https://native.hotwired.dev). Its
 screens are the web app's own pages, so every feature the web app gains
 reaches the app without a release, and it goes native wherever that makes it
-feel like an Android app: Material 3's floating toolbar with a navigator per
-tab and New chat beside it, Material top app bars with the page's actions and overflow
+feel like an Android app: it opens on a chat, with Material 3's navigation
+drawer as a native sidebar (your chats, projects, what waits for you, bots),
+Material top app bars with the page's actions and overflow
 menu, full-screen modals, a welcome screen, native dialogs, snackbars,
 haptics, search, the share sheet, sign-in through Chrome's Auth Tab, push
 notifications, App Links, predictive back, edge to edge, and Live Wire's
@@ -108,7 +109,8 @@ key, and the app signing key's fingerprint is what
 ```
 app/src/main/kotlin/com/chatwithwork/app/
   ChatWithWorkApplication.kt  Hotwire configuration, bridge components, path configuration
-  main/        MainActivity (tabs, welcome screen, sign-in, links), MainTab, view model
+  main/        MainActivity (the sidebar shell, welcome screen, sign-in, links), view model
+  sidebar/     the native sidebar: the server's JSON, its rows, the drawer's views
   fragments/   the web screen (top app bar over the shared web view), page titles, error states
   bridge/      the bridge components (native halves) and the action sheet they share
   routing/     the app's URLs, Custom Tabs, route decisions for other sites and apps
@@ -120,23 +122,25 @@ app/src/test/            unit tests (JUnit, Truth)
 docs/                    the server contract and design notes
 ```
 
-- **MainActivity** owns the floating toolbar (Chats, Bots, Settings, each
-  with its own navigator, loaded when first shown, through `TabShell`), New
-  chat beside it, and the welcome screen. It watches the navigators' traffic for what the server says: a
+- **MainActivity** owns one navigator, whose root is always a chat (the
+  path configuration's `replace_root` makes every chat replace it), the
+  sidebar (a `DrawerLayout` whose content `SidebarDrawer` draws from the
+  server's JSON, fetched with the web view's cookies), and the welcome
+  screen. It watches the navigator's traffic for what the server says: a
   401 or the sign-in page means no session, a recede while signed out means
-  signed in, a link into another organization rebuilds the tabs there.
+  signed in, a link into another organization starts over there.
 - **Web screens** are `HotwireWebFragment`s with the app's own layout: a
   Material top app bar (the page's `<title>`, its bridge buttons and
   overflow menu) over the web view. Modals are full-screen fragments, not
   Hotwire's bottom sheets, where bridge components that need a top app bar
   crash.
 - **Bridge components**: the app's own `button`, `menu`, `form`, `share`,
-  `alert`, `toast`, `haptic`, `theme`, `context-menu`, `auth-session` and
-  `notification-token`, with Joe Masilotti's messages where his component
-  exists, plus his `search` and `review-prompt` as they are. All 13 are the
-  same names and messages as the iOS app's.
+  `alert`, `toast`, `haptic`, `theme`, `context-menu`, `auth-session`,
+  `notification-token` and `sidebar`, with Joe Masilotti's messages where
+  his component exists, plus his `search` and `review-prompt` as they are.
+  All 14 are the same names and messages as the iOS app's.
 - **Path configuration**: bundled, and replaced at launch by the server's
-  `/configurations/android_v1.json`.
+  `/configurations/android_v2.json`.
 
 ## The playground
 
