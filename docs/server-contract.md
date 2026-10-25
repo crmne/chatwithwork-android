@@ -257,7 +257,7 @@ draws each one its own way:
 | `review-prompt` | Joe Masilotti's component: Google Play's in-app review. Not used yet. |
 | `context-menu` | A popup menu at `rect` (CSS pixels, converted with the page's zoom), with icons; without a `rect`, a sheet titled with `title`. Items with `copy` text are copied to the clipboard by the app, with no reply; with `copyHtml` too (an answer as HTML, left out when the reader copies Markdown), the clip carries both (`ClipData.newHtmlText`), else plain text (Android 13 and later confirm a copy themselves; older versions get a "Copied" snackbar). |
 | `auth-session` | An **Auth Tab** (Chrome's tab for sign-ins, which hands the `chatwithwork://` redirect straight back), or a Custom Tab where the browser has none, with `ephemeral` as ephemeral browsing where supported. The `url` must be on this app's server, and https outside development, or the reply is `{error: "invalid_url"}`; `{error: "unavailable"}` when no browser can open it; `{error: "canceled"}` when the person comes back without finishing. Otherwise `{url}`, the callback URL. |
-| `notification-token` | `status` is `authorized`, `denied` or `not_determined` (Android has no provisional or ephemeral). `get` shows Android 13's notification permission prompt the first time, `openSettings` opens the app's notification settings. When the person allows notifications (the app's own prompt after sign-in, or `get`), every `notification-token` on screen gets its latest `connect` answered again with the token. `token` is the FCM registration token, `platform` is `android`, `environment` is always `production`, `appId` is the package name. |
+| `notification-token` | `status` is `authorized`, `denied` or `not_determined` (Android has no provisional or ephemeral). `get` shows Android 13's notification permission prompt the first time, `openSettings` opens the app's notification settings. `offer` `{reason}` (`approval` or `answer`) shows, once per install and only while nobody has decided, the app's "Want a nudge when it's ready?" explanation worded for the reason, then Android's prompt on Continue (on Android 12 and earlier, Continue turns push on); it replies like `get`, at once when there's nothing to offer. When the person allows notifications (`offer`, or `get`), every `notification-token` on screen gets its latest `connect` answered again with the token. `token` is the FCM registration token, `platform` is `android`, `environment` is always `production`, `appId` is the package name. |
 
 Material Symbols names go in `androidImage` (`data-bridge-android-image`):
 `edit_square`, `keep`, `keep_off`, `link`, `edit`, `drive_file_move`,
@@ -427,9 +427,13 @@ app for a token through `notification-token` and posts it to
 registers with Firebase only after the person turns notifications on, and
 unregisters when it sees a sign-out.
 
-The app asks once after the first sign-in, with a short native explanation
-before the system prompt (Android 13 and later; earlier versions have no
-prompt, and push stays off until Turn on); when the person allows
+The app no longer asks after signing in. It offers notifications once per
+install when a page sends `notification-token`'s `offer` (section 6): the
+server sends it from the layout's hidden element the first time a chat page
+shows a change or question waiting for the person, or an answer still
+working after 15 seconds. A short native explanation ("Want a nudge when
+it's ready?") comes before the system prompt (Android 13 and later; on
+earlier versions Continue turns push on). When the person allows
 notifications, it answers the latest `connect` of every
 `notification-token` on screen again with the new state, so the page
 registers the token without waiting for another page. Turn on in Settings ›

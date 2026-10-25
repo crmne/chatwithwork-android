@@ -26,7 +26,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * Push notifications through Firebase Cloud Messaging.
  *
  * Nothing talks to Firebase until the person turns notifications on (the
- * prompt the app shows once after signing in, or Settings' Turn on): token
+ * offer the app makes once, when a page asks, or Settings' Turn on): token
  * auto-init is off in the manifest and only switched on by [token]. Builds
  * without google-services.json (forks, CI) have no Firebase at all and report
  * push as unavailable. See docs/push-notifications.md.
@@ -38,6 +38,8 @@ object PushNotifications {
     private const val PREFERENCES = "push"
     private const val KEY_ASKED = "asked_for_permission"
     private const val KEY_OPTED_IN = "opted_in"
+
+    // Named for the offer after signing in it replaced, so installs that saw that one aren't asked again.
     private const val KEY_OFFERED = "offered_after_sign_in"
     private const val KEY_TOKEN = "token"
 
@@ -88,15 +90,17 @@ object PushNotifications {
     }
 
     /**
-     * Whether to offer notifications now: once per install, after signing in,
-     * on Android 13 and later, while they aren't allowed and nobody has
-     * decided yet. [rationale] is Android's shouldShowRequestPermissionRationale,
-     * true after the person said no once. Signing out keeps the offer made.
+     * Whether to offer notifications now: once per install, the first time a
+     * page says it's worth it (a change waits for approval, or an answer
+     * takes a while; the `notification-token` component's `offer`), while
+     * nobody has decided yet. [rationale] is Android's
+     * shouldShowRequestPermissionRationale, true after the person said no
+     * once. Signing out keeps the offer made. Installs that got the old offer
+     * after signing in count as offered.
      */
     fun shouldOffer(context: Context, rationale: Boolean): Boolean =
         !preferences(context).getBoolean(KEY_OFFERED, false) &&
-            needsRuntimePermission(context) &&
-            !askedBefore(context) &&
+            permission(context) == Permission.NOT_ASKED &&
             !rationale
 
     fun markOffered(context: Context) {

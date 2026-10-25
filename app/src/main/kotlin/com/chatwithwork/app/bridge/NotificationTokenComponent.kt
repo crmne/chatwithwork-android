@@ -21,16 +21,21 @@ import kotlinx.serialization.Serializable
  *
  * - `connect` replies with the current state and never asks the person.
  *   Pages send it on load, so a token Firebase rotated reaches the server.
- *   When the person allows notifications (the prompt after signing in, or
- *   Turn on), every component on screen answers its latest `connect` again
+ *   When the person allows notifications (the offer, or Turn on), every
+ *   component on screen answers its latest `connect` again
  *   with the new state ([answerConnected]): the page keeps the callback, so
  *   it posts the token without waiting for another page.
  * - `get` asks for the notification permission if Android hasn't asked yet
  *   (Android 13 and later), then replies. Send it from a tap.
+ * - `offer` with `{reason}` (`approval` or `answer`): the page says now is a
+ *   good moment (a change waits for approval, or an answer is taking a
+ *   while). Once per install, while nobody has decided, the app explains
+ *   why in its own words, then shows Android's prompt if the person goes on.
+ *   Otherwise it replies at once.
  * - `openSettings` opens this app's notification settings, for someone who
  *   turned notifications off there.
  *
- * Replies to `connect` and `get`: `{status, token?, platform, environment,
+ * Replies to `connect`, `get`, and `offer`: `{status, token?, platform, environment,
  * appId}`. `status` is `authorized`, `denied`, or `not_determined`; `token`
  * is the FCM registration token, absent until authorized (and in builds
  * without a Firebase configuration); `platform` is "android";
@@ -50,6 +55,8 @@ class NotificationTokenComponent(name: String, private val bridgeDelegate: Bridg
 
             "get" -> requestThenAnswer()
 
+            "offer" -> offerThenAnswer(message.data<Offer>()?.reason)
+
             "openSettings" -> openSettings()
         }
     }
@@ -68,6 +75,17 @@ class NotificationTokenComponent(name: String, private val bridgeDelegate: Bridg
                 PushNotifications.optIn(context)
             }
             answer("get")
+        }
+    }
+
+    private fun offerThenAnswer(reason: String?) {
+        val host = fragment.activity as? NotificationPermissionHost
+        if (host == null) {
+            answer("offer")
+            return
+        }
+        host.offerNotifications(if (reason == "approval") OfferReason.APPROVAL else OfferReason.ANSWER) {
+            answer("offer")
         }
     }
 
@@ -102,6 +120,9 @@ class NotificationTokenComponent(name: String, private val bridgeDelegate: Bridg
     }
 
     @Serializable
+    data class Offer(val reason: String? = null)
+
+    @Serializable
     data class Reply(
         val status: String,
         val token: String? = null,
@@ -127,7 +148,13 @@ class NotificationTokenComponent(name: String, private val bridgeDelegate: Bridg
     }
 }
 
+/** Why a page offers notifications, which picks the explanation's words. */
+enum class OfferReason { APPROVAL, ANSWER }
+
 /** Implemented by the activity, which owns the permission prompt. */
 interface NotificationPermissionHost {
     fun requestNotificationPermission(onResult: (granted: Boolean) -> Unit)
+
+    /** Offers notifications once per install (see `offer`), then calls [onDone] either way. */
+    fun offerNotifications(reason: OfferReason, onDone: () -> Unit)
 }

@@ -14,15 +14,17 @@ that chat, in Chats, inside the right organization.
 
 ## What the app does
 
-- **Asked once, after signing in.** The first time the signed-in tabs
-  show (after a sign-in, or at launch for someone signed in who was never
-  asked), Android 13 and later get a short explanation, "Turn on
-  notifications?", with Continue and Not now; Continue shows Android's
-  permission prompt. The app remembers that it asked (`push` preferences,
-  kept when someone signs out, so once per install) and never asks again
-  after a decision, here or in Android's prompt. Android 12 and earlier
-  have no prompt: push stays off until "Turn on" in Settings ›
-  Notifications, which also asks anyone who chose Not now.
+- **Asked once, when it's worth it.** Not after signing in: the first time
+  a page sends `notification-token`'s `offer` (the server sends it when a
+  chat shows a change or question waiting for the person, or an answer
+  still working after 15 seconds), the app shows a short explanation,
+  "Want a nudge when it's ready?", worded for the reason, with Continue and
+  Not now. On Android 13 and later Continue shows Android's permission
+  prompt; on earlier versions, which have no prompt, it turns push on. The
+  app remembers that it offered (`push` preferences, kept when someone
+  signs out, so once per install) and never offers again after a decision,
+  here or in Android's prompt. "Turn on" in Settings › Notifications still
+  asks anyone who chose Not now.
 - **Nothing reaches Firebase until the person allows it.** Firebase's token
   auto-init and analytics are off in the manifest. The app registers with
   Firebase only when a page asks for a token after the person allowed
@@ -91,7 +93,7 @@ adb shell am broadcast -n com.chatwithwork.app.debug/com.chatwithwork.app.push.D
 
 Grant the permission first if the app hasn't asked yet:
 `adb shell pm grant com.chatwithwork.app.debug android.permission.POST_NOTIFICATIONS`.
-A granted permission also keeps the prompt after sign-in from showing,
+A granted permission also keeps the offer from showing,
 which is how UI tests skip it (or `GrantPermissionRule` in an instrumented
 test). To see the prompt again, clear the app's data
 (`adb shell pm clear com.chatwithwork.app.debug`).

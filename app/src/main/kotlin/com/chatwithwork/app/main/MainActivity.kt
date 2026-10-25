@@ -34,6 +34,7 @@ import com.chatwithwork.app.bridge.AuthTabHost
 import com.chatwithwork.app.bridge.BrowserReturnHost
 import com.chatwithwork.app.bridge.NotificationPermissionHost
 import com.chatwithwork.app.bridge.NotificationTokenComponent
+import com.chatwithwork.app.bridge.OfferReason
 import com.chatwithwork.app.bridge.SnackbarHost
 import com.chatwithwork.app.fragments.WebScreenHost
 import com.chatwithwork.app.push.PushNotifications
@@ -474,7 +475,6 @@ class MainActivity :
         AppUrls.account(shown)?.let(::onAccount)
         openPendingLink(destination.navigator)
         updateChrome()
-        if (AppUrls.account(shown) != null) offerNotifications()
     }
 
     private fun isSignedInPage(url: String): Boolean =
@@ -704,21 +704,43 @@ class MainActivity :
     }
 
     /**
-     * Once per install, the first time the signed-in tabs show: a word on
-     * what notifications are for, then Android 13's prompt. Never again after
-     * a decision, here or in Settings › Notifications.
+     * Once per install, when a page says it's a good moment (a change waits
+     * for approval, an answer takes a while): a word on what notifications
+     * are for, then Android 13's prompt, or on earlier versions turning push
+     * on. Never again after a decision, here or in Settings › Notifications.
      */
-    private fun offerNotifications() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || isFinishing) return
-        val rationale = shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
-        if (!PushNotifications.shouldOffer(this, rationale)) return
+    override fun offerNotifications(reason: OfferReason, onDone: () -> Unit) {
+        val rationale =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
+        if (isFinishing || !PushNotifications.isAvailable(this) || !PushNotifications.shouldOffer(this, rationale)) {
+            onDone()
+            return
+        }
 
         PushNotifications.markOffered(this)
+        var continued = false
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.notifications_offer_title)
-            .setMessage(R.string.notifications_offer_message)
-            .setNegativeButton(R.string.notifications_offer_not_now, null)
-            .setPositiveButton(R.string.notifications_offer_continue) { _, _ -> requestNotificationPermission {} }
+            .setMessage(
+                if (reason ==
+                    OfferReason.APPROVAL
+                ) {
+                    R.string.notifications_offer_approval
+                } else {
+                    R.string.notifications_offer_answer
+                }
+            ).setNegativeButton(R.string.notifications_offer_not_now, null)
+            .setPositiveButton(R.string.notifications_offer_continue) { _, _ ->
+                continued = true
+                if (PushNotifications.needsRuntimePermission(this)) {
+                    requestNotificationPermission { onDone() }
+                } else {
+                    PushNotifications.optIn(this)
+                    NotificationTokenComponent.answerConnected()
+                    onDone()
+                }
+            }.setOnDismissListener { if (!continued) onDone() }
             .show()
     }
 

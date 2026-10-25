@@ -135,6 +135,13 @@ class BridgeMessagesTest {
     }
 
     @Test
+    fun `notification token offers for a reason`() {
+        assertThat(json.decodeFromString<NotificationTokenComponent.Offer>("""{"reason":"approval"}""").reason)
+            .isEqualTo("approval")
+        assertThat(json.decodeFromString<NotificationTokenComponent.Offer>("{}").reason).isNull()
+    }
+
+    @Test
     fun `toast takes the Rails flash type`() {
         val data = json.decodeFromString<ToastComponent.Data>("""{"message":"Connected Slack","type":"notice"}""")
         assertThat(data.type).isEqualTo("notice")
