@@ -149,6 +149,12 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         setBounds(0, 0, intrinsicWidth, intrinsicHeight)
     }
 
+    /** The bots' mark, kept at its own size so its squares stay whole pixels. */
+    private fun botMark() = BotMarkDrawable(
+        context,
+        MaterialColors.getColor(root, com.google.android.material.R.attr.colorOnSurface)
+    )
+
     private fun hideKeyboard(view: View) {
         context.getSystemService<InputMethodManager>()?.hideSoftInputFromWindow(view.windowToken, 0)
     }
@@ -268,7 +274,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                 when (row.kind) {
                     SidebarRow.Nav.Kind.NEW_CHAT -> "edit_square" to R.string.new_chat
                     SidebarRow.Nav.Kind.WAITING -> "back_hand" to R.string.sidebar_waiting
-                    SidebarRow.Nav.Kind.BOTS -> "memory" to R.string.sidebar_bots
+                    SidebarRow.Nav.Kind.BOTS -> BOT_MARK to R.string.sidebar_bots
                 }
             bindRow(
                 view,
@@ -310,7 +316,10 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         private fun bindRow(view: View, icon: String?, label: String, meta: String?, dot: Int?, selected: Boolean) {
             val iconView = view.findViewById<ImageView>(R.id.sidebar_row_icon)
             iconView.isVisible = icon != null
-            icon?.let { iconView.setImageDrawable(symbol(it)) }
+            icon?.let {
+                iconView.scaleType = if (it == BOT_MARK) ImageView.ScaleType.CENTER else ImageView.ScaleType.FIT_CENTER
+                iconView.setImageDrawable(if (it == BOT_MARK) botMark() else symbol(it))
+            }
             view.findViewById<TextView>(R.id.sidebar_row_label).text = label
             view.findViewById<TextView>(R.id.sidebar_row_meta).apply {
                 text = meta
@@ -342,6 +351,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         private const val TYPE_SECTION = 3
         private const val TYPE_ROW = 4
         private const val LOAD_MORE_AHEAD = 8
+        private const val BOT_MARK = "bot"
 
         /** Two initials for a project's mark: "Website relaunch" is "WR". */
         fun initialsOf(name: String): String = name
