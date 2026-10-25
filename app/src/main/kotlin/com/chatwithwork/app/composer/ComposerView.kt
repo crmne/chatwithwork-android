@@ -70,8 +70,13 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         )
     }
 
-    fun show(state: ComposerState) {
+    fun show(state: ComposerState, connecting: Boolean = false) {
         this.state = state
+        // A new composer may already hold words (shared in, or a draft): the field starts with them.
+        if (connecting && text.isBlank() && !state.text.isNullOrBlank()) {
+            input.setText(state.text)
+            input.setSelection(input.length())
+        }
         isVisible = true
         input.hint = state.placeholder.ifBlank { context.getString(R.string.composer_placeholder) }
         input.isEnabled = !state.locked

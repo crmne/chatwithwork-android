@@ -51,7 +51,7 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
                 val state = message.data<ComposerState>() ?: return
                 val view = view ?: return
                 view.actions = this
-                view.show(state)
+                view.show(state, connecting = message.event == "connect")
                 if (message.event == "connect") onConnected(state)
             }
         }

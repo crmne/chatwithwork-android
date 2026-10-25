@@ -11,6 +11,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ComposerState(
     val placeholder: String = "",
+    /** The words the web composer already holds (shared in, or a restored draft), sent on `connect`. */
+    val text: String? = null,
     val locked: Boolean = false,
     val lockReason: String? = null,
     val working: Boolean = false,
