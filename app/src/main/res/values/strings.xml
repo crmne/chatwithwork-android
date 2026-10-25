@@ -50,6 +50,10 @@
     <string name="dictation_no_speech">Nothing was heard. Try again a little closer.</string>
     <string name="dictation_needs_microphone">Dictation needs the microphone. Allow it in the app\'s settings.</string>
 
+    <!-- The home screen widget -->
+    <string name="widget_label">Ask Chat with Work</string>
+    <string name="widget_description">Start a new chat, or dictate one, from the home screen.</string>
+
     <!-- Toolbar actions -->
     <string name="share">Share</string>
     <string name="copied">Copied</string>
@@ -86,6 +90,10 @@
     <string name="channel_approvals_description">A change the assistant wants to make is waiting for your approval, or a service is asking you something.</string>
     <string name="push_approval_body">A change is waiting for your approval.</string>
     <string name="push_input_body">A question is waiting for your answer.</string>
+    <string name="channel_answering">Answering</string>
+    <string name="channel_answering_description">A chat you left is still answering. It goes away when the answer is ready or waits for you.</string>
+    <string name="live_update_answering">Answering</string>
+    <string name="live_update_text">Your answer is on its way.</string>
     <string name="channel_answers">Answers</string>
     <string name="channel_answers_description">An answer is ready, a chat couldn\'t finish, or a bot handed a conversation to your team.</string>
     <string name="push_answered_body">Your answer is ready.</string>

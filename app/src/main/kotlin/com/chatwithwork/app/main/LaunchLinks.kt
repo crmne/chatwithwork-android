@@ -9,6 +9,31 @@ import com.chatwithwork.app.routing.AppUrls
  * (another host, a missing link, the launcher) opens nothing.
  */
 object LaunchLinks {
+    /** The widget's and the tile's way in: a new chat (ShortcutActivity). Anyone may send it; it only opens one. */
+    const val ACTION_NEW_CHAT = "com.chatwithwork.app.action.NEW_CHAT"
+
+    /** The files another app shared (ACTION_SEND's or ACTION_SEND_MULTIPLE's streams), if any. */
+    fun sharedStreams(intent: Intent): List<android.net.Uri> = when (intent.action) {
+        Intent.ACTION_SEND ->
+            listOfNotNull(
+                androidx.core.content.IntentCompat.getParcelableExtra(
+                    intent,
+                    Intent.EXTRA_STREAM,
+                    android.net.Uri::class.java
+                )
+            )
+
+        Intent.ACTION_SEND_MULTIPLE ->
+            androidx.core.content.IntentCompat.getParcelableArrayListExtra(
+                intent,
+                Intent.EXTRA_STREAM,
+                android.net.Uri::class.java
+            )
+                .orEmpty()
+
+        else -> emptyList()
+    }
+
     /**
      * [restored] is true when the activity is recreated from saved state.
      * Then, and when Android relaunches the app from Recents, the intent is

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A microphone, drawn here for the home screen widget (RemoteViews can't draw Material Symbols' font). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@color/lw_ink_inverted"
+        android:pathData="M12,15a3,3 0,0 0,3 -3V6a3,3 0,0 0,-6 0v6a3,3 0,0 0,3 3z" />
+    <path
+        android:pathData="M5.5,11a6.5,6.5 0,0 0,13 0M12,17.5V21"
+        android:strokeWidth="2"
+        android:strokeColor="@color/lw_ink_inverted"
+        android:strokeLineCap="round" />
+</vector>

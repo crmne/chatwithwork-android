@@ -34,6 +34,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 object PushNotifications {
     const val CHANNEL_APPROVALS = "approvals"
     const val CHANNEL_ANSWERS = "answers"
+    const val CHANNEL_ANSWERING = "answering"
 
     private const val PREFERENCES = "push"
     private const val KEY_ASKED = "asked_for_permission"
@@ -198,7 +199,8 @@ object PushNotifications {
         )
     }
 
-    private const val NOTIFICATION_ID = 1
+    /** One notification per chat: its thread is the tag, so a newer one (or the Live Update) takes its place. */
+    const val NOTIFICATION_ID = 1
 
     private val waiting = java.util.concurrent.CopyOnWriteArrayList<CompletableDeferred<String>>()
     private const val REGISTRATION_TIMEOUT_MS = 15_000L
@@ -211,6 +213,13 @@ object PushNotifications {
                 context.getString(R.string.channel_approvals),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply { description = context.getString(R.string.channel_approvals_description) }
+        )
+        manager.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ANSWERING,
+                context.getString(R.string.channel_answering),
+                NotificationManager.IMPORTANCE_LOW
+            ).apply { description = context.getString(R.string.channel_answering_description) }
         )
         manager.createNotificationChannel(
             NotificationChannel(

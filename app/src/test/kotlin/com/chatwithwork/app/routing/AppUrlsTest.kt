@@ -54,6 +54,16 @@ class AppUrlsTest {
     }
 
     @Test
+    fun `reads a chat's number, and its push thread for a Live Update`() {
+        assertThat(AppUrls.chatNumber("$base/482139075/chats/42")).isEqualTo(42L)
+        assertThat(AppUrls.chatNumber("$base/482139075/chats/new")).isNull()
+        assertThat(AppUrls.chatNumber("$base/482139075/bots")).isNull()
+        assertThat(com.chatwithwork.app.push.LiveUpdates.threadFor("$base/482139075/chats/42"))
+            .isEqualTo("chat-482139075-42")
+        assertThat(com.chatwithwork.app.push.LiveUpdates.threadFor("$base/chats/42")).isNull()
+    }
+
+    @Test
     fun `builds the sidebar's address and the server's paths`() {
         assertThat(AppUrls.sidebar("482139075")).isEqualTo("$base/482139075/native/sidebar")
         assertThat(AppUrls.sidebar("482139075", "3")).isEqualTo("$base/482139075/native/sidebar?list=3")

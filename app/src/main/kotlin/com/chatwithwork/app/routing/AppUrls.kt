@@ -89,6 +89,10 @@ object AppUrls {
             if (query.isEmpty()) "" else "?" + query.joinToString("&")
     }
 
+    /** The chat's number in a chat's page ("/482139075/chats/42" is 42). */
+    fun chatNumber(url: String): Long? =
+        Regex("^/chats/(\\d+)$").find(pathWithinAccount(url))?.groupValues?.get(1)?.toLongOrNull()
+
     /** A chat's page, or the new chat page: the screens that replace the root. */
     fun isChat(url: String): Boolean = isNewChat(url) || Regex("^/chats/\\d+$").matches(pathWithinAccount(url))
 

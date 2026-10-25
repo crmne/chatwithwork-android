@@ -291,8 +291,15 @@ the apps. On Android:
   (Android's share sheet, `text/plain`) open a new chat in the sidebar's
   list as `/chats/new?title=<subject>&text=<text>` (`title` only when the
   other app gave a subject), which the server puts in the composer
-  (`ChatsHelper#shared_prompt`, as for the installed web app). Nothing is
-  sent until the person sends it. Files aren't shared in yet.
+  (`ChatsHelper#shared_prompt`, as for the installed web app). Files
+  (`ACTION_SEND` or `ACTION_SEND_MULTIPLE` with images, documents, PDFs,
+  text files) are read at once, a new chat opens (with any shared words as
+  above), and the files go to its composer as `attach` when it connects
+  (section 12). Nothing is sent until the person sends it.
+- **The home screen widget and the Quick Settings tile** open a new chat in
+  the sidebar's list; the widget's microphone also starts dictation in its
+  composer once it connects. They carry no content and need nothing from
+  the server.
 
 Links the app handles itself:
 
@@ -464,6 +471,20 @@ names are fine.
 FCM answers `404` with `UNREGISTERED`, or `400` with `INVALID_ARGUMENT`
 naming the token, for a token that's gone: destroy the registration. Retry
 `429` and `5xx` with backoff, honoring `Retry-After`.
+
+### Live Updates
+
+When the person leaves the app while the chat on screen is answering (its
+composer says `working`), the app posts an ongoing notification for that
+chat: Android 16's progress style, promoted where the system allows, the
+organization's name, "Your answer is on its way" and a timer, never the
+chat's title or content. It uses the chat's notification slot (tag
+`chat-<organization>-<number>`, the `thread` the server sends), so the
+push that ends the wait (`answered`, `approval_waiting`,
+`input_requested`, `failed`) takes its place and `resolved` clears it.
+It's taken away when the person comes back, and after 30 minutes if no
+push arrives. It only shows for someone who turned push on. No server
+change: the pushes must keep using that `thread`.
 
 When to send is the iOS contract's "When", unchanged. The app files
 approvals and questions under the "Approvals and questions" channel, and

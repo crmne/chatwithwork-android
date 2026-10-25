@@ -43,7 +43,11 @@ import com.chatwithwork.app.bridge.NotificationTokenComponent
 import com.chatwithwork.app.bridge.OfferReason
 import com.chatwithwork.app.bridge.SidebarHost
 import com.chatwithwork.app.bridge.SnackbarHost
+import com.chatwithwork.app.composer.ComposerFiles
+import com.chatwithwork.app.composer.ComposerView
+import com.chatwithwork.app.composer.PendingShares
 import com.chatwithwork.app.fragments.WebScreenHost
+import com.chatwithwork.app.push.LiveUpdates
 import com.chatwithwork.app.push.PushNotifications
 import com.chatwithwork.app.routing.AppUrls
 import com.chatwithwork.app.routing.BrowserTabs
@@ -51,7 +55,6 @@ import com.chatwithwork.app.routing.RouteDecisionHandlers
 import com.chatwithwork.app.sidebar.Sidebar
 import com.chatwithwork.app.sidebar.SidebarClient
 import com.chatwithwork.app.sidebar.SidebarDrawer
-import com.chatwithwork.app.sidebar.SidebarRow
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
@@ -265,6 +268,8 @@ class MainActivity :
         super.onStart()
         // Back in the foreground: what's answering may have finished meanwhile.
         if (!viewModel.signedOut) refreshSidebar()
+        liveUpdate?.let { LiveUpdates.cancel(this, it) }
+        liveUpdate = null
     }
 
     override fun onPause() {
@@ -276,6 +281,27 @@ class MainActivity :
     override fun onStop() {
         super.onStop()
         rememberAnsweringChat()
+        showLiveUpdate()
+    }
+
+    /** The chat whose Live Update is showing, to take it away when the person comes back. */
+    private var liveUpdate: String? = null
+
+    /** The chat on screen, when its composer says an answer is running. */
+    private fun answeringChat(): String? {
+        val destination = navigator?.currentDestination ?: return null
+        val composer = destination.fragment.view?.findViewById<ComposerView>(R.id.composer) ?: return null
+        val location = destination.location
+        return location.takeIf { composer.isVisible && composer.state.working && AppUrls.chatNumber(it) != null }
+    }
+
+    /** Leaving a chat while it answers: a Live Update follows it until its push arrives. */
+    private fun showLiveUpdate() {
+        if (isChangingConfigurations || viewModel.signedOut) return
+        val chat = answeringChat() ?: return
+        val organization = viewModel.sidebar?.takeIf { it.organization.id == AppUrls.account(chat) }?.organization?.name
+        LiveUpdates.show(this, chat, organization)
+        liveUpdate = LiveUpdates.threadFor(chat)
     }
 
     override fun navigatorConfigurations(): List<NavigatorConfiguration> = listOf(
@@ -564,15 +590,7 @@ class MainActivity :
 
     /** Remembers the chat showing, if it's answering, so a launch soon after reopens it. */
     private fun rememberAnsweringChat() {
-        val location = navigator?.currentDestination?.location
-        val sidebar = viewModel.sidebar
-        val chat =
-            if (location != null && sidebar != null) {
-                (sidebar.chats + sidebar.pins).firstOrNull { it.isProcessing && SidebarRow.isCurrent(it, location) }
-            } else {
-                null
-            }
-        memory.leftAnswering(if (chat != null) location else null, System.currentTimeMillis())
+        memory.leftAnswering(answeringChat(), System.currentTimeMillis())
     }
 
     // endregion
@@ -883,7 +901,27 @@ class MainActivity :
      */
     private fun takeLink(intent: Intent?, restored: Boolean = false): String? {
         intent ?: return null
-        if (!restored && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0) {
+        val fresh = !restored && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0
+        if (fresh && intent.action == LaunchLinks.ACTION_NEW_CHAT) {
+            intent.action = Intent.ACTION_MAIN
+            return newChatUrl()
+        }
+        if (fresh) {
+            val streams = LaunchLinks.sharedStreams(intent)
+            if (streams.isNotEmpty()) {
+                val text =
+                    LaunchLinks.shared(
+                        Intent.ACTION_SEND,
+                        "text/plain",
+                        intent.getCharSequenceExtra(Intent.EXTRA_TEXT),
+                        intent.getCharSequenceExtra(Intent.EXTRA_SUBJECT)
+                    )
+                intent.action = Intent.ACTION_MAIN
+                shareFiles(streams, text)
+                return null
+            }
+        }
+        if (fresh) {
             LaunchLinks
                 .shared(
                     intent.action,
@@ -898,6 +936,21 @@ class MainActivity :
         val link = LaunchLinks.from(intent.action, intent.dataString, intent.flags, restored)
         if (intent.action == Intent.ACTION_VIEW) intent.data = null
         return link
+    }
+
+    /**
+     * Files shared in from another app: read now, while the share's grant
+     * lasts, then handed to the new chat's composer once it connects
+     * (PendingShares), with any shared words waiting in it too.
+     */
+    private fun shareFiles(streams: List<Uri>, text: LaunchLinks.Shared?) {
+        lifecycleScope.launch {
+            val read = ComposerFiles.read(this@MainActivity, streams)
+            read.tooBig.forEach { showSnackbar(getString(R.string.composer_file_too_big, it), long = true) }
+            if (read.unreadable) showSnackbar(getString(R.string.composer_file_unreadable), long = true)
+            if (read.files.isNotEmpty()) PendingShares.putFiles(read.files)
+            open(text?.into(newChatUrl()) ?: newChatUrl())
+        }
     }
 
     private fun open(url: String) {
@@ -919,7 +972,9 @@ class MainActivity :
 
         closeSidebarNow()
         val navigator = navigator
-        if (navigator == null) {
+        if (navigator == null || !navigator.isReady() || navigator.currentDestination?.fragment?.view == null) {
+            // Still starting (a share or a notification on a cold start):
+            // the first page that finishes opens it.
             viewModel.pendingLink = url
         } else {
             // A chat replaces the root (the path configuration); a link into
