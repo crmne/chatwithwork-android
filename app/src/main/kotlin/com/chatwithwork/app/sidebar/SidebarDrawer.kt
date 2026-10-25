@@ -268,7 +268,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                 when (row.kind) {
                     SidebarRow.Nav.Kind.NEW_CHAT -> "edit_square" to R.string.new_chat
                     SidebarRow.Nav.Kind.WAITING -> "back_hand" to R.string.sidebar_waiting
-                    SidebarRow.Nav.Kind.BOTS -> "smart_toy" to R.string.sidebar_bots
+                    SidebarRow.Nav.Kind.BOTS -> "memory" to R.string.sidebar_bots
                 }
             bindRow(
                 view,

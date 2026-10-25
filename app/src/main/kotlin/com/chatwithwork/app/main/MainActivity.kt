@@ -451,7 +451,7 @@ class MainActivity :
                     image =
                         when (item.kind) {
                             "question" -> "help"
-                            "bot" -> "smart_toy"
+                            "bot" -> "memory"
                             else -> "back_hand"
                         }
                 )
