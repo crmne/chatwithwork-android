@@ -16,7 +16,7 @@
     <string name="menu">Menu</string>
 
     <!-- Signed out -->
-    <string name="welcome_tagline">Private AI search for your work.</string>
+    <string name="welcome_tagline">Your work agent. Not on your laptop.</string>
     <string name="sign_up">Create an account</string>
 
     <!-- States the native screens draw -->
