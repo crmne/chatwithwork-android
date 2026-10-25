@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material's navigation drawer item: a full pill when it's the page showing. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/ripple">
+    <item android:id="@android:id/mask">
+        <shape>
+            <solid android:color="@android:color/white" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    <item>
+        <selector>
+            <item android:state_selected="true">
+                <shape>
+                    <solid android:color="@color/sidebar_selected" />
+                    <corners android:radius="24dp" />
+                </shape>
+            </item>
+            <item>
+                <color android:color="@android:color/transparent" />
+            </item>
+        </selector>
+    </item>
+</ripple>

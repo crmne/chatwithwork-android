@@ -20,7 +20,7 @@ class AppConfigTest {
     fun `fetches the versioned Android path configuration from its own server`() {
         assertThat(
             AppConfig.remotePathConfigurationUrl
-        ).isEqualTo("${AppConfig.baseUrl}/configurations/android_v1.json")
+        ).isEqualTo("${AppConfig.baseUrl}/configurations/android_v2.json")
         assertThat(AppConfig.baseUrl).doesNotMatch(".*/$")
     }
 }

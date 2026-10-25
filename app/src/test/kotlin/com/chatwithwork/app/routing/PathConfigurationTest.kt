@@ -11,7 +11,7 @@ import org.junit.Test
 
 /**
  * The bundled path configuration, read the way Hotwire Native reads it. The
- * server's android_v1.json must give the same answers (docs/server-contract.md).
+ * server's android_v2.json must give the same answers (docs/server-contract.md).
  */
 class PathConfigurationTest {
     private val json = File("src/main/assets/json/path-configuration.json").readText()
@@ -45,23 +45,32 @@ class PathConfigurationTest {
     }
 
     @Test
-    fun `a chat scrolls its conversation instead of refreshing`() {
-        properties("/482139075/chats/42").let {
-            assertThat(it["context"]).isEqualTo("default")
-            assertThat(it["pull_to_refresh_enabled"]).isEqualTo(false)
-        }
-        assertThat(properties("/482139075/chats/42#tool_call_7")["pull_to_refresh_enabled"]).isEqualTo(false)
+    fun `a chat replaces the root and scrolls its conversation instead of refreshing`() {
+        listOf(
+            "/482139075/chats/42",
+            "/482139075/chats/42#tool_call_7",
+            "/chats/new",
+            "/482139075/chats/new?project_id=3"
+        )
+            .forEach { path ->
+                properties(path).let {
+                    assertWithMessage(path).that(it["context"]).isEqualTo("default")
+                    assertWithMessage(path).that(it["presentation"]).isEqualTo("replace_root")
+                    assertWithMessage(path).that(it["uri"]).isEqualTo("hotwire://fragment/web")
+                    assertWithMessage(path).that(it["pull_to_refresh_enabled"]).isEqualTo(false)
+                }
+            }
         assertThat(properties("/shared/abc123")["pull_to_refresh_enabled"]).isEqualTo(false)
+        assertThat(properties("/shared/abc123")["presentation"]).isNull()
     }
 
     @Test
-    fun `new chat and forms are full-screen modals`() {
+    fun `forms are full-screen modals`() {
         listOf(
-            "/482139075/chats/new",
-            "/chats/new?project_id=3",
             "/482139075/chats/42/edit",
             "/482139075/projects/new",
-            "/482139075/projects/3/edit"
+            "/482139075/projects/3/edit",
+            "/482139075/bots/new"
         ).forEach { path ->
             properties(path).let {
                 assertWithMessage(path).that(it["context"]).isEqualTo("modal")
@@ -86,11 +95,13 @@ class PathConfigurationTest {
     }
 
     @Test
-    fun `a settings section is pushed over the list of sections`() {
-        // Hotwire Native pushes a location whose query differs, as iOS does.
-        properties("/482139075/settings?tab=connectors").let {
-            assertThat(it["context"]).isEqualTo("default")
-            assertThat(it["query_string_presentation"]).isNull()
+    fun `Settings is a modal, its sections pushed inside it`() {
+        listOf("/482139075/settings", "/482139075/settings?tab=connectors").forEach { path ->
+            properties(path).let {
+                assertWithMessage(path).that(it["context"]).isEqualTo("modal")
+                assertWithMessage(path).that(it["uri"]).isEqualTo("hotwire://fragment/web/modal")
+                assertWithMessage(path).that(it["query_string_presentation"]).isNull()
+            }
         }
     }
 

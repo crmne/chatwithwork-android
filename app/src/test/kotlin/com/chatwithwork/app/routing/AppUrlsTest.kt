@@ -41,42 +41,27 @@ class AppUrlsTest {
     }
 
     @Test
-    fun `puts links in the tab they belong to`() {
-        assertThat(AppUrls.section("$base/482139075/chats/42")).isEqualTo(AppUrls.Section.CHATS)
-        // Projects open in Chats, whose list switcher picks them.
-        assertThat(AppUrls.section("$base/projects")).isEqualTo(AppUrls.Section.CHATS)
-        assertThat(AppUrls.section("$base/482139075/projects/3")).isEqualTo(AppUrls.Section.CHATS)
-        assertThat(AppUrls.section("$base/482139075/bots/7")).isEqualTo(AppUrls.Section.BOTS)
-        assertThat(AppUrls.section("$base/482139075/triggers/12/edit")).isEqualTo(AppUrls.Section.BOTS)
-        assertThat(AppUrls.section("$base/482139075/routines")).isEqualTo(AppUrls.Section.BOTS)
-        assertThat(AppUrls.section("$base/botsville")).isEqualTo(AppUrls.Section.OTHER)
-        assertThat(AppUrls.section("$base/482139075/settings?tab=billing")).isEqualTo(AppUrls.Section.SETTINGS)
-        assertThat(AppUrls.section("$base/accounts")).isEqualTo(AppUrls.Section.OTHER)
-        assertThat(AppUrls.section("$base/chatsroom")).isEqualTo(AppUrls.Section.OTHER)
-    }
-
-    @Test
-    fun `knows tab roots and the new chat page`() {
-        assertThat(AppUrls.isTabRoot("$base/482139075/chats")).isTrue()
-        assertThat(AppUrls.isTabRoot("$base/settings?tab=connectors")).isTrue()
-        assertThat(AppUrls.isTabRoot("$base/482139075/chats?list=3")).isTrue()
-        assertThat(AppUrls.isTabRoot("$base/482139075/bots")).isTrue()
-        assertThat(AppUrls.isTabRoot("$base/482139075/projects")).isFalse()
-        assertThat(AppUrls.isTabRoot("$base/482139075/chats/42")).isFalse()
+    fun `knows the chats that replace the root`() {
+        assertThat(AppUrls.isChat("$base/482139075/chats/42")).isTrue()
+        assertThat(AppUrls.isChat("$base/482139075/chats/42?x=1#tool_call_7")).isTrue()
+        assertThat(AppUrls.isChat("$base/482139075/chats/new?project_id=3")).isTrue()
+        assertThat(AppUrls.isChat("$base/chats/new")).isTrue()
+        assertThat(AppUrls.isChat("$base/482139075/chats")).isFalse()
+        assertThat(AppUrls.isChat("$base/482139075/chats/42/edit")).isFalse()
+        assertThat(AppUrls.isChat("$base/482139075/bots")).isFalse()
         assertThat(AppUrls.isNewChat("$base/482139075/chats/new?project_id=3")).isTrue()
         assertThat(AppUrls.isNewChat("$base/482139075/chats/42")).isFalse()
     }
 
     @Test
-    fun `New chat starts in the project the Chats list shows`() {
-        assertThat(AppUrls.listProject("$base/482139075/chats?list=3")).isEqualTo("3")
-        assertThat(AppUrls.listProject("$base/482139075/chats?q=x&list=12")).isEqualTo("12")
-        assertThat(AppUrls.listProject("$base/482139075/chats?list=recent")).isNull()
-        assertThat(AppUrls.listProject("$base/482139075/chats")).isNull()
-        assertThat(AppUrls.listProject("$base/482139075/projects?list=3")).isNull()
-
+    fun `builds the sidebar's address and the server's paths`() {
+        assertThat(AppUrls.sidebar("482139075")).isEqualTo("$base/482139075/native/sidebar")
+        assertThat(AppUrls.sidebar("482139075", "3")).isEqualTo("$base/482139075/native/sidebar?list=3")
+        assertThat(AppUrls.sidebar("482139075", "recent", all = true))
+            .isEqualTo("$base/482139075/native/sidebar?list=recent&all=1")
+        assertThat(AppUrls.absolute("/482139075/chats/42")).isEqualTo("$base/482139075/chats/42")
+        assertThat(AppUrls.absolute("//evil.example/x")).isEqualTo("//evil.example/x")
         assertThat(AppUrls.newChat("482139075", "3")).isEqualTo("$base/482139075/chats/new?project_id=3")
-        assertThat(AppUrls.newChat(null)).isEqualTo("$base/chats/new")
     }
 
     @Test

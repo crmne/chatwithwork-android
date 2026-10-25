@@ -1,95 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The tab shell: a container per tab, which gets its navigator host the
-  first time the tab shows (TabShell), and the dock floating over them at the
-  bottom: the floating toolbar with the tabs and New chat beside it. The root
-  doesn't clip the dock, so their shadows show. The hosts share a container
-  so the activity can keep page content clear of the gesture bar. The welcome
+  The sidebar shell: one navigator, whose root is always a chat (new or
+  open), under Material 3's modal navigation drawer, the sidebar. The welcome
   screen covers it all while nobody is signed in.
 -->
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/root"
-    android:clipChildren="false"
+    android:id="@+id/drawer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".main.MainActivity">
 
     <FrameLayout
-        android:id="@+id/navigator_hosts"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:id="@+id/root"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
-        <FrameLayout
-            android:id="@+id/chats_navigator_host"
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/main_navigator_host"
+            android:name="dev.hotwire.navigation.navigator.NavigatorHost"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:defaultNavHost="false" />
+
+        <include
+            layout="@layout/view_welcome"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-        <FrameLayout
-            android:id="@+id/bots_navigator_host"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone" />
-
-        <FrameLayout
-            android:id="@+id/settings_navigator_host"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone" />
-
     </FrameLayout>
 
-    <LinearLayout
-        android:id="@+id/dock"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/dock_margin"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+    <include layout="@layout/sidebar_drawer" />
 
-        <com.google.android.material.floatingtoolbar.FloatingToolbarLayout
-            android:id="@+id/floating_toolbar"
-            style="@style/Widget.ChatWithWork.FloatingToolbar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-
-            <LinearLayout
-                android:id="@+id/tab_buttons"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal" />
-
-        </com.google.android.material.floatingtoolbar.FloatingToolbarLayout>
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/new_chat"
-            style="@style/Widget.ChatWithWork.NewChatButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/dock_gap"
-            android:contentDescription="@string/new_chat"
-            app:srcCompat="@drawable/ic_new_chat" />
-
-    </LinearLayout>
-
-    <include
-        layout="@layout/view_welcome"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.drawerlayout.widget.DrawerLayout>

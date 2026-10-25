@@ -15,10 +15,11 @@ object AppConfig {
 
     /**
      * The path configuration the server serves for this app. The version is in
-     * the name: a change the installed apps can't read gets a new file
-     * (android_v2.json) while old installs keep reading v1.
+     * the name: a change the installed apps can't read gets a new file while
+     * old installs keep reading theirs. v2 is the sidebar's: chats replace
+     * the one root screen and Settings is a modal; the tab builds read v1.
      */
-    val remotePathConfigurationUrl: String = "$baseUrl/configurations/android_v1.json"
+    val remotePathConfigurationUrl: String = "$baseUrl/configurations/android_v2.json"
 
     const val BUNDLED_PATH_CONFIGURATION = "json/path-configuration.json"
 

@@ -3,11 +3,15 @@ package com.chatwithwork.app.fragments
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.R as AppCompatR
+import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
 import com.chatwithwork.app.R
-import com.chatwithwork.app.main.MainTab
+import com.chatwithwork.app.bridge.SymbolDrawable
+import com.google.android.material.color.MaterialColors
 import dev.hotwire.core.config.Hotwire
 import dev.hotwire.core.turbo.config.context
 import dev.hotwire.core.turbo.config.title
@@ -18,12 +22,11 @@ import dev.hotwire.core.turbo.webview.HotwireWebChromeClient
 import dev.hotwire.navigation.destinations.HotwireDestination
 import dev.hotwire.navigation.destinations.HotwireDestinationDeepLink
 import dev.hotwire.navigation.fragments.HotwireWebFragment
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * A page in a tab: the native top app bar over the shared web view.
+ * A page: the native top app bar over the shared web view. The root (a chat)
+ * has the sidebar's button where back would be; every screen but a modal has
+ * New chat in its bar.
  */
 @HotwireDestinationDeepLink(uri = "hotwire://fragment/web")
 open class WebFragment : HotwireWebFragment() {
@@ -34,11 +37,8 @@ open class WebFragment : HotwireWebFragment() {
         super.onViewCreated(view, savedInstanceState)
         pathProperties.title?.let(fragmentViewModel::setTitle)
         fragmentViewModel.title.observe(viewLifecycleOwner) { title ->
-            toolbarForNavigation()?.title = PageTitles.clean(title).ifEmpty { tabTitle().orEmpty() }
+            toolbarForNavigation()?.title = PageTitles.clean(title)
         }
-        // A tab's first page is named after the tab until its own title arrives
-        // (or if it never does, offline).
-        if (fragmentViewModel.title.value.isNullOrEmpty()) toolbarForNavigation()?.title = tabTitle()
 
         // Hotwire Native closes every modal screen with an X. A screen pushed
         // inside a modal (sign-up after sign-in) goes back instead, and only
@@ -59,15 +59,27 @@ open class WebFragment : HotwireWebFragment() {
                         }
                     )
             }
+            if (!isModal) addShellActions(toolbar)
         }
     }
 
-    private fun tabTitle(): String? = if (navigator.isAtStartDestination() &&
-        !isModal
-    ) {
-        MainTab.forNavigatorName(navigator.configuration.name)?.let { getString(it.title) }
-    } else {
-        null
+    /** The sidebar's button on the root, and New chat on every screen but a modal. */
+    private fun addShellActions(toolbar: Toolbar) {
+        val ink = MaterialColors.getColor(toolbar, com.google.android.material.R.attr.colorOnSurface)
+        if (navigator.isAtStartDestination()) {
+            toolbar.navigationIcon = SymbolDrawable(toolbar.context, "menu", color = ink)
+            toolbar.navigationContentDescription = getString(R.string.sidebar_open)
+            toolbar.setNavigationOnClickListener { host?.openSidebar() }
+        }
+        toolbar.menu.removeGroup(GROUP_SHELL)
+        toolbar.menu.add(GROUP_SHELL, ITEM_NEW_CHAT, ORDER_NEW_CHAT, R.string.new_chat).apply {
+            icon = ContextCompat.getDrawable(toolbar.context, R.drawable.ic_new_chat)
+            setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+            setOnMenuItemClickListener {
+                host?.startNewChat()
+                true
+            }
+        }
     }
 
     private fun isModalLocation(location: String): Boolean =
@@ -91,15 +103,6 @@ open class WebFragment : HotwireWebFragment() {
     override fun onVisitCompleted(location: String, completedOffline: Boolean) {
         super.onVisitCompleted(location, completedOffline)
         host?.onVisitCompleted(this, location)
-        readNativeTabs()
-    }
-
-    /** The tabs the page says the person may use (its native-tabs meta tag; a guest has no Bots). */
-    private fun readNativeTabs() {
-        navigator.session.webView.evaluateJavascript(NATIVE_TABS_SCRIPT) { result ->
-            val content = runCatching { Json.parseToJsonElement(result).jsonPrimitive.contentOrNull }.getOrNull()
-            if (content != null) host?.onTabsNamed(content)
-        }
     }
 
     override fun onVisitErrorReceived(location: String, error: VisitError) {
@@ -116,11 +119,9 @@ open class WebFragment : HotwireWebFragment() {
         get() = activity as? WebScreenHost
 }
 
-private const val NATIVE_TABS_SCRIPT = "document.querySelector('meta[name=\"native-tabs\"]')?.content ?? null"
-
 /**
- * A page presented over the tabs: new chat, signing in. It slides up, has a
- * close button, and hides the bottom bar.
+ * A page presented over the app: Settings, a form, signing in. It slides up
+ * and has a close button.
  */
 @HotwireDestinationDeepLink(uri = "hotwire://fragment/web/modal")
 class WebModalFragment : WebFragment()
@@ -134,6 +135,13 @@ interface WebScreenHost {
 
     fun presentSignIn()
 
-    /** A page's native-tabs meta tag, like "chats bots settings". */
-    fun onTabsNamed(content: String)
+    fun openSidebar()
+
+    fun startNewChat()
 }
+
+private const val GROUP_SHELL = 0x0C0
+private const val ITEM_NEW_CHAT = 0x0C001
+
+/** After the page's own actions, before the overflow menu. */
+private const val ORDER_NEW_CHAT = 80

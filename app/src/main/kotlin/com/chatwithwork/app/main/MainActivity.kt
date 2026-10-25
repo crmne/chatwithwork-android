@@ -8,43 +8,47 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.widget.TooltipCompat
 import androidx.browser.auth.AuthTabColorSchemeParams
 import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
-import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.lifecycleScope
 import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.BuildConfig
 import com.chatwithwork.app.R
+import com.chatwithwork.app.bridge.ActionSheet
 import com.chatwithwork.app.bridge.AuthTabHost
 import com.chatwithwork.app.bridge.BrowserReturnHost
 import com.chatwithwork.app.bridge.NotificationPermissionHost
 import com.chatwithwork.app.bridge.NotificationTokenComponent
 import com.chatwithwork.app.bridge.OfferReason
+import com.chatwithwork.app.bridge.SidebarHost
 import com.chatwithwork.app.bridge.SnackbarHost
 import com.chatwithwork.app.fragments.WebScreenHost
 import com.chatwithwork.app.push.PushNotifications
 import com.chatwithwork.app.routing.AppUrls
 import com.chatwithwork.app.routing.BrowserTabs
 import com.chatwithwork.app.routing.RouteDecisionHandlers
-import com.chatwithwork.app.shell.TabShell
+import com.chatwithwork.app.sidebar.Sidebar
+import com.chatwithwork.app.sidebar.SidebarClient
+import com.chatwithwork.app.sidebar.SidebarDrawer
+import com.chatwithwork.app.sidebar.SidebarRow
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.snackbar.Snackbar
 import dev.hotwire.core.turbo.config.context
 import dev.hotwire.core.turbo.nav.PresentationContext
@@ -57,25 +61,29 @@ import dev.hotwire.navigation.destinations.HotwireDestination
 import dev.hotwire.navigation.navigator.Navigator
 import dev.hotwire.navigation.navigator.NavigatorConfiguration
 import dev.hotwire.navigation.routing.Router
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
- * The app's one activity: the floating toolbar with a navigator per tab, New
- * chat beside it, the welcome screen when nobody is signed in, and everything
- * that reacts to what the pages do.
+ * The app's one activity: the sidebar shell. One navigator, whose root is
+ * always a chat (a new one, or one picked in the sidebar: the path
+ * configuration replaces the root with every chat), with Bots, projects and
+ * other pages pushed over it and Settings and forms as modals. The sidebar is
+ * Material 3's modal navigation drawer, drawn natively from the server's JSON
+ * (SidebarDrawer). The welcome screen covers it all when nobody is signed in.
  *
- * The server tells it when things change, and it listens in the navigators'
+ * The server tells it when things change, and it listens in the navigator's
  * traffic:
  *
  * - A 401, or a page landing on the sign-in form, means there's no session:
  *   show the welcome screen (and the sign-in form, if a session just ran out).
  * - `/recede_historical_location`, or the sign-in modal moving on to a page
- *   inside the app, means signing in worked: start every tab afresh, so none
- *   keeps a signed-out page.
- * - A link into another organization means the person switched: every tab
- *   starts afresh, inside it.
- * - A link to another tab's list switches tabs instead of pushing.
- * - Each page names the tabs the person may use (a guest has no Bots).
+ *   inside the app, means signing in worked: start afresh.
+ * - A link into another organization means the person switched: the
+ *   navigator starts afresh inside it, on its new chat (or the chat linked).
  * - A form in a modal that recedes closes the modal.
+ * - The page's hidden `sidebar` component says when the chat lists changed.
  *
  * See docs/server-contract.md for the server's half.
  */
@@ -86,26 +94,28 @@ class MainActivity :
     SnackbarHost,
     NotificationPermissionHost,
     AuthTabHost,
-    BrowserReturnHost {
+    BrowserReturnHost,
+    SidebarHost,
+    SidebarDrawer.Actions {
     private val viewModel: MainViewModel by viewModels()
     private val memory by lazy { SessionMemory(this) }
 
+    private lateinit var drawer: DrawerLayout
     private lateinit var root: View
-    private lateinit var hosts: View
-    private lateinit var dock: View
-    private lateinit var tabs: TabShell
-    private lateinit var newChatButton: FloatingActionButton
     private lateinit var welcome: View
+    private lateinit var sidebar: SidebarDrawer
 
     private var keyboardVisible = false
-    private var bottomInset = 0
-    private var sideInsets = 0 to 0
 
     /** True while the app itself opens the sign-in form (see presentSignIn). */
     private var presentingSignIn = false
 
     private val returnActions = mutableListOf<() -> Unit>()
     private var awaitingReturn = false
+
+    private var fetchJob: Job? = null
+    private var pollJob: Job? = null
+    private var loadingMore = false
 
     private var permissionCallback: ((Boolean) -> Unit)? = null
     private val notificationPermission =
@@ -134,11 +144,11 @@ class MainActivity :
             if (granted) delegate.resetNavigators()
         }
 
-    /** Back from another tab's first page goes to Chats before leaving the app. */
-    private val backToChats =
+    /** Back closes the sidebar first. Added after Hotwire's own, so it goes first. */
+    private val closeSidebar =
         object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
-                selectTab(MainTab.CHATS)
+                drawer.closeDrawer(GravityCompat.START)
             }
         }
 
@@ -146,6 +156,11 @@ class MainActivity :
         val splash = installSplashScreen()
         enableEdgeToEdge()
         val link = takeLink(intent, restored = savedInstanceState != null)
+        // A chat linked on a cold start (a notification) is where the navigator starts.
+        if (link != null && savedInstanceState == null && AppUrls.isChat(link)) {
+            viewModel.startLocation = link
+            AppUrls.account(link)?.let { viewModel.account = it }
+        }
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // The canvas gives the navigation buttons their
@@ -155,17 +170,14 @@ class MainActivity :
         setContentView(R.layout.activity_main)
         splash.setKeepOnScreenCondition { viewModel.keepSplash() }
 
+        drawer = findViewById(R.id.drawer)
         root = findViewById(R.id.root)
-        hosts = findViewById(R.id.navigator_hosts)
-        dock = findViewById(R.id.dock)
-        newChatButton = findViewById(R.id.new_chat)
         welcome = findViewById(R.id.welcome)
 
-        setUpTabs()
-        setUpNewChatButton()
+        setUpSidebar()
         setUpWelcome()
         setUpInsets()
-        onBackPressedDispatcher.addCallback(this, backToChats)
+        onBackPressedDispatcher.addCallback(this, closeSidebar)
 
         if (savedInstanceState == null && !memory.hasSignedIn) {
             showSignedOut(presentSignIn = false)
@@ -173,7 +185,7 @@ class MainActivity :
             showSignedOut(presentSignIn = false)
         }
 
-        link?.let(::open)
+        link?.takeIf { viewModel.startLocation != it }?.let(::open)
         requestLocalNetworkIfNeeded()
 
         WebViewVersionCompatibility.displayUpdateDialogIfOutdated(
@@ -197,21 +209,52 @@ class MainActivity :
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        // Back in the foreground: what's answering may have finished meanwhile.
+        if (!viewModel.signedOut) refreshSidebar()
+    }
+
     override fun onPause() {
         super.onPause()
         // Anything that asked to hear about the return is waiting on a browser tab.
         if (returnActions.isNotEmpty()) awaitingReturn = true
     }
 
-    // Read again whenever a navigator starts over, so tabs reset after moving
-    // to another organization start inside it.
-    override fun navigatorConfigurations(): List<NavigatorConfiguration> =
-        MainTab.entries.map { it.configuration(viewModel.tabsAccount) }
+    override fun onStop() {
+        super.onStop()
+        rememberAnsweringChat()
+    }
+
+    override fun navigatorConfigurations(): List<NavigatorConfiguration> = listOf(
+        NavigatorConfiguration(
+            name = NAVIGATOR,
+            startLocation = startLocation(),
+            navigatorHostId = R.id.main_navigator_host
+        )
+    )
+
+    /**
+     * Where the app opens: a chat it was sent to, else the chat the person
+     * left under ten minutes ago while it was still answering, else a new
+     * chat in the list the sidebar last showed. Before the app knows an
+     * organization, the unprefixed new chat, which the server redirects into
+     * the one used last.
+     */
+    private fun startLocation(): String {
+        viewModel.startLocation?.let { return it }
+        val account = viewModel.account ?: memory.lastAccount
+        memory
+            .answeringChatLeftSince(System.currentTimeMillis(), RESUME_WITHIN_MS)
+            ?.takeIf { account == null || AppUrls.account(it) == account }
+            ?.let { return it }
+        return account?.let { memory.newChatPath(it) }?.let(AppUrls::absolute) ?: AppUrls.newChat(account)
+    }
 
     override fun onNavigatorReady(navigator: Navigator) {
         navigator.host.navController.addOnDestinationChangedListener { _, _, _ ->
             // The destination is attached once the transaction runs.
-            root.post { onDestinationChanged() }
+            root.post { updateChrome() }
         }
     }
 
@@ -221,95 +264,284 @@ class MainActivity :
         localNetworkPermission.launch(ACCESS_LOCAL_NETWORK)
     }
 
-    // region Tabs and chrome
+    private val navigator: Navigator?
+        get() = delegate.currentNavigator
 
-    private fun setUpTabs() {
-        val toolbar = findViewById<View>(R.id.floating_toolbar)
-        // Live Wire's raised surfaces carry a hairline, like the web's menus.
-        (toolbar.background as? MaterialShapeDrawable)?.setStroke(
-            resources.displayMetrics.density,
-            ContextCompat.getColor(this, R.color.lw_line)
+    // region The sidebar
+
+    private fun setUpSidebar() {
+        val panel = findViewById<View>(R.id.sidebar)
+        sidebar = SidebarDrawer(panel, this)
+        drawer.setScrimColor(ContextCompat.getColor(this, R.color.scrim))
+        drawer.addDrawerListener(
+            object : DrawerLayout.SimpleDrawerListener() {
+                override fun onDrawerOpened(drawerView: View) {
+                    closeSidebar.isEnabled = true
+                    startPolling()
+                }
+
+                override fun onDrawerClosed(drawerView: View) {
+                    closeSidebar.isEnabled = false
+                    pollJob?.cancel()
+                    sidebar.resetSearch()
+                }
+
+                override fun onDrawerStateChanged(newState: Int) {
+                    // Starting to open: fetch now, so it's fresh as it lands,
+                    // and put the composer's keyboard away.
+                    if (newState != DrawerLayout.STATE_IDLE &&
+                        !drawer.isDrawerOpen(GravityCompat.START)
+                    ) {
+                        refreshSidebar()
+                        WindowCompat.getInsetsController(window, drawer).hide(WindowInsetsCompat.Type.ime())
+                    }
+                }
+            }
         )
-        tabs =
-            TabShell(
-                activity = this,
-                tabs = MainTab.entries.map { it.shellTab },
-                buttons = findViewById(R.id.tab_buttons),
-                dock = dock,
-                buttonLayout = R.layout.view_floating_tab
-            )
-        memory.hiddenTabs.mapNotNull { key -> MainTab.entries.firstOrNull { it.key == key } }
-            .forEach { tabs.setHidden(it.shellTab, true) }
-        tabs.load(viewModel.selectedTab.shellTab)
-        // A hidden tab can't be the one showing.
-        viewModel.selectedTab = MainTab.forShellTab(tabs.selected)
-        tabs.onTabSelected = { tab ->
-            viewModel.selectedTab = MainTab.forShellTab(tab)
-            updateChrome()
+        ViewCompat.setOnApplyWindowInsetsListener(panel) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            view.updatePadding(left = bars.left, top = bars.top, bottom = bars.bottom)
+            insets
         }
-        tabs.onTabReselected = { tab -> navigator(MainTab.forShellTab(tab))?.clearAll() }
+        // A sidebar from the last run of this activity (a theme change) shows at once.
+        showSidebar()
     }
 
-    private fun setUpNewChatButton() {
-        TooltipCompat.setTooltipText(newChatButton, getString(R.string.new_chat))
-        newChatButton.setOnClickListener { startNewChat() }
+    override fun openSidebar() {
+        refreshSidebar()
+        drawer.openDrawer(GravityCompat.START)
     }
 
-    private fun selectTab(tab: MainTab) {
-        if (viewModel.selectedTab == tab && tabs.selected === tab.shellTab) return
-        viewModel.selectedTab = tab
-        tabs.select(tab.shellTab)
-        updateChrome()
+    private fun closeSidebarNow() {
+        drawer.closeDrawer(GravityCompat.START)
     }
 
-    /** A page named the tabs the person may use: hide the others (Bots, for a guest). */
-    override fun onTabsNamed(content: String) {
-        val hidden = MainTab.hiddenBy(content)
-        MainTab.entries.forEach { tabs.setHidden(it.shellTab, it in hidden) }
-        memory.hiddenTabs = hidden.map { it.key }.toSet()
+    /** The sidebar as known now, for the organization showing. */
+    private fun showSidebar() {
+        val data = viewModel.sidebar?.takeIf { it.organization.id == viewModel.account }
+        sidebar.show(data, navigator?.currentDestination?.location, botsKnown = viewModel.account != null)
     }
 
-    private val currentTab: MainTab
-        get() = viewModel.selectedTab
-
-    private fun navigator(tab: MainTab): Navigator? = delegate.findNavigatorHost(tab.navigatorHostId)?.navigator
-
-    private fun onDestinationChanged() {
-        if (viewModel.signingIn && delegate.currentNavigator?.currentDestination?.isModal != true) {
-            // The sign-in modal was closed without signing in.
-            viewModel.signingIn = false
-            if (viewModel.signedOut) showWelcome(true)
+    override fun onSidebarChanged() {
+        viewModel.sidebarStale = true
+        if (drawer.isDrawerOpen(GravityCompat.START) || drawer.isDrawerVisible(GravityCompat.START)) {
+            refreshSidebar(debounce = true)
         }
-        updateChrome()
+    }
+
+    /** Fetches the sidebar for the organization showing (the first page, or every chat while searching). */
+    private fun refreshSidebar(debounce: Boolean = false, all: Boolean = sidebar.query.isNotEmpty()) {
+        val account = viewModel.account ?: return
+        fetchJob?.cancel()
+        fetchJob =
+            lifecycleScope.launch {
+                if (debounce) delay(DEBOUNCE_MS)
+                val url = AppUrls.sidebar(account, memory.listKey(account), all)
+                when (val result = SidebarClient.fetch(url, userAgent())) {
+                    is SidebarClient.Result.Loaded -> {
+                        if (viewModel.account != account) return@launch
+                        viewModel.sidebar = result.sidebar
+                        viewModel.sidebarStale = false
+                        rememberSidebar(account, result.sidebar)
+                        showSidebar()
+                    }
+
+                    SidebarClient.Result.SignedOut -> showSignedOut(presentSignIn = true)
+
+                    SidebarClient.Result.Failed -> showSidebar()
+                }
+            }
+    }
+
+    private fun rememberSidebar(account: String, sidebar: Sidebar) {
+        sidebar.links.newChat?.let { memory.setNewChatPath(account, it) }
+        sidebar.list?.key?.let { memory.setListKey(account, it) }
+    }
+
+    /** While the sidebar is open and something in it answers, it stays fresh. */
+    private fun startPolling() {
+        pollJob?.cancel()
+        pollJob =
+            lifecycleScope.launch {
+                while (true) {
+                    delay(POLL_MS)
+                    if (viewModel.sidebar?.anyProcessing == true || viewModel.sidebarStale) refreshSidebar()
+                }
+            }
+    }
+
+    private fun userAgent(): String? = navigator?.session?.webView?.settings?.userAgentString
+
+    override fun openPath(path: String) {
+        closeSidebarNow()
+        navigator?.route(AppUrls.absolute(path))
     }
 
     /**
-     * The floating toolbar and New chat show on each tab's first page and
-     * hide on the pages pushed from it (a chat gets the whole screen, as in
-     * Messages), in modals, and under the keyboard. On a tab's first page the
-     * page scrolls under them: the server leaves room under its last row
-     * (`body[data-native-tab-root]`, docs/server-contract.md).
+     * Starts a new chat in the list the sidebar shows, as the web's New chat
+     * does. It replaces the root (the path configuration), so nothing stacks.
+     */
+    override fun startNewChat() {
+        closeSidebarNow()
+        val account = viewModel.account
+        val path =
+            viewModel.sidebar?.takeIf { it.organization.id == account }?.links?.newChat
+                ?: account?.let { memory.newChatPath(it) }
+        navigator?.route(path?.let(AppUrls::absolute) ?: AppUrls.newChat(account))
+    }
+
+    override fun openBots() {
+        val path = viewModel.sidebar?.links?.bots ?: viewModel.account?.let { "/$it/bots" } ?: return
+        openPath(path)
+    }
+
+    override fun chooseList() {
+        val data = viewModel.sidebar ?: return
+        val account = viewModel.account ?: return
+        val actions =
+            data.lists.map { list ->
+                ActionSheet.Action(
+                    title = list.name,
+                    image =
+                        when {
+                            list.hq -> "home_work"
+                            list.isProject -> "folder"
+                            list.kind == "all" -> "forum"
+                            else -> "lock"
+                        },
+                    checked = list.current
+                )
+            } +
+                listOfNotNull(
+                    data.links.projects?.let {
+                        ActionSheet.Action(getString(R.string.sidebar_all_projects), "folder_open")
+                    },
+                    data.links.newProject?.let { ActionSheet.Action(getString(R.string.sidebar_new_project), "add") }
+                )
+        ActionSheet.show(this, getString(R.string.sidebar_lists_title), actions) { index ->
+            val list = data.lists.getOrNull(index)
+            when {
+                list != null -> {
+                    memory.setListKey(account, list.key)
+                    refreshSidebar(all = false)
+                }
+
+                index == data.lists.size && data.links.projects != null -> openPath(data.links.projects)
+
+                else -> data.links.newProject?.let(::openPath)
+            }
+        }
+    }
+
+    override fun showWaiting() {
+        val waiting = viewModel.sidebar?.waiting ?: return
+        if (waiting.items.isEmpty()) {
+            ActionSheet.show(this, getString(R.string.sidebar_nothing_waiting), emptyList()) {}
+            return
+        }
+        val actions =
+            waiting.items.map { item ->
+                ActionSheet.Action(
+                    title = listOfNotNull(item.title, item.project).joinToString(" · "),
+                    image =
+                        when (item.kind) {
+                            "question" -> "help"
+                            "bot" -> "smart_toy"
+                            else -> "back_hand"
+                        }
+                )
+            }
+        ActionSheet.show(this, getString(R.string.sidebar_waiting), actions) { index ->
+            waiting.items.getOrNull(index)?.let { openPath(it.url) }
+        }
+    }
+
+    override fun showPersonMenu() {
+        val data = viewModel.sidebar
+        if (data == null) {
+            viewModel.account?.let { openPath("/$it/settings") }
+            return
+        }
+        val organizations = data.organizations.filter { it.url != null }
+        val actions =
+            organizations.map { ActionSheet.Action(it.name, image = "apartment", checked = it.current) } +
+                listOfNotNull(
+                    data.links.organizations?.let {
+                        ActionSheet.Action(getString(R.string.sidebar_all_organizations), "domain")
+                    },
+                    data.links.newOrganization?.let {
+                        ActionSheet.Action(getString(R.string.sidebar_new_organization), "add")
+                    },
+                    data.links.settings?.let { ActionSheet.Action(getString(R.string.settings), "settings") }
+                )
+        ActionSheet.show(this, data.person?.email ?: data.person?.name, actions) { index ->
+            val links =
+                listOfNotNull(data.links.organizations, data.links.newOrganization, data.links.settings)
+            when {
+                index < organizations.size -> organizations[index].takeIf { !it.current }?.url?.let(::openPath)
+                    ?: closeSidebarNow()
+
+                else -> links.getOrNull(index - organizations.size)?.let(::openPath)
+            }
+        }
+    }
+
+    override fun loadAll() {
+        refreshSidebar(all = true)
+    }
+
+    override fun loadMore() {
+        val data = viewModel.sidebar ?: return
+        val next = data.next ?: return
+        if (loadingMore || sidebar.query.isNotEmpty()) return
+        loadingMore = true
+        lifecycleScope.launch {
+            val result = SidebarClient.fetch(AppUrls.absolute(next), userAgent())
+            loadingMore = false
+            if (result is SidebarClient.Result.Loaded && viewModel.sidebar === data) {
+                viewModel.sidebar = data.plus(result.sidebar)
+                showSidebar()
+            }
+        }
+    }
+
+    /** Remembers the chat showing, if it's answering, so a launch soon after reopens it. */
+    private fun rememberAnsweringChat() {
+        val location = navigator?.currentDestination?.location
+        val sidebar = viewModel.sidebar
+        val chat =
+            if (location != null && sidebar != null) {
+                (sidebar.chats + sidebar.pins).firstOrNull { it.isProcessing && SidebarRow.isCurrent(it, location) }
+            } else {
+                null
+            }
+        memory.leftAnswering(if (chat != null) location else null, System.currentTimeMillis())
+    }
+
+    // endregion
+
+    // region Chrome
+
+    /**
+     * The sidebar opens from the root (a chat) by its button or a swipe from
+     * the edge; over pushed pages and modals it stays shut, and back goes
+     * back instead.
      */
     private fun updateChrome() {
-        val navigator = delegate.currentNavigator
+        val navigator = navigator
         val destination = navigator?.currentDestination
         val modal = destination?.pathProperties?.context == PresentationContext.MODAL
-        val atStart = navigator?.isAtStartDestination() != false
-
-        tabs.setShown(atStart && !modal && !keyboardVisible && !viewModel.signedOut)
-
-        backToChats.isEnabled = currentTab != MainTab.CHATS && atStart && !modal && !viewModel.signedOut
-
-        // The pages keep clear of the gesture bar; the keyboard pushes them
-        // up instead (setUpInsets).
-        hosts.updatePadding(
-            left = sideInsets.first,
-            right = sideInsets.second,
-            bottom = if (keyboardVisible) 0 else bottomInset
+        val atRoot = navigator?.isAtStartDestination() != false && !modal
+        drawer.setDrawerLockMode(
+            if (atRoot &&
+                !viewModel.signedOut
+            ) {
+                DrawerLayout.LOCK_MODE_UNLOCKED
+            } else {
+                DrawerLayout.LOCK_MODE_LOCKED_CLOSED
+            }
         )
-        dock.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-            bottomMargin = bottomInset + resources.getDimensionPixelSize(R.dimen.dock_margin)
-        }
+        showSidebar()
     }
 
     private fun setUpInsets() {
@@ -317,37 +549,16 @@ class MainActivity :
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             keyboardVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
-            bottomInset = bars.bottom
-            sideInsets = bars.left to bars.right
 
-            // The keyboard pushes everything up, so the composer stays above
-            // it. Applied once, here: applying it again further down the
-            // hierarchy would double it.
-            view.updatePadding(bottom = if (keyboardVisible) ime.bottom else 0)
-            updateChrome()
+            // The pages keep clear of the gesture bar; the keyboard pushes
+            // everything up instead, so the composer stays above it. Applied
+            // once, here: applying it again further down would double it.
+            view.updatePadding(
+                left = bars.left,
+                right = bars.right,
+                bottom = if (keyboardVisible) ime.bottom else bars.bottom
+            )
             insets
-        }
-    }
-
-    // endregion
-
-    // region New chat
-
-    /**
-     * New chat opens as a modal over the chat list, so the chat it starts
-     * lands in Chats. When the list shows a project, the chat starts in it,
-     * as New chat does in the web's sidebar.
-     */
-    private fun startNewChat() {
-        val project =
-            navigator(MainTab.CHATS)
-                ?.takeIf { currentTab == MainTab.CHATS && it.isAtStartDestination() }
-                ?.session
-                ?.webView
-                ?.url
-                ?.let(AppUrls::listProject)
-        showTab(MainTab.CHATS) {
-            navigator(MainTab.CHATS)?.route(AppUrls.newChat(viewModel.account ?: memory.lastAccount, project))
         }
     }
 
@@ -385,17 +596,17 @@ class MainActivity :
 
     /**
      * Shows or hides the welcome screen. While it's up, screen readers skip
-     * the tabs under it, which load behind it.
+     * the page under it, which loads behind it.
      */
     private fun showWelcome(visible: Boolean) {
         welcome.isVisible = visible
-        val hidden =
+        findViewById<View>(R.id.main_navigator_host).importantForAccessibility =
             if (visible) View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS else View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
-        listOf(hosts, dock).forEach { it.importantForAccessibility = hidden }
+        if (visible) closeSidebarNow()
     }
 
     private fun presentSignIn(url: String) {
-        val navigator = delegate.currentNavigator ?: return
+        val navigator = navigator ?: return
         if (!viewModel.signingIn) {
             viewModel.signingIn = true
             showWelcome(false)
@@ -418,6 +629,7 @@ class MainActivity :
     private fun showSignedOut(presentSignIn: Boolean) {
         if (!viewModel.signedOut) {
             viewModel.signedOut = true
+            viewModel.sidebar = null
             memory.hasSignedIn = false
             PushNotifications.forget(this)
         }
@@ -431,11 +643,12 @@ class MainActivity :
         }
     }
 
-    /** Signing in worked: every tab starts afresh, then any link that waited opens. */
+    /** Signing in worked: the app starts afresh, then any link that waited opens. */
     private fun didSignIn() {
         viewModel.signingIn = false
         viewModel.signedOut = false
         viewModel.account = null
+        viewModel.sidebar = null
         memory.hasSignedIn = true
         showWelcome(false)
         delegate.resetNavigators()
@@ -465,51 +678,55 @@ class MainActivity :
 
         if (viewModel.signingIn || viewModel.signedOut) {
             // The sign-in modal reaching a page inside the app means a session
-            // exists. A tab's page behind the welcome screen proves nothing:
-            // under its own address it may hold the sign-in form the server
+            // exists. The root behind the welcome screen proves nothing: under
+            // its own address it may hold the sign-in form the server
             // redirected it to.
             if (destination.isModal && !AppUrls.isAuthentication(shown) && isSignedInPage(shown)) didSignIn()
             return
         }
 
+        // The start location did its job; the next start uses the sidebar's.
+        viewModel.startLocation = null
+        memory.leftAnswering(null, 0)
         AppUrls.account(shown)?.let(::onAccount)
         openPendingLink(destination.navigator)
         updateChrome()
+        if (viewModel.sidebarStale || drawer.isDrawerVisible(GravityCompat.START)) refreshSidebar(debounce = true)
     }
 
     private fun isSignedInPage(url: String): Boolean =
-        AppUrls.account(url) != null || AppUrls.isTabRoot(url) || AppUrls.pathWithinAccount(url) == "/accounts"
+        AppUrls.account(url) != null || AppUrls.isNewChat(url) || AppUrls.pathWithinAccount(url) == "/accounts"
 
-    /**
-     * A page that names its organization. When it's another one than the
-     * tabs show (the server redirected there), the other tabs start over in
-     * it.
-     */
+    /** A page that names its organization: the sidebar follows it. */
     private fun onAccount(account: String) {
         val previous = viewModel.account
         viewModel.account = account
         memory.lastAccount = account
-        if (previous == null || previous == account) return
-
-        viewModel.tabsAccount = account
-        MainTab.entries.filter { it != currentTab }.forEach { tab ->
-            navigator(tab)?.takeIf { it.isReady() }?.reset()
+        if (previous != account) {
+            viewModel.sidebarStale = true
+            refreshSidebar()
         }
     }
 
     /**
-     * Rebuilds every tab inside [account] and opens [location] in its tab
-     * (on top of the tab's list, unless it is the list).
+     * Starts the navigator over inside [account], on [location] when it's a
+     * chat, else on the organization's new chat with [location] opened on
+     * top of it.
      */
     private fun moveToOrganization(account: String, location: String) {
         viewModel.account = account
-        viewModel.tabsAccount = account
+        viewModel.sidebar = null
         memory.lastAccount = account
-        viewModel.pendingLink = location.takeIf { opensOnTop(it) }
-
-        val tab = MainTab.forUrl(location) ?: currentTab
-        selectTab(tab)
+        if (AppUrls.isChat(location)) {
+            viewModel.startLocation = location
+            viewModel.pendingLink = null
+        } else {
+            viewModel.startLocation = null
+            viewModel.pendingLink = location.takeIf { opensOnTop(it) }
+        }
+        closeSidebarNow()
         delegate.resetNavigators()
+        refreshSidebar()
         updateChrome()
     }
 
@@ -525,9 +742,16 @@ class MainActivity :
             // A form in a modal that recedes (a rename saved) closes the modal
             // and nothing else, as on iOS: Hotwire Native would also go back
             // from the page under it. That page loads again, changed.
-            val navigator = MainTab.forNavigatorName(configuration.name)?.let(::navigator)
+            val navigator = navigator
             if (AppUrls.isRecede(location) && navigator?.currentDestination?.isModal == true) {
                 root.post { navigator.route(AppUrls.resume) }
+                return Router.Decision.CANCEL
+            }
+            // A recede on the chat itself (deleted from its menu) has nothing
+            // to go back to: a new chat takes its place.
+            if (AppUrls.isRecede(location) && navigator?.isAtStartDestination() == true) {
+                viewModel.sidebarStale = true
+                root.post { startNewChat() }
                 return Router.Decision.CANCEL
             }
             return null
@@ -539,10 +763,9 @@ class MainActivity :
         }
 
         if (viewModel.signingIn || viewModel.signedOut) {
-            val inModal =
-                MainTab.forNavigatorName(configuration.name)?.let(::navigator)?.currentDestination?.isModal == true
+            val inModal = navigator?.currentDestination?.isModal == true
             if (AppUrls.isSignInForm(location) && !inModal && !presentingSignIn) {
-                // A tab's page bounced to the sign-in form behind the welcome
+                // The root bounced to the sign-in form behind the welcome
                 // screen (or as the sign-in modal closed and the page under
                 // it loaded again). Signing in starts from the welcome screen.
                 return Router.Decision.CANCEL
@@ -570,19 +793,12 @@ class MainActivity :
             return Router.Decision.CANCEL
         }
 
-        // A link into another organization (the switcher in Settings, a
-        // notification): every tab starts over there.
+        // A link into another organization (the sidebar's switcher, a
+        // notification): the app starts over there.
         val account = AppUrls.account(location)
         val current = viewModel.account
         if (account != null && current != null && account != current) {
             moveToOrganization(account, location)
-            return Router.Decision.CANCEL
-        }
-
-        // Another tab's list is a tab switch, not a push.
-        val tab = MainTab.forUrl(location)
-        if (AppUrls.isTabRoot(location) && tab != null && tab.configuration.name != configuration.name) {
-            showTab(tab) { navigator(tab)?.clearAll() }
             return Router.Decision.CANCEL
         }
 
@@ -632,20 +848,14 @@ class MainActivity :
             return
         }
 
-        val tab = MainTab.forUrl(url) ?: currentTab
-        when {
-            AppUrls.isTabRoot(url) -> {
-                showTab(tab) { navigator(tab)?.clearAll() }
-            }
-
-            AppUrls.isNewChat(url) -> {
-                startNewChat()
-            }
-
-            else -> {
-                viewModel.pendingLink = url
-                showTab(tab) { navigator(tab)?.let(::openPendingLink) }
-            }
+        closeSidebarNow()
+        val navigator = navigator
+        if (navigator == null) {
+            viewModel.pendingLink = url
+        } else {
+            // A chat replaces the root (the path configuration); a link into
+            // another organization starts over there (routeDecision).
+            navigator.route(url, VisitOptions())
         }
     }
 
@@ -674,33 +884,27 @@ class MainActivity :
         }
     }
 
-    /** Opens the waiting link in [navigator] if it belongs there and the navigator can take it. */
+    /** Opens the waiting link once the navigator has drawn its first page. */
     private fun openPendingLink(navigator: Navigator) {
         val ready = navigator.isReady() && navigator.currentDestination?.fragment?.view != null
-        val url = viewModel.takePendingLink(navigator.configuration.name, ready, currentTab) ?: return
-        val tab = MainTab.forUrl(url) ?: currentTab
-        selectTab(tab)
+        val url = viewModel.takePendingLink(ready) ?: return
         navigator.route(url, VisitOptions())
     }
 
-    /** Selects [tab], then runs [then] once its navigator exists. */
-    private fun showTab(tab: MainTab, then: () -> Unit = {}) {
-        selectTab(tab)
-        root.post(then)
-    }
-
-    /** Tab roots and the new chat page aren't pushed on top after signing in: the tab already shows them. */
+    /**
+     * Pages opened on top of the root after signing in: not the new chat (the
+     * root already is one), and not the chat list the server lands people on
+     * (the sidebar is the app's list).
+     */
     private fun opensOnTop(url: String): Boolean =
-        !AppUrls.isTabRoot(url) && !AppUrls.isNewChat(url) && !AppUrls.isAuthentication(url)
+        !AppUrls.isNewChat(url) && !AppUrls.isAuthentication(url) && AppUrls.pathWithinAccount(url) != "/chats"
 
     // endregion
 
     // region Hosts for bridge components
 
     override fun showSnackbar(message: String, long: Boolean) {
-        val snackbar = Snackbar.make(root, message, if (long) Snackbar.LENGTH_LONG else Snackbar.LENGTH_SHORT)
-        if (tabs.isShown && dock.isVisible) snackbar.anchorView = dock
-        snackbar.show()
+        Snackbar.make(root, message, if (long) Snackbar.LENGTH_LONG else Snackbar.LENGTH_SHORT).show()
     }
 
     /**
@@ -780,10 +984,20 @@ class MainActivity :
     // endregion
 
     private companion object {
+        const val NAVIGATOR = "main"
         const val ANDROID_17 = 37
         const val ACCESS_LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
 
         /** Lets the welcome screen settle before the sign-in form slides up. */
         const val SIGN_IN_DELAY_MS = 350L
+
+        /** A chat left while it answered reopens on a launch within this time. */
+        const val RESUME_WITHIN_MS = 10 * 60 * 1000L
+
+        /** The page's `changed` messages come in bursts as an answer streams. */
+        const val DEBOUNCE_MS = 500L
+
+        /** While the sidebar is open and something answers. */
+        const val POLL_MS = 5_000L
     }
 }

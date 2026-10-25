@@ -16,10 +16,10 @@ import kotlinx.serialization.Serializable
  *
  * It's an action in the top app bar. Android has no left side for actions
  * (the navigation icon lives there), so a `left` button sits on the right
- * too. New chat (`nativeAction: "new-chat"`) is the exception on a tab's
- * first page: the floating button beside the tabs already starts a chat, so
- * the bar leaves it out. Where it goes depends on the page and the stable
- * `nativeAction`, never on its title, which the server may translate.
+ * too. New chat (`nativeAction: "new-chat"`) is left out: every screen's
+ * bar has the app's own New chat, which starts it in the sidebar's list.
+ * That depends on the stable `nativeAction`, never on its title, which the
+ * server may translate.
  *
  * `androidImage` is a Material Symbols name; a `.fill` suffix
  * ("keep.fill", like iOS's "pin.fill") draws the filled symbol.
@@ -47,7 +47,7 @@ class ButtonComponent(name: String, delegate: BridgeDelegate<HotwireDestination>
     override fun render(toolbar: Toolbar) {
         val message = button ?: return
         val data = message.data<Data>() ?: return
-        if (data.nativeAction == NEW_CHAT && isTabRoot()) return
+        if (data.nativeAction == NEW_CHAT) return
 
         toolbar.menu.add(menuGroup, ITEM_ID, ORDER_BUTTON, data.title).apply {
             val symbol = SymbolDrawable.from(toolbar.context, data.image)
@@ -66,8 +66,6 @@ class ButtonComponent(name: String, delegate: BridgeDelegate<HotwireDestination>
         }
     }
 
-    private fun isTabRoot(): Boolean = !destination.isModal && destination.navigator.isAtStartDestination()
-
     @Serializable
     data class Data(
         val title: String,
@@ -80,7 +78,7 @@ class ButtonComponent(name: String, delegate: BridgeDelegate<HotwireDestination>
     companion object {
         private const val ITEM_ID = 0x0C300
 
-        /** The Chats list's New chat, which the floating button stands for on a tab's first page. */
+        /** A page's New chat, which the bar's own New chat stands for. */
         const val NEW_CHAT = "new-chat"
 
         val factory = BridgeComponentFactory("button", ::ButtonComponent)

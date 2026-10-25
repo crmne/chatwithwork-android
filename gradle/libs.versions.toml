@@ -8,10 +8,11 @@ kotlinxCoroutines = "1.11.0"
 androidxActivity = "1.13.0"
 androidxAppcompat = "1.8.0"
 androidxBrowser = "1.10.0"
-androidxConstraintlayout = "2.2.2"
 androidxCore = "1.19.1"
+androidxDrawerlayout = "1.2.0"
 androidxFragment = "1.9.1"
 androidxLifecycle = "2.11.0"
+androidxRecyclerview = "1.4.0"
 androidxSplashscreen = "1.2.0"
 androidxWebkit = "1.17.1"
 material = "1.14.0"
@@ -32,11 +33,12 @@ kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 androidx-activity = { module = "androidx.activity:activity-ktx", version.ref = "androidxActivity" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidxAppcompat" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "androidxBrowser" }
-androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "androidxConstraintlayout" }
+androidx-drawerlayout = { module = "androidx.drawerlayout:drawerlayout", version.ref = "androidxDrawerlayout" }
 androidx-core = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
 androidx-fragment = { module = "androidx.fragment:fragment-ktx", version.ref = "androidxFragment" }
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "androidxLifecycle" }
 androidx-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
+androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "androidxRecyclerview" }
 androidx-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "androidxSplashscreen" }
 androidx-webkit = { module = "androidx.webkit:webkit", version.ref = "androidxWebkit" }
 material = { module = "com.google.android.material:material", version.ref = "material" }

@@ -2,11 +2,28 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name" translatable="false">Chat with Work</string>
 
-    <!-- Tabs -->
-    <string name="tab_chats">Chats</string>
-    <string name="tab_bots">Bots</string>
-    <string name="tab_settings">Settings</string>
+    <!-- The sidebar -->
     <string name="new_chat">New chat</string>
+    <string name="settings">Settings</string>
+    <string name="sidebar_open">Open the sidebar</string>
+    <string name="sidebar_search">Search chats</string>
+    <string name="sidebar_waiting">Waiting for you</string>
+    <string name="sidebar_nothing_waiting">Nothing is waiting for you.</string>
+    <string name="sidebar_bots">Bots</string>
+    <string name="sidebar_pinned">Pinned</string>
+    <string name="sidebar_project">Project</string>
+    <string name="sidebar_showing">Showing</string>
+    <string name="sidebar_switcher_description">Showing %1$s. Choose what the sidebar shows.</string>
+    <string name="sidebar_lists_title">Show chats from</string>
+    <string name="sidebar_all_projects">All projects…</string>
+    <string name="sidebar_new_project">New project</string>
+    <string name="sidebar_all_organizations">All organizations</string>
+    <string name="sidebar_new_organization">New organization</string>
+    <string name="sidebar_person_menu">%1$s. Organizations and settings.</string>
+    <string name="sidebar_no_chats">No chats here yet.</string>
+    <string name="sidebar_no_matches">No chats match.</string>
+    <string name="sidebar_chat_waiting">waiting for you</string>
+    <string name="sidebar_chat_answering">answering</string>
 
     <!-- Toolbar actions -->
     <string name="share">Share</string>

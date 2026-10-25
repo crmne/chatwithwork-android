@@ -7,8 +7,8 @@
       ],
       "properties": {
         "context": "default",
-        "uri": "hotwire://fragment/web",
-        "pull_to_refresh_enabled": true
+        "pull_to_refresh_enabled": true,
+        "uri": "hotwire://fragment/web"
       }
     },
     {
@@ -18,8 +18,8 @@
       ],
       "properties": {
         "context": "modal",
-        "uri": "hotwire://fragment/web/modal",
-        "pull_to_refresh_enabled": false
+        "pull_to_refresh_enabled": false,
+        "uri": "hotwire://fragment/web/modal"
       }
     },
     {
@@ -33,40 +33,52 @@
       ],
       "properties": {
         "context": "modal",
-        "uri": "hotwire://fragment/web/modal",
-        "pull_to_refresh_enabled": false
+        "pull_to_refresh_enabled": false,
+        "uri": "hotwire://fragment/web/modal"
       }
     },
     {
       "patterns": [
-        "/chats/new(\\?|$)"
+        "/chats/new(\\?|$)",
+        "/chats/\\d+(\\?|#|$)"
       ],
       "properties": {
-        "context": "modal",
-        "uri": "hotwire://fragment/web/modal",
-        "pull_to_refresh_enabled": false
+        "context": "default",
+        "presentation": "replace_root",
+        "pull_to_refresh_enabled": false,
+        "uri": "hotwire://fragment/web"
       }
     },
     {
       "patterns": [
-        "/chats/\\d+(\\?|#|$)",
         "^/shared/"
       ],
       "properties": {
         "context": "default",
-        "pull_to_refresh_enabled": false
+        "pull_to_refresh_enabled": false,
+        "uri": "hotwire://fragment/web"
+      }
+    },
+    {
+      "patterns": [
+        "/settings(\\?|$)"
+      ],
+      "properties": {
+        "context": "modal",
+        "pull_to_refresh_enabled": true,
+        "uri": "hotwire://fragment/web/modal"
       }
     },
     {
       "patterns": [
         "/chats(\\?|$)",
         "/projects(\\?|$)",
-        "/bots(\\?|$)",
-        "/settings(\\?|$)"
+        "/bots(\\?|$)"
       ],
       "properties": {
         "context": "default",
-        "pull_to_refresh_enabled": true
+        "pull_to_refresh_enabled": true,
+        "uri": "hotwire://fragment/web"
       }
     },
     {

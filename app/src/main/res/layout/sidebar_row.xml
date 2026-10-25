@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A row of the sidebar: New chat, Waiting for you, Bots, or a chat. Material's
+  navigation drawer item, a pill when it's the page showing, with a dot for
+  state (answering, waiting) and a count or time at its end.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:background="@drawable/sidebar_row_background"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="14dp">
+
+    <ImageView
+        android:id="@+id/sidebar_row_icon"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginEnd="12dp"
+        android:importantForAccessibility="no" />
+
+    <TextView
+        android:id="@+id/sidebar_row_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        android:textColor="?attr/colorOnSurface"
+        tools:text="Lisbon offsite budget" />
+
+    <TextView
+        android:id="@+id/sidebar_row_meta"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:fontFamily="monospace"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:text="2"
+        tools:visibility="visible" />
+
+    <View
+        android:id="@+id/sidebar_row_dot"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/sidebar_dot"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+</LinearLayout>

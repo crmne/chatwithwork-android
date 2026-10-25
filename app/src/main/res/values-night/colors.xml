@@ -21,6 +21,10 @@
     <color name="lw_attention_ink">#FFC247</color>
     <color name="lw_negative">#FF6644</color>
     <color name="lw_dot">#14E9ECF4</color>
+    <!-- Over the page while the sidebar is open: Material's scrim, in ink. -->
+    <!-- The sidebar's row for the page showing, on its sunken canvas. -->
+    <color name="sidebar_selected">#1A2030</color>
+    <color name="scrim">#99000000</color>
     <color name="ripple">#1FE9ECF4</color>
     <color name="lw_negative_ink">#FF7F61</color>
 </resources>

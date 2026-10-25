@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The drawer's sheet: sunken canvas, Material's 16dp corners on its open side. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@color/lw_canvas_sunken" />
+    <corners android:bottomRightRadius="16dp" android:topRightRadius="16dp" />
+</shape>

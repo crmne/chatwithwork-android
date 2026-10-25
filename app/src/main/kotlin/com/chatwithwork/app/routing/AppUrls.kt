@@ -33,9 +33,6 @@ object AppUrls {
     // Rails' AccountSlug::PATTERN: seven digits or more.
     private val accountPrefix = Regex("^/(\\d{7,})(?=/|$)")
 
-    /** Which part of the app a path belongs to, for picking its tab. */
-    enum class Section { CHATS, BOTS, SETTINGS, OTHER }
-
     /** Whether [url] is a page of this app (same scheme, host, and port). */
     fun isAppUrl(url: String): Boolean {
         val uri = parse(url) ?: return false
@@ -73,43 +70,27 @@ object AppUrls {
         return accountPrefix.replace(path, "").ifEmpty { "/" }
     }
 
+    /** A path the server gave ("/482139075/chats/42") as a URL on this build's server. */
+    fun absolute(path: String): String =
+        if (path.startsWith("/") && !path.startsWith("//")) "${AppConfig.baseUrl}$path" else path
+
     /**
-     * Projects open in Chats, whose list switcher picks them. Bots holds
-     * their triggers (once called routines and schedules).
+     * The sidebar's JSON for [account], showing [list] (a key the server
+     * gave: "recent", "all", or a project's number), with every chat when
+     * [all] (for searching). See docs/server-contract.md, "The sidebar".
      */
-    fun section(url: String): Section {
-        val path = pathWithinAccount(url)
-        return when {
-            path.isIn("chats") || path.isIn("projects") -> Section.CHATS
-
-            path.isIn(
-                "bots"
-            ) || path.isIn("triggers") || path.isIn("routines") || path.isIn("schedules") -> Section.BOTS
-
-            path.isIn("settings") -> Section.SETTINGS
-
-            else -> Section.OTHER
-        }
+    fun sidebar(account: String, list: String? = null, all: Boolean = false): String {
+        val query =
+            listOfNotNull(
+                list?.let { "list=" + java.net.URLEncoder.encode(it, "UTF-8") },
+                "all=1".takeIf { all }
+            )
+        return "${AppConfig.baseUrl}/$account/native/sidebar" +
+            if (query.isEmpty()) "" else "?" + query.joinToString("&")
     }
 
-    private fun String.isIn(section: String): Boolean = this == "/$section" || startsWith("/$section/")
-
-    /** Whether [url] is a tab's own first page (the chat list, the bots, settings). */
-    fun isTabRoot(url: String): Boolean = when (pathWithinAccount(url)) {
-        "/chats", "/bots", "/settings" -> true
-        else -> false
-    }
-
-    /** The project a Chats list shows (`/chats?list=3`), for New chat to start in it. */
-    fun listProject(url: String): String? {
-        if (pathWithinAccount(url) != "/chats") return null
-        val query = parse(url)?.rawQuery ?: return null
-        return query.split('&').firstNotNullOfOrNull { pair ->
-            pair.split('=', limit = 2).takeIf {
-                it.size == 2 && it[0] == "list"
-            }?.get(1)?.takeIf { it.all(Char::isDigit) }
-        }
-    }
+    /** A chat's page, or the new chat page: the screens that replace the root. */
+    fun isChat(url: String): Boolean = isNewChat(url) || Regex("^/chats/\\d+$").matches(pathWithinAccount(url))
 
     fun isNewChat(url: String): Boolean = pathWithinAccount(url) == "/chats/new"
 

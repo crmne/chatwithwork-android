@@ -3,13 +3,14 @@ package com.chatwithwork.app.main
 import android.content.Intent
 import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.push.Push
+import com.chatwithwork.app.routing.AppUrls
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 /**
  * Tapping a notification: the push's path becomes the notification's
- * ACTION_VIEW intent, MainActivity takes the link from it, and the link
- * waits until the chat tab's navigator can show it.
+ * ACTION_VIEW intent, MainActivity takes the link from it, and the chat
+ * replaces the root (or, on a cold start, is where the navigator starts).
  */
 class NotificationTapTest {
     private val base = AppConfig.baseUrl
@@ -20,12 +21,12 @@ class NotificationTapTest {
         LaunchLinks.from(Intent.ACTION_VIEW, data, flags, restored)
 
     @Test
-    fun `a tap opens the push's chat in Chats`() {
+    fun `a tap opens the push's chat as the root`() {
         val push = Push.from(mapOf("kind" to "approval_waiting", "path" to path))!!
         val link = tap(push.url)
 
         assertThat(link).isEqualTo("$base$path")
-        assertThat(MainTab.forUrl(link!!)).isEqualTo(MainTab.CHATS)
+        assertThat(AppUrls.isChat(link!!)).isTrue()
     }
 
     @Test
@@ -60,19 +61,12 @@ class NotificationTapTest {
     }
 
     @Test
-    fun `on a cold start the link waits for the chat tab to be ready`() {
+    fun `a link that isn't a chat waits for the navigator`() {
         val viewModel = MainViewModel()
-        viewModel.pendingLink = "$base$path"
+        viewModel.pendingLink = "$base/482139075/bots"
 
-        // The navigators don't exist yet, or haven't drawn their first page.
-        assertThat(viewModel.takePendingLink("chats", navigatorReady = false, MainTab.CHATS)).isNull()
-        // Another tab's first page loading doesn't take it.
-        assertThat(viewModel.takePendingLink("settings", navigatorReady = true, MainTab.SETTINGS)).isNull()
-        assertThat(viewModel.pendingLink).isEqualTo("$base$path")
-
-        // Chats' first page loaded: the chat opens, once.
-        assertThat(viewModel.takePendingLink("chats", navigatorReady = true, MainTab.SETTINGS)).isEqualTo("$base$path")
-        assertThat(viewModel.pendingLink).isNull()
-        assertThat(viewModel.takePendingLink("chats", navigatorReady = true, MainTab.CHATS)).isNull()
+        assertThat(viewModel.takePendingLink(navigatorReady = false)).isNull()
+        assertThat(viewModel.takePendingLink(navigatorReady = true)).isEqualTo("$base/482139075/bots")
+        assertThat(viewModel.takePendingLink(navigatorReady = true)).isNull()
     }
 }
