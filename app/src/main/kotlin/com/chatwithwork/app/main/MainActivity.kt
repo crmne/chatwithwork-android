@@ -964,7 +964,9 @@ class MainActivity :
                 // A password reset or confirmation link: show it over the welcome screen.
                 presentSignIn(url)
             } else {
-                viewModel.pendingLink = url
+                // A chat (or a new chat holding shared words) is where the
+                // app starts once signed in; anything else opens on top.
+                if (AppUrls.isChat(url)) viewModel.startLocation = url else viewModel.pendingLink = url
                 presentSignIn()
             }
             return
