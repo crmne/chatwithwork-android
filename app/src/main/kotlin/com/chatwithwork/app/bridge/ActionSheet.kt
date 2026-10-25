@@ -79,9 +79,26 @@ object ActionSheet {
         }
 
         dialog.setContentView(content)
+        dialog.dismissWithActivity(context)
         dialog.show()
         return dialog
     }
 
     private const val DISABLED_ALPHA = 0.38f
+}
+
+/**
+ * Closes a dialog as its activity goes (a theme change recreates it), so it
+ * never outlives the window it was shown in.
+ */
+fun android.app.Dialog.dismissWithActivity(context: Context) {
+    val owner = context as? androidx.lifecycle.LifecycleOwner ?: return
+    val dialog = this
+    owner.lifecycle.addObserver(
+        object : androidx.lifecycle.DefaultLifecycleObserver {
+            override fun onDestroy(owner: androidx.lifecycle.LifecycleOwner) {
+                if (dialog.isShowing) dialog.dismiss()
+            }
+        }
+    )
 }

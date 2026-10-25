@@ -105,6 +105,15 @@ object Dictation {
         }
         stop.setOnClickListener { finish(send = true) }
         cancel.setOnClickListener { finish(send = false) }
+        // A theme change or the app closing ends the recording, unsent.
+        activity.lifecycle.addObserver(
+            object : androidx.lifecycle.DefaultLifecycleObserver {
+                override fun onDestroy(owner: androidx.lifecycle.LifecycleOwner) {
+                    finish(send = false)
+                    if (dialog.isShowing) dialog.dismiss()
+                }
+            }
+        )
         status.setText(R.string.dictation_listening)
         level.max = MAX_AMPLITUDE
         dialog.show()
