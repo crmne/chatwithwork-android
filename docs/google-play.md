@@ -122,4 +122,17 @@ short explanation first) or from Settings > Notifications;
 `RECORD_AUDIO` (with `MODIFY_AUDIO_SETTINGS`, which the web view needs to
 record), asked for the first time someone taps the composer's microphone,
 and granted to the web view for the app's own server only. The microphone
-is optional hardware, so devices without one still see the app.
+is optional hardware, so devices without one still see the app. So is a
+portrait screen: ML Kit's document scanner locks its activity to portrait,
+which Play would otherwise read as a required feature
+(`android.hardware.screen.portrait`) and hide the app from landscape-only
+devices. Before an upload, check the release build's features:
+
+```sh
+./gradlew assembleRelease
+aapt2 dump badging app/build/outputs/apk/release/app-release-unsigned.apk | grep feature
+```
+
+The microphone and `android.hardware.screen.portrait` should show as
+`uses-feature-not-required`, and nothing beyond `android.hardware.faketouch`
+as a required `uses-feature`.

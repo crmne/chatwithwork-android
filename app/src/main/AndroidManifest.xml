@@ -17,6 +17,15 @@
     <uses-feature
         android:name="android.hardware.microphone"
         android:required="false" />
+    <!--
+      ML Kit's document scanner locks its own activity to portrait, which
+      Google Play reads as requiring a portrait screen and hides the app
+      from landscape-only devices (Chromebooks, cars, some tablets). The
+      scanner still opens there, and the app works without it.
+    -->
+    <uses-feature
+        android:name="android.hardware.screen.portrait"
+        android:required="false" />
 
     <queries>
         <!-- Browsers that can show Custom Tabs, for sign-ins and links out. -->
