@@ -78,14 +78,20 @@ needs no closed test first.
 | Contact | support@chatwithwork.com, website https://chatwithwork.com |
 | Privacy policy | https://chatwithwork.com/privacy-policy |
 
-Screenshots come from the app on an emulator, signed in to staging as the
-synthetic screenshot account (`script/store/seed staging screenshots` in
-the Rails app; Northwind Studio and everything in it is made up), framed
-with the iOS repository's `script/frame-screenshots.mjs` and its captions.
-Play takes only 16:9 or 9:16 screenshots, tablets included, so the 7-inch
-(1200 x 1920) and 10-inch (2560 x 1600) frames are padded with the frame's
-background to 1200 x 2133 and 2844 x 1600
-(`magick in.png -background 'srgb(15,15,21)' -gravity center -extent WxH out.png`).
+Screenshots come from the debug build on headless emulators
+(`cww-store-phone`, `cww-store-tablet7`, `cww-store-tablet10`), driven by
+crmne/films' `chatwithwork/store-screenshots/capture/android` and pointed at
+a server holding a synthetic organization (Northwind Studio, which crmne/films'
+`chatwithwork/store-screenshots/capture/seed` makes in a checkout of the
+Rails app, its clock set to a Monday at 9:41), with System UI's demo mode
+for a 9:41 status bar. They're composed in crmne/films
+(`chatwithwork/store-screenshots`): the phone's seven with one headline
+each, in a band under a fifth of the image and without a device, so they're
+eligible for promotion; the tablets' as the app shows them, with no text,
+on a canvas that makes them 9:16 (1200 x 2133) and 16:9 (2844 x 1600), the
+only shapes Play takes. The feature graphic comes from the same place. The
+listing's words, and what backs each claim, are in the Rails app's
+`docs/marketing/marketplaces.md`.
 
 ## App content
 
