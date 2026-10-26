@@ -23,7 +23,7 @@ spotless = "8.10.4"
 ktlint = "1.8.0"
 junit = "4.13.2"
 truth = "1.4.5"
-gson = "2.14.0"
+gson = "2.15.0"
 
 [libraries]
 hotwire-core = { module = "dev.hotwire:core", version.ref = "hotwire" }
