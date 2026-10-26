@@ -104,6 +104,12 @@ listing's words, and what backs each claim, are in the Rails app's
   for an answer with sources and 'Acme launch update' for a change waiting
   for approval (no Slack is connected, so approving posts nothing). Services
   are connected on chatwithwork.com from a computer."
+- **AI-generated content:** Play's AI-Generated Content policy asks apps
+  whose AI output is central for a way to report offensive output without
+  leaving the app. On the web that's the thumbs down beside each answer
+  (with its reasons and a comment), but the app hides the answer's actions
+  and its long-press menu doesn't offer the thumbs: add them before
+  submitting (the Rails app's `docs/marketing/marketplaces.md`, decision 8).
 - **Content rating (IARC):** category "Productivity, communication, or
   other". No violence, sexuality, language, controlled substances, or
   gambling. Users interact or exchange content: yes (chats shared inside an
