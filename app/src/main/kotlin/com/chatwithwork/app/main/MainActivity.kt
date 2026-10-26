@@ -555,6 +555,36 @@ class MainActivity :
     }
 
     /**
+     * Opens or closes one of the person's sections: at once here, and on the
+     * server through the page showing, so every device shows it the same.
+     */
+    override fun toggleSection(section: Sidebar.Section) {
+        val action = section.toggleAction ?: return
+        viewModel.sidebar = viewModel.sidebar?.withCollapsed(section.id, !section.collapsed)
+        showSidebar()
+        performChatAction(action)
+    }
+
+    /** A long press on a section's heading: Rename, its own page. */
+    override fun showSectionActions(section: Sidebar.Section, anchor: View) {
+        val edit = section.editUrl ?: return
+        val muted = MaterialColors.getColor(anchor, com.google.android.material.R.attr.colorOnSurfaceVariant)
+        val menu = PopupMenu(this, anchor, Gravity.END)
+        menu.menu.add(0, 0, 0, getString(R.string.sidebar_section_rename)).apply {
+            SymbolDrawable.from(this@MainActivity, "edit")?.let { symbol ->
+                symbol.setTintList(ColorStateList.valueOf(muted))
+                icon = symbol
+            }
+        }
+        menu.setForceShowIcon(true)
+        menu.setOnMenuItemClickListener {
+            openPath(edit)
+            true
+        }
+        menu.show()
+    }
+
+    /**
      * A page opens like any link; anything else (Pin, Delete) goes to the page
      * showing, which sends it as the web would, asking first where the action
      * says so. The sidebar then follows the change through `changed`.

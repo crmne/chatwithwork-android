@@ -581,12 +581,16 @@ following page. A 401 means the session is gone.
   "waiting": {"count": 1, "items": [{"title": "Launch date in #launch", "url": "/482139075/chats/42", "kind": "approval", "project": "Website relaunch"}]},
   "bots": {"count": 0, "attention": false, "next_run": "08:30"},
   "pins": [CHAT],
+  "sections": [SECTION],
   "chats": [CHAT],
   "next": "/482139075/native/sidebar?list=recent&before=41&asked=2026-10-24T09:00:00.000000Z"
 }
 CHAT = {"number": 42, "title": "Launch date in #launch", "url": "/482139075/chats/42", "state": "idle",
         "waiting": false, "project": "Website relaunch", "asked_at": "2026-10-25T08:12:00Z", "group": "Today",
         "actions": [ACTION]}
+SECTION = {"id": 7, "name": "Customers", "collapsed": false, "chats": [CHAT],
+           "edit_url": "/482139075/sidebar/sections/7/edit", "collapse_url": "/482139075/sidebar/sections/7/collapse",
+           "position_url": "/482139075/sidebar/sections/7/position"}
 ACTION = {"key": "delete", "title": "Delete", "method": "delete", "url": "/482139075/chats/42",
           "iosImage": "trash", "androidImage": "delete", "confirm": "Delete this chat?", "destructive": true}
 ```
@@ -626,12 +630,26 @@ method, confirm, destructive}`, which the page sends as the web's link
 would, behind the native alert where there's a `confirm`. Without
 `actions` (an older server) a long press does nothing.
 
+**Sections (2026-10-26).** `sections` are the person's own sidebar
+sections (the server's `ChatSection`), in their order, the same in every
+list, each with this list's chats in it, newest question first, all of
+them (not paged); the list's `chats` (and `all=1`'s) are then only those
+in no section. Each draws as a heading after Pinned (a caret, its name and
+how many chats it holds) with its chats below it unless `collapsed`. A tap
+on a heading opens or closes it at once and sends `collapse_url` to the
+page showing like a chat's action (`post` closes it, `delete` opens it),
+so every device shows it the same; a long press offers Rename (`edit_url`,
+a modal). A search lists the matches in sections too. Without `sections`
+(an older server) the list is as before.
+
 What the app draws from it, top to bottom: the list switcher (`list`; a
 chooser of `lists`, then "All projects..." and "New project"), a search
 that filters titles on the phone, New chat (`links.new_chat`, also where
 the bar's New chat and a cold start go), Decisions (`waiting`, with its
 count), Bots (`bots`: the count with an attention dot, else
-the next run), Pinned, then the chats by `group`, a live dot on those
+the next run), Pinned, the person's own sections (`sections`, below), then
+the chats by `group` (under one "Other chats" heading instead when there
+are sections, as on the web), a live dot on those
 answering and an attention dot on those waiting, loading `next` near the
 end. Decisions is named as on the web and opens the Decisions
 page (`waiting.url`, else `links.decisions`), or, from a server with

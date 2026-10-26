@@ -21,6 +21,8 @@ data class Sidebar(
     val waiting: Waiting = Waiting(),
     val bots: Bots? = null,
     val pins: List<Chat> = emptyList(),
+    /** The person's own sections, in their order; [chats] are then the list's chats in none of them. */
+    val sections: List<Section> = emptyList(),
     val chats: List<Chat> = emptyList(),
     val next: String? = null
 ) {
@@ -109,6 +111,34 @@ data class Sidebar(
     }
 
     /**
+     * One of the person's own sidebar sections (the server's `ChatSection`):
+     * a heading of theirs holding this list's chats they put in it, newest
+     * question first, open or closed as they left it on any device.
+     */
+    @Serializable
+    data class Section(
+        val id: Long,
+        val name: String,
+        val collapsed: Boolean = false,
+        val chats: List<Chat> = emptyList(),
+        /** Its Rename page. */
+        @SerialName("edit_url") val editUrl: String? = null,
+        /** POST closes it, DELETE opens it. */
+        @SerialName("collapse_url") val collapseUrl: String? = null,
+        /** PATCH with `position` moves it. */
+        @SerialName("position_url") val positionUrl: String? = null
+    ) {
+        /**
+         * Opening or closing it on the server, sent like a chat's action by
+         * the page showing, or null from a server without the URL.
+         */
+        val toggleAction: Action?
+            get() = collapseUrl?.let { url ->
+                Action(key = "collapse", title = name, method = if (collapsed) "delete" else "post", url = url)
+            }
+    }
+
+    /**
      * One of a chat's actions: a `get` opens [url]; any other method goes to
      * the page showing to send (SidebarComponent), behind [confirm].
      */
@@ -133,7 +163,12 @@ data class Sidebar(
     )
 
     /** Whether anything in it is answering right now, to keep it fresh while the sidebar is open. */
-    val anyProcessing: Boolean get() = (chats + pins).any { it.isProcessing }
+    val anyProcessing: Boolean get() = (chats + pins + sections.flatMap { it.chats }).any { it.isProcessing }
+
+    /** This sidebar with section [id] shown open or closed, before the server hears of it. */
+    fun withCollapsed(id: Long, collapsed: Boolean): Sidebar = copy(
+        sections = sections.map { if (it.id == id) it.copy(collapsed = collapsed) else it }
+    )
 
     companion object {
         private val json =

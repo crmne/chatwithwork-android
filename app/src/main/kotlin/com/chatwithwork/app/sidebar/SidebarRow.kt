@@ -16,6 +16,9 @@ sealed interface SidebarRow {
 
     data class Section(val title: String) : SidebarRow
 
+    /** The heading of one of the person's own sections, which opens and closes it. */
+    data class ChatSection(val section: Sidebar.Section) : SidebarRow
+
     data class ChatRow(val chat: Sidebar.Chat, val selected: Boolean) : SidebarRow
 
     data class Empty(val kind: Kind) : SidebarRow {
@@ -28,14 +31,16 @@ sealed interface SidebarRow {
          * ignoring case, as the web's sidebar search does. [current] is the
          * page showing, whose chat is marked. [pinnedTitle] heads the pins.
          * Without a [sidebar], the rows that need no data: New chat and Bots
-         * (when [botsKnown]).
+         * (when [botsKnown]). [otherTitle] heads the list's chats in none of
+         * the person's sections, when they have any.
          */
         fun build(
             sidebar: Sidebar?,
             query: String,
             current: String?,
             pinnedTitle: String,
-            botsKnown: Boolean
+            botsKnown: Boolean,
+            otherTitle: String = "Other chats"
         ): List<SidebarRow> {
             if (sidebar == null) {
                 return listOfNotNull(Nav(Nav.Kind.NEW_CHAT), Nav(Nav.Kind.BOTS).takeIf { botsKnown })
@@ -69,17 +74,41 @@ sealed interface SidebarRow {
                 pins.forEach { rows += ChatRow(it, selected = isCurrent(it, current)) }
             }
 
-            val chats = sidebar.chats.filter(::matches)
-            var group: String? = null
-            chats.forEach { chat ->
-                if (chat.group != null && chat.group != group) {
-                    group = chat.group
-                    rows += Section(chat.group)
+            // The person's sections, as the web's: each heading, then its
+            // chats unless it's closed. A search lists every match in them.
+            var sectioned = 0
+            sidebar.sections.forEach { section ->
+                if (words.isEmpty()) {
+                    rows += ChatSection(section)
+                    sectioned += section.chats.size
+                    if (!section.collapsed) {
+                        section.chats.forEach { rows += ChatRow(it, selected = isCurrent(it, current)) }
+                    }
+                } else {
+                    section.chats.filter(::matches).forEach {
+                        sectioned++
+                        rows += ChatRow(it, selected = isCurrent(it, current))
+                    }
                 }
-                rows += ChatRow(chat, selected = isCurrent(chat, current))
             }
 
-            if (chats.isEmpty() && pins.isEmpty()) {
+            val chats = sidebar.chats.filter(::matches)
+            if (sidebar.sections.isNotEmpty() && words.isEmpty()) {
+                // Below the sections, the rest under one heading, as on the web.
+                if (chats.isNotEmpty()) rows += Section(otherTitle)
+                chats.forEach { rows += ChatRow(it, selected = isCurrent(it, current)) }
+            } else {
+                var group: String? = null
+                chats.forEach { chat ->
+                    if (chat.group != null && chat.group != group) {
+                        group = chat.group
+                        rows += Section(chat.group)
+                    }
+                    rows += ChatRow(chat, selected = isCurrent(chat, current))
+                }
+            }
+
+            if (chats.isEmpty() && pins.isEmpty() && sectioned == 0) {
                 rows += Empty(if (words.isEmpty()) Empty.Kind.NO_CHATS else Empty.Kind.NO_MATCHES)
             }
             return rows

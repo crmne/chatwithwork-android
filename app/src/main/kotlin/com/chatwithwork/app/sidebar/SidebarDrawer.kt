@@ -45,6 +45,12 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         /** A long press on [chat]'s row, [anchor]: its actions as a menu. */
         fun showChatActions(chat: Sidebar.Chat, anchor: View)
 
+        /** A tap on one of the person's sections: open it, or close it. */
+        fun toggleSection(section: Sidebar.Section)
+
+        /** A long press on a section's heading, [anchor]: Rename. */
+        fun showSectionActions(section: Sidebar.Section, anchor: View)
+
         fun showPersonMenu()
 
         /** The search needs every chat, not one page (`all=1`). */
@@ -113,7 +119,8 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                 query = query,
                 current = current,
                 pinnedTitle = context.getString(R.string.sidebar_pinned),
-                botsKnown = botsKnown
+                botsKnown = botsKnown,
+                otherTitle = context.getString(R.string.sidebar_other_chats)
             )
         ) { if (atTop) list.scrollToPosition(0) }
         renderPerson()
@@ -169,6 +176,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             SidebarRow.Search -> TYPE_SEARCH
             is SidebarRow.Section -> TYPE_SECTION
             is SidebarRow.Empty -> TYPE_SECTION
+            is SidebarRow.ChatSection -> TYPE_CHAT_SECTION
             else -> TYPE_ROW
         }
 
@@ -179,6 +187,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                     TYPE_SWITCHER -> R.layout.sidebar_switcher
                     TYPE_SEARCH -> R.layout.sidebar_search
                     TYPE_SECTION -> R.layout.sidebar_section
+                    TYPE_CHAT_SECTION -> R.layout.sidebar_chat_section
                     else -> R.layout.sidebar_row
                 }
             val view = inflater.inflate(layout, parent, false)
@@ -208,6 +217,42 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                 is SidebarRow.Nav -> bindNav(view, row)
 
                 is SidebarRow.ChatRow -> bindChat(view, row)
+
+                is SidebarRow.ChatSection -> bindChatSection(view, row.section)
+            }
+        }
+
+        private fun bindChatSection(view: View, section: Sidebar.Section) {
+            val muted = MaterialColors.getColor(view, com.google.android.material.R.attr.colorOnSurfaceVariant)
+            view.findViewById<ImageView>(R.id.sidebar_chat_section_caret).setImageDrawable(
+                SymbolDrawable(
+                    context,
+                    if (section.collapsed) "chevron_right" else "expand_more",
+                    sizeDp = 18f,
+                    color = muted
+                )
+            )
+            view.findViewById<TextView>(R.id.sidebar_chat_section_name).text = section.name
+            view.findViewById<TextView>(R.id.sidebar_chat_section_count).text = section.chats.size.toString()
+            val chats = context.resources.getQuantityString(
+                R.plurals.sidebar_section_chats,
+                section.chats.size,
+                section.chats.size
+            )
+            val state =
+                context.getString(
+                    if (section.collapsed) R.string.sidebar_section_closed else R.string.sidebar_section_open
+                )
+            view.contentDescription = listOf(section.name, chats, state).joinToString(", ")
+            view.setOnClickListener { actions.toggleSection(section) }
+            if (section.editUrl == null) {
+                view.setOnLongClickListener(null)
+                view.isLongClickable = false
+            } else {
+                view.setOnLongClickListener {
+                    actions.showSectionActions(section, it)
+                    true
+                }
             }
         }
 
@@ -352,8 +397,14 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
     private object Diff : DiffUtil.ItemCallback<SidebarRow>() {
         override fun areItemsTheSame(oldItem: SidebarRow, newItem: SidebarRow): Boolean = when {
             oldItem is SidebarRow.ChatRow && newItem is SidebarRow.ChatRow -> oldItem.chat.url == newItem.chat.url
+
             oldItem is SidebarRow.Nav && newItem is SidebarRow.Nav -> oldItem.kind == newItem.kind
+
             oldItem is SidebarRow.Switcher && newItem is SidebarRow.Switcher -> true
+
+            oldItem is SidebarRow.ChatSection && newItem is SidebarRow.ChatSection ->
+                oldItem.section.id == newItem.section.id
+
             else -> oldItem == newItem
         }
 
@@ -365,6 +416,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         private const val TYPE_SEARCH = 2
         private const val TYPE_SECTION = 3
         private const val TYPE_ROW = 4
+        private const val TYPE_CHAT_SECTION = 5
         private const val LOAD_MORE_AHEAD = 8
         private const val BOT_MARK = "bot"
 

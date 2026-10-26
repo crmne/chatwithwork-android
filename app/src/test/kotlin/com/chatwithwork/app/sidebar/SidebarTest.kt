@@ -134,6 +134,65 @@ class SidebarTest {
         assertThat(sidebar.chats.first().actions).isEmpty()
     }
 
+    private val sections =
+        """
+        "sections": [
+          {"id": 7, "name": "Customers", "collapsed": false, "edit_url": "/482139075/sidebar/sections/7/edit",
+           "collapse_url": "/482139075/sidebar/sections/7/collapse", "position_url": "/482139075/sidebar/sections/7/position",
+           "chats": [{"number": 37, "title": "Initech renewal", "url": "/482139075/chats/37", "state": "processing", "group": "Today"}]},
+          {"id": 9, "name": "Hiring", "collapsed": true, "edit_url": "/482139075/sidebar/sections/9/edit",
+           "collapse_url": "/482139075/sidebar/sections/9/collapse",
+           "chats": [{"number": 36, "title": "Designer shortlist", "url": "/482139075/chats/36", "group": "Yesterday"}]}
+        ],
+        """.trimIndent()
+
+    private val withSections = Sidebar.parse(json.replace("\"chats\": [", "$sections\n\"chats\": ["))
+
+    @Test
+    fun `reads the person's sections, which older servers leave out`() {
+        assertThat(withSections.sections.map { it.name }).containsExactly("Customers", "Hiring").inOrder()
+        assertThat(withSections.sections[1].collapsed).isTrue()
+        assertThat(withSections.sections[0].editUrl).isEqualTo("/482139075/sidebar/sections/7/edit")
+        assertThat(withSections.chats.map { it.number }).containsExactly(42L, 41L, 40L).inOrder()
+        assertThat(sidebar.sections).isEmpty()
+
+        // An open section closes with a POST, a closed one opens with a DELETE.
+        assertThat(withSections.sections[0].toggleAction?.method).isEqualTo("post")
+        assertThat(withSections.sections[1].toggleAction?.method).isEqualTo("delete")
+        assertThat(withSections.sections[1].toggleAction?.url).isEqualTo("/482139075/sidebar/sections/9/collapse")
+        assertThat(withSections.sections[1].toggleAction?.opensPage).isFalse()
+
+        val opened = withSections.withCollapsed(9, false)
+        assertThat(opened.sections.map { it.collapsed }).containsExactly(false, false).inOrder()
+        assertThat(withSections.plus(withSections).sections).isEqualTo(withSections.sections)
+    }
+
+    @Test
+    fun `sections follow the pins, a closed one hides its chats, and the rest go under Other chats`() {
+        val rows = SidebarRow.build(withSections, "", null, "Pinned", botsKnown = true, otherTitle = "Other chats")
+        val after = rows.dropWhile { it !is SidebarRow.Section }
+        assertThat(
+            after.map { row ->
+                when (row) {
+                    is SidebarRow.Section -> row.title
+                    is SidebarRow.ChatSection -> "[${row.section.name}]"
+                    is SidebarRow.ChatRow -> row.chat.number.toString()
+                    else -> row.toString()
+                }
+            }
+        ).containsExactly("Pinned", "7", "[Customers]", "37", "[Hiring]", "Other chats", "42", "41", "40").inOrder()
+
+        // A search finds chats in sections too, closed ones included.
+        val found = SidebarRow.build(withSections, "shortlist", null, "Pinned", botsKnown = true)
+        assertThat(found.filterIsInstance<SidebarRow.ChatRow>().map { it.chat.number }).containsExactly(36L)
+        assertThat(found.filterIsInstance<SidebarRow.Empty>()).isEmpty()
+
+        // A chat answering in a section keeps the sidebar fresh.
+        val idle = Sidebar.parse(json.replace("\"state\": \"processing\", ", ""))
+        assertThat(idle.anyProcessing).isFalse()
+        assertThat(idle.copy(sections = withSections.sections).anyProcessing).isTrue()
+    }
+
     @Test
     fun `a project's mark is its initials`() {
         assertThat(SidebarDrawer.initialsOf("Website relaunch")).isEqualTo("WR")
