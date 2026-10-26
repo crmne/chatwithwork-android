@@ -39,7 +39,11 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
 
         fun chooseList()
 
+        /** Decisions: the Decisions page, or, from an older server, the list of what waits. */
         fun showWaiting()
+
+        /** A long press on [chat]'s row, [anchor]: its actions as a menu. */
+        fun showChatActions(chat: Sidebar.Chat, anchor: View)
 
         fun showPersonMenu()
 
@@ -284,6 +288,8 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                 dot = if (row.attention) R.color.lw_attention else null,
                 selected = false
             )
+            view.setOnLongClickListener(null)
+            view.isLongClickable = false
             view.setOnClickListener {
                 when (row.kind) {
                     SidebarRow.Nav.Kind.NEW_CHAT -> actions.startNewChat()
@@ -310,6 +316,15 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                 }
             view.contentDescription = listOfNotNull(chat.title, chat.project, state).joinToString(", ")
             view.setOnClickListener { actions.openPath(chat.url) }
+            if (chat.actions.isEmpty()) {
+                view.setOnLongClickListener(null)
+                view.isLongClickable = false
+            } else {
+                view.setOnLongClickListener {
+                    actions.showChatActions(chat, it)
+                    true
+                }
+            }
         }
 
         @SuppressLint("UseCompatTextViewDrawableApis")

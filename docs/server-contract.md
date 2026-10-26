@@ -85,7 +85,9 @@ flashes as toasts). What differs on Android:
   moves it above the keyboard. `env(safe-area-inset-*)` is 0 in the Android
   web view: don't pad for it. `viewport-fit=cover` makes no difference
   here.
-- **Titles.** The app shows `<title>` in its top app bar. Until the server
+- **Titles.** The app shows `<title>` in its top app bar, and follows it
+  when the page changes it later (`onReceivedTitle`): a chat's `<title>`
+  changes as its automatic title arrives, or someone renames it. Until the server
   sends bare titles, the app strips a leading `Staging · ` or
   `Development · ` and a trailing ` | Chat with Work` itself, but the
   per-page titles in the iOS contract's table are what it should get.
@@ -279,8 +281,12 @@ the apps. On Android:
   modal again. (Hotwire Native Android would also go back from that page;
   the app stops it, to match iOS.) A create that redirects to the new
   record closes the modal and pushes it.
-- **Deleting** a chat from its menu: `recede_or_redirect_to chats_path,
-  notice: "Chat deleted."` shows the notice and starts a new chat.
+- **Deleting** a chat from its menu: the server answers sidebar builds with
+  a new chat in the deleted chat's list (`/chats/new?project_id=...`, which
+  replaces the root) and "Chat deleted." as a snackbar, so nothing of the
+  deleted chat, its title included, stays. A recede that still reaches the
+  root (an older server) starts a new chat too. Deleting another chat
+  leaves the screen as it is.
 - **Billing**: Google Play requires its own billing for digital
   subscriptions sold in an app in most countries. Until that's decided,
   render Settings › Billing in the Android app without checkout, top-ups or
@@ -579,7 +585,10 @@ following page. A 401 means the session is gone.
   "next": "/482139075/native/sidebar?list=recent&before=41&asked=2026-10-24T09:00:00.000000Z"
 }
 CHAT = {"number": 42, "title": "Launch date in #launch", "url": "/482139075/chats/42", "state": "idle",
-        "waiting": false, "project": "Website relaunch", "asked_at": "2026-10-25T08:12:00Z", "group": "Today"}
+        "waiting": false, "project": "Website relaunch", "asked_at": "2026-10-25T08:12:00Z", "group": "Today",
+        "actions": [ACTION]}
+ACTION = {"key": "delete", "title": "Delete", "method": "delete", "url": "/482139075/chats/42",
+          "iosImage": "trash", "androidImage": "delete", "confirm": "Delete this chat?", "destructive": true}
 ```
 
 Links that don't apply are `null` (a guest's `bots`, `projects` and
@@ -605,14 +614,29 @@ version needs: the page decides through the chat's own cards, swiping left
 or right on it moves between decisions, and the sidebar's `changed` follows
 its count.
 
+**Long press (2026-10-26).** Each chat's `actions` are what the web row's
+menu offers for it, in order: `rename`, `pin` or `unpin`, `section`,
+`project` and `delete`, the creator's own only where the web's are;
+`confirm` and `destructive` only where they apply. A long press on a chat's
+row opens them as a popup menu at the row (`androidImage` icons,
+`destructive` in red). A `get` opens its `url` like any link (Rename and
+the Move pages are modals); any other goes to the page showing as a reply
+to its `sidebar` component's latest `connect`, `{action: "perform", url,
+method, confirm, destructive}`, which the page sends as the web's link
+would, behind the native alert where there's a `confirm`. Without
+`actions` (an older server) a long press does nothing.
+
 What the app draws from it, top to bottom: the list switcher (`list`; a
 chooser of `lists`, then "All projects..." and "New project"), a search
 that filters titles on the phone, New chat (`links.new_chat`, also where
-the bar's New chat and a cold start go), Waiting for you (`waiting`, a
-sheet of its items), Bots (`bots`: the count with an attention dot, else
+the bar's New chat and a cold start go), Decisions (`waiting`, with its
+count), Bots (`bots`: the count with an attention dot, else
 the next run), Pinned, then the chats by `group`, a live dot on those
 answering and an attention dot on those waiting, loading `next` near the
-end. The person at the foot opens a sheet of `organizations` (each `url`
+end. Decisions is named as on the web and opens the Decisions
+page (`waiting.url`, else `links.decisions`), or, from a server with
+neither, a sheet of its items; earlier builds called it "Waiting for you".
+The person at the foot opens a sheet of `organizations` (each `url`
 starts the app over there), All organizations, New organization and
 Settings. Without the JSON (offline, an older server), the sidebar still
 offers New chat, Bots and Settings.
@@ -628,7 +652,7 @@ element, subscribed to the person's own chat-list streams. It sends:
 
 | Event | Data | The app |
 |---|---|---|
-| `connect` | `{}` | nothing |
+| `connect` | `{}` | keeps it, to reply with a chat's action from a long press: `{action: "perform", url, method, confirm?, destructive?}` |
 | `changed` | `{}` | fetches the JSON again (debounced, 500 ms) if the sidebar is open, else on its next opening |
 
 No replies.

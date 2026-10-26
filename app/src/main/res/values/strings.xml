@@ -7,8 +7,9 @@
     <string name="settings">Settings</string>
     <string name="sidebar_open">Open the sidebar</string>
     <string name="sidebar_search">Search chats</string>
-    <string name="sidebar_waiting">Waiting for you</string>
-    <string name="sidebar_nothing_waiting">Nothing is waiting for you.</string>
+    <string name="sidebar_waiting">Decisions</string>
+    <string name="sidebar_nothing_waiting">No decisions are waiting.</string>
+    <string name="sidebar_action_failed">That didn\'t work. Open a chat and try again.</string>
     <string name="sidebar_bots">Bots</string>
     <string name="sidebar_pinned">Pinned</string>
     <string name="sidebar_project">Project</string>
@@ -22,7 +23,7 @@
     <string name="sidebar_person_menu">%1$s. Organizations and settings.</string>
     <string name="sidebar_no_chats">No chats here yet.</string>
     <string name="sidebar_no_matches">No chats match.</string>
-    <string name="sidebar_chat_waiting">waiting for you</string>
+    <string name="sidebar_chat_waiting">waiting for a decision</string>
     <string name="sidebar_chat_answering">answering</string>
 
     <!-- The composer -->

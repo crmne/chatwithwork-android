@@ -106,6 +106,35 @@ class SidebarTest {
     }
 
     @Test
+    fun `reads a chat's long-press actions and the Decisions page, which older servers leave out`() {
+        val actions =
+            """
+            [{"key": "rename", "title": "Rename", "method": "get", "url": "/482139075/chats/40/edit",
+              "androidImage": "edit"},
+             {"key": "delete", "title": "Delete", "method": "delete", "url": "/482139075/chats/40",
+              "iosImage": "trash", "androidImage": "delete", "confirm": "Delete this chat?", "destructive": true}]
+            """.trimIndent()
+        val withActions = Sidebar.parse(
+            json
+                .replace(
+                    "\"waiting\": {\"count\": 1,",
+                    "\"waiting\": {\"count\": 1, \"url\": \"/482139075/decisions\","
+                )
+                .replace("\"group\": \"Yesterday\"}", "\"group\": \"Yesterday\", \"actions\": $actions}")
+        )
+        assertThat(withActions.waiting.url).isEqualTo("/482139075/decisions")
+        val read = withActions.chats.last().actions
+        assertThat(read.map { it.key }).containsExactly("rename", "delete").inOrder()
+        assertThat(read[0].opensPage).isTrue()
+        assertThat(read[1].opensPage).isFalse()
+        assertThat(read[1].confirm).isEqualTo("Delete this chat?")
+        assertThat(read[1].destructive).isTrue()
+
+        assertThat(sidebar.waiting.url).isNull()
+        assertThat(sidebar.chats.first().actions).isEmpty()
+    }
+
+    @Test
     fun `a project's mark is its initials`() {
         assertThat(SidebarDrawer.initialsOf("Website relaunch")).isEqualTo("WR")
         assertThat(SidebarDrawer.initialsOf("hq")).isEqualTo("H")

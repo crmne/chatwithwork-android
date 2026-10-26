@@ -4,9 +4,14 @@ import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
@@ -16,6 +21,7 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.widget.PopupMenu
 import androidx.browser.auth.AuthTabColorSchemeParams
 import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabsIntent
@@ -41,8 +47,10 @@ import com.chatwithwork.app.bridge.ComposerHost
 import com.chatwithwork.app.bridge.NotificationPermissionHost
 import com.chatwithwork.app.bridge.NotificationTokenComponent
 import com.chatwithwork.app.bridge.OfferReason
+import com.chatwithwork.app.bridge.SidebarComponent
 import com.chatwithwork.app.bridge.SidebarHost
 import com.chatwithwork.app.bridge.SnackbarHost
+import com.chatwithwork.app.bridge.SymbolDrawable
 import com.chatwithwork.app.composer.ComposerFiles
 import com.chatwithwork.app.composer.ComposerView
 import com.chatwithwork.app.composer.PendingShares
@@ -55,6 +63,7 @@ import com.chatwithwork.app.routing.RouteDecisionHandlers
 import com.chatwithwork.app.sidebar.Sidebar
 import com.chatwithwork.app.sidebar.SidebarClient
 import com.chatwithwork.app.sidebar.SidebarDrawer
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
@@ -516,8 +525,57 @@ class MainActivity :
         }
     }
 
+    /** A long press on a chat in the sidebar: what the web row's menu offers, at the row. */
+    override fun showChatActions(chat: Sidebar.Chat, anchor: View) {
+        val error = MaterialColors.getColor(anchor, androidx.appcompat.R.attr.colorError)
+        val muted = MaterialColors.getColor(anchor, com.google.android.material.R.attr.colorOnSurfaceVariant)
+        val menu = PopupMenu(this, anchor, Gravity.END)
+        chat.actions.forEachIndexed { index, action ->
+            val title =
+                if (action.destructive) {
+                    SpannableString(action.title).apply {
+                        setSpan(ForegroundColorSpan(error), 0, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    }
+                } else {
+                    action.title
+                }
+            menu.menu.add(0, index, index, title).apply {
+                SymbolDrawable.from(this@MainActivity, action.androidImage)?.let { symbol ->
+                    symbol.setTintList(ColorStateList.valueOf(if (action.destructive) error else muted))
+                    icon = symbol
+                }
+            }
+        }
+        menu.setForceShowIcon(true)
+        menu.setOnMenuItemClickListener { item ->
+            chat.actions.getOrNull(item.itemId)?.let(::performChatAction)
+            true
+        }
+        menu.show()
+    }
+
+    /**
+     * A page opens like any link; anything else (Pin, Delete) goes to the page
+     * showing, which sends it as the web would, asking first where the action
+     * says so. The sidebar then follows the change through `changed`.
+     */
+    private fun performChatAction(action: Sidebar.Action) {
+        if (action.opensPage) {
+            openPath(action.url)
+            return
+        }
+        if (action.confirm != null) closeSidebarNow()
+        if (!SidebarComponent.perform(action, navigator?.currentDestination)) {
+            showSnackbar(getString(R.string.sidebar_action_failed), long = false)
+        }
+    }
+
     override fun showWaiting() {
         val waiting = viewModel.sidebar?.waiting ?: return
+        (waiting.url ?: viewModel.sidebar?.links?.decisions)?.let {
+            openPath(it)
+            return
+        }
         if (waiting.items.isEmpty()) {
             ActionSheet.show(this, getString(R.string.sidebar_nothing_waiting), emptyList()) {}
             return

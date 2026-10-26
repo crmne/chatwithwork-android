@@ -63,11 +63,17 @@ data class Sidebar(
         val projects: String? = null,
         @SerialName("new_project") val newProject: String? = null,
         val organizations: String? = null,
-        @SerialName("new_organization") val newOrganization: String? = null
+        @SerialName("new_organization") val newOrganization: String? = null,
+        val decisions: String? = null
     )
 
     @Serializable
-    data class Waiting(val count: Int = 0, val items: List<WaitingItem> = emptyList())
+    data class Waiting(
+        val count: Int = 0,
+        val items: List<WaitingItem> = emptyList(),
+        /** The Decisions page (servers from 2026-10-26); without it the row lists [items]. */
+        val url: String? = null
+    )
 
     @Serializable
     data class WaitingItem(
@@ -95,9 +101,28 @@ data class Sidebar(
         val waiting: Boolean = false,
         val project: String? = null,
         @SerialName("asked_at") val askedAt: String? = null,
-        val group: String? = null
+        val group: String? = null,
+        /** What a long press offers, as the web row's menu does. */
+        val actions: List<Action> = emptyList()
     ) {
         val isProcessing: Boolean get() = state == "processing"
+    }
+
+    /**
+     * One of a chat's actions: a `get` opens [url]; any other method goes to
+     * the page showing to send (SidebarComponent), behind [confirm].
+     */
+    @Serializable
+    data class Action(
+        val key: String,
+        val title: String,
+        val method: String = "get",
+        val url: String,
+        val androidImage: String? = null,
+        val confirm: String? = null,
+        val destructive: Boolean = false
+    ) {
+        val opensPage: Boolean get() = method == "get"
     }
 
     /** This page and the next one together, for loading more as the list scrolls. */
