@@ -64,12 +64,19 @@ that chat, in Chats, inside the right organization.
   keeps it with its token in the `push` preferences and forgets it on
   sign-out. Until it has one for the current token it says `needsKey`, and
   the page registers at once.
+- **Live Updates with steps.** Leaving a chat that's answering posts a Live
+  Update (`LiveUpdates`) and asks the server to follow the chat; the server
+  then sends `progress` data with each step ("Searching Todoist", how many
+  steps) and the end, never the chat's words. The step shows as the Live
+  Update's title and as a short word in the status bar chip, and the end
+  turns it into a quiet notification until the push for it takes its place.
 
 The code: `push/PushNotifications.kt` (permission, opt-in, token, the
 notification key, showing notifications), `push/PushMessagingService.kt`
 (Firebase's callbacks), `push/Push.kt` (the payload), `push/NotificationWords.kt`
-(fetching a notification's words), `push/LiveUpdates.kt` (Live Updates),
-and `bridge/NotificationTokenComponent.kt`.
+(fetching a notification's words), `push/LiveUpdates.kt` and
+`push/LiveProgress.kt` (Live Updates and their steps), and
+`bridge/NotificationTokenComponent.kt`.
 
 ## Setting up Firebase
 
@@ -103,6 +110,13 @@ adb shell am broadcast -n com.chatwithwork.app.debug/com.chatwithwork.app.push.D
 adb shell am broadcast -n com.chatwithwork.app.debug/com.chatwithwork.app.push.DebugPushReceiver \
   --es kind resolved --es path /1000001/chats/42 --es thread chat-1000001-42
 
+# A Live Update's step (leave a chat while it answers first), then its end
+adb shell am broadcast -n com.chatwithwork.app.debug/com.chatwithwork.app.push.DebugPushReceiver \
+  --es kind progress --es path /1000001/chats/42 --es thread chat-1000001-42 \
+  --es phase answering --es message "'Searching Todoist'" --es step search --es steps 3 --es sent_at $(date +%s%3N)
+adb shell am broadcast -n com.chatwithwork.app.debug/com.chatwithwork.app.push.DebugPushReceiver \
+  --es kind progress --es path /1000001/chats/42 --es thread chat-1000001-42 \
+  --es phase answered --es message "'Your answer is ready.'" --es sent_at $(date +%s%3N)
 ```
 
 A push with `--es notification_id <id>` fetches its words from the server
@@ -132,3 +146,9 @@ Firebase console's messaging test with the same data keys.
   Notifications first, as the server contract says, a kind in `Push.Kind`
   (unknown kinds are dropped), and a channel in
   `PushNotifications.createChannels` where people should silence it apart.
+- **ColorOS and OxygenOS.** OnePlus's OxygenOS 16 shows Android 16's Live
+  Updates from any app in Live Alerts (Fluid Cloud's successor) once the
+  person turns on "Show Live Updates on Live Alerts" for that app; it's off
+  by default. Google names OPPO's Live Alerts among the surfaces it built
+  Live Updates with, and ColorOS 16 shares OxygenOS 16's base, so the same
+  should hold there. Nothing here has been tried on either.

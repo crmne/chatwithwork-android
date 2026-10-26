@@ -186,12 +186,14 @@ object PushNotifications {
     }
 
     /**
-     * A push as FCM (or, in development builds, adb) hands it over: a
-     * notification, with its words fetched from the server first when the
-     * push names them and the phone has a key. Blocks while it fetches, at
-     * most [NotificationWords.TIMEOUT_MS] a try: call it off the main thread.
+     * A push as FCM (or, in development builds, adb) hands it over: a Live
+     * Update's step or end, or a notification, with its words fetched from
+     * the server first when the push names them and the phone has a key.
+     * Blocks while it fetches, at most [NotificationWords.TIMEOUT_MS] a try:
+     * call it off the main thread.
      */
     fun receive(context: Context, data: Map<String, String>) {
+        LiveProgress.from(data)?.let { return LiveUpdates.progress(context, it) }
         val push = Push.from(data) ?: return
         val words =
             push.notificationId?.let { id ->

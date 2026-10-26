@@ -511,15 +511,49 @@ naming the token, for a token that's gone: destroy the registration. Retry
 
 When the person leaves the app while the chat on screen is answering (its
 composer says `working`), the app posts an ongoing notification for that
-chat: Android 16's progress style, promoted where the system allows, the
-organization's name, "Your answer is on its way" and a timer, never the
-chat's title or content. It uses the chat's notification slot (tag
-`chat-<organization>-<number>`, the `thread` the server sends), so the
-push that ends the wait (`answered`, `approval_waiting`,
+chat: Android 16's progress style, promoted where the system allows (the
+status bar chip, and OEM surfaces built on it such as OnePlus's and OPPO's
+Live Alerts), "Your answer is on its way", the organization's name and a
+timer, never the chat's title or content. It uses the chat's notification
+slot (tag `chat-<organization>-<number>`, the `thread` the server sends), so
+the push that ends the wait (`answered`, `approval_waiting`,
 `input_requested`, `failed`) takes its place and `resolved` clears it.
-It's taken away when the person comes back, and after 30 minutes if no
-push arrives. It only shows for someone who turned push on. No server
-change: the pushes must keep using that `thread`.
+It's taken away when the person comes back, and after 30 minutes if
+nothing ends it. It only shows for someone who turned push on.
+
+**Its steps (2026-10-26).** Leaving the chat, the app also asks the server
+to follow it, with the web view's cookies and the composer's `csrfToken`,
+as the iOS app registers a Live Activity:
+
+```
+POST /:account/chats/:number/live_activity
+{ "live_activity": { "token": "<FCM token>", "app_id": "com.chatwithwork.app", "environment": "production", "platform": "android" } }
+```
+
+While the answer runs, the server then sends FCM data of kind `progress`
+for that chat, at most every 3 seconds, `normal` priority, collapsed per
+chat (`collapse_key` `progress-<thread>`) and kept two minutes:
+
+```json
+{ "kind": "progress", "path": "/482139075/chats/42", "thread": "chat-482139075-42",
+  "phase": "answering", "message": "Searching Todoist", "step": "search", "steps": "3",
+  "sent_at": "1793039262987" }
+```
+
+`message` is the step in the words of the chat's activity line ("Searching
+Todoist", "Reading 3 files in Drive", "Running code", "Writing the answer",
+"Answering" between steps), `step` its kind (`search`, `list`, `read`, `use`,
+`plan`, `run`, `ask`, `write`, `answer`), `steps` how many it took, never a
+query, file name, title or text. The app shows `message` as the Live
+Update's title, the organization and the steps under it, and a short word
+for the step in the status bar chip ("Search", "Read", "Run"). When the
+answer ends, the same kind comes with `phase` `answered`,
+`approval_waiting`, `input_requested`, `failed` or `stopped` and generic
+words for it, never collapsed and kept a day, and the Live Update becomes a
+quiet notification saying so, until the push for that end (if the person
+gets one) takes its place. `sent_at` is the server's clock in milliseconds:
+the app drops a message older than the one it shows, and anything once the
+Live Update is gone.
 
 When to send is the iOS contract's "When", unchanged. The app files
 approvals and questions under the "Approvals and questions" channel, and

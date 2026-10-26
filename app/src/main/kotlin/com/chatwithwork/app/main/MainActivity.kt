@@ -296,20 +296,27 @@ class MainActivity :
     /** The chat whose Live Update is showing, to take it away when the person comes back. */
     private var liveUpdate: String? = null
 
-    /** The chat on screen, when its composer says an answer is running. */
-    private fun answeringChat(): String? {
+    /** The chat on screen and its composer, when the composer says an answer is running. */
+    private fun answeringChat(): Pair<String, ComposerView>? {
         val destination = navigator?.currentDestination ?: return null
         val composer = destination.fragment.view?.findViewById<ComposerView>(R.id.composer) ?: return null
         val location = destination.location
-        return location.takeIf { composer.isVisible && composer.state.working && AppUrls.chatNumber(it) != null }
+        return (location to composer).takeIf {
+            composer.isVisible && composer.state.working &&
+                AppUrls.chatNumber(location) != null
+        }
     }
 
-    /** Leaving a chat while it answers: a Live Update follows it until its push arrives. */
+    /**
+     * Leaving a chat while it answers: a Live Update follows it, showing the
+     * steps the server sends, until its end or its push arrives.
+     */
     private fun showLiveUpdate() {
         if (isChangingConfigurations || viewModel.signedOut) return
-        val chat = answeringChat() ?: return
+        val (chat, composer) = answeringChat() ?: return
         val organization = viewModel.sidebar?.takeIf { it.organization.id == AppUrls.account(chat) }?.organization?.name
         LiveUpdates.show(this, chat, organization)
+        LiveUpdates.follow(applicationContext, chat, composer.state.csrfToken)
         liveUpdate = LiveUpdates.threadFor(chat)
     }
 
@@ -678,7 +685,7 @@ class MainActivity :
 
     /** Remembers the chat showing, if it's answering, so a launch soon after reopens it. */
     private fun rememberAnsweringChat() {
-        memory.leftAnswering(answeringChat(), System.currentTimeMillis())
+        memory.leftAnswering(answeringChat()?.first, System.currentTimeMillis())
     }
 
     // endregion

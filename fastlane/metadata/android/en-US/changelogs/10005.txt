@@ -1,0 +1,1 @@
+Notifications now show the start of your answer, or what waits for your decision. The app fetches those words from Chat with Work as each notification arrives, so they never pass through Google. Leave a chat while it answers and its Live Update shows each step, like "Searching Todoist" or "Running code", until the answer is ready.

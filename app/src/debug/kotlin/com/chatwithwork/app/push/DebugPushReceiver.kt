@@ -16,8 +16,10 @@ import kotlin.concurrent.thread
  *   --es body "A change is waiting for your approval in Slack."
  * ```
  *
- * `--es notification_id <id>` fetches a notification's words from the
- * server, as FCM's would.
+ * A Live Update's step is `--es kind progress --es phase answering --es
+ * message "Searching Todoist" --es step search --es steps 2 --es sent_at <ms>`
+ * with the same path and thread, and `--es notification_id <id>` fetches a
+ * notification's words from the server, as FCM's would.
  *
  * Only the shell can send it (it holds DUMP, which apps can't get).
  */

@@ -57,6 +57,38 @@ class PushTest {
     }
 
     @Test
+    fun `reads a Live Update's step and its end, and leaves them out of notifications`() {
+        val data =
+            mapOf(
+                "kind" to "progress",
+                "path" to path,
+                "thread" to "chat-482139075-42",
+                "phase" to "answering",
+                "message" to "Searching Todoist",
+                "step" to "search",
+                "steps" to "3",
+                "sent_at" to "1793040000123"
+            )
+        val step = LiveProgress.from(data)
+        assertThat(step).isNotNull()
+        assertThat(step!!.isWorking).isTrue()
+        assertThat(step.message).isEqualTo("Searching Todoist")
+        assertThat(step.steps).isEqualTo(3)
+        assertThat(step.sentAt).isEqualTo(1793040000123)
+        assertThat(Push.from(data)).isNull()
+
+        val end = LiveProgress.from(
+            data + mapOf("phase" to "answered", "message" to "Your answer is ready.") - "step" - "steps"
+        )
+        assertThat(end?.isWorking).isFalse()
+        assertThat(end?.steps).isEqualTo(0)
+
+        assertThat(LiveProgress.from(data + ("path" to "https://evil.example/chats/42"))).isNull()
+        assertThat(LiveProgress.from(data - "thread")).isNull()
+        assertThat(LiveProgress.from(data + ("kind" to "answered"))).isNull()
+    }
+
+    @Test
     fun `asks this server for a notification's words, only by an id shaped like the server's`() {
         assertThat(NotificationWords.url("c2VjcmV0--aXY--dGFn_x-y"))
             .isEqualTo("${AppConfig.baseUrl}/native/notifications/c2VjcmV0--aXY--dGFn_x-y")

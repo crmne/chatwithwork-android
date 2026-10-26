@@ -103,6 +103,19 @@
     <string name="channel_answering_description">A chat you left is still answering. It goes away when the answer is ready or waits for you.</string>
     <string name="live_update_answering">Answering</string>
     <string name="live_update_text">Your answer is on its way.</string>
+    <!-- The status bar chip of a Live Update, for the step an answer is on: short enough to show whole. -->
+    <string name="live_update_chip_search">Search</string>
+    <string name="live_update_chip_list">Browse</string>
+    <string name="live_update_chip_read">Read</string>
+    <string name="live_update_chip_use">Tools</string>
+    <string name="live_update_chip_plan">Plan</string>
+    <string name="live_update_chip_run">Run</string>
+    <string name="live_update_chip_ask">Ask</string>
+    <string name="live_update_chip_write">Write</string>
+    <plurals name="live_update_steps">
+        <item quantity="one">%d step</item>
+        <item quantity="other">%d steps</item>
+    </plurals>
     <string name="channel_answers">Answers</string>
     <string name="channel_answers_description">An answer is ready, a chat couldn\'t finish, or a bot handed a conversation to your team.</string>
     <string name="push_answered_body">Your answer is ready.</string>
