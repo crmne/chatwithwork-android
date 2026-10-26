@@ -46,6 +46,26 @@ developer account must also run a closed test with at least 12 testers for
 14 days before it can publish to production; an organization account
 doesn't have to.
 
+## Open testing (the public beta)
+
+Anybody can join the beta from
+https://play.google.com/apps/testing/com.chatwithwork.app (on Android, or on
+the web with their Google account), which chatwithwork.com links as
+"Android beta". The app is in Plenty Labs' organization account, so it
+needs no closed test first.
+
+- **The track.** Test and release > Testing > Open testing: unlimited
+  testers, all countries and regions (managed apart from production), and
+  feedback to support@chatwithwork.com.
+- **A release.** Internal testing > Promote release > Open testing, or
+  create one there. Every change goes through Play's review (Publishing
+  overview > Send changes for review; usually hours, at most 7 days), and
+  with managed publishing off it goes live once approved.
+- **The first review** (sent 2026-10-26, release 10004 / 1.0.4) also
+  carried the app's setup: the store listing, App content, and the store
+  settings below. Until Play approves the app, testers see the temporary
+  name "com.chatwithwork.app (unreviewed)".
+
 ## The listing
 
 | Field | Where |
@@ -62,6 +82,10 @@ Screenshots come from the app on an emulator, signed in to staging as the
 synthetic screenshot account (`script/store/seed staging screenshots` in
 the Rails app; Northwind Studio and everything in it is made up), framed
 with the iOS repository's `script/frame-screenshots.mjs` and its captions.
+Play takes only 16:9 or 9:16 screenshots, tablets included, so the 7-inch
+(1200 x 1920) and 10-inch (2560 x 1600) frames are padded with the frame's
+background to 1200 x 2133 and 2844 x 1600
+(`magick in.png -background 'srgb(15,15,21)' -gravity center -extent WxH out.png`).
 
 ## App content
 
