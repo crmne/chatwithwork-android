@@ -23,4 +23,14 @@ class PageTitlesTest {
         assertThat(PageTitles.clean("Chat with Work")).isEqualTo("Chat with Work")
         assertThat(PageTitles.clean("Staging plan · draft")).isEqualTo("Staging plan · draft")
     }
+
+    @Test
+    fun `a title set after rendering counts unless it's blank or the address`() {
+        assertThat(
+            PageTitles.live("Lisbon offsite plan", "https://chatwithwork.com/1/chats/4")
+        ).isEqualTo("Lisbon offsite plan")
+        assertThat(PageTitles.live("  ", null)).isNull()
+        assertThat(PageTitles.live("https://chatwithwork.com/1/chats/4", "https://chatwithwork.com/1/chats/4")).isNull()
+        assertThat(PageTitles.live("http://10.0.2.2:3000/1/chats/4", null)).isNull()
+    }
 }

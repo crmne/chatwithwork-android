@@ -88,7 +88,11 @@ open class WebFragment : HotwireWebFragment() {
     // The bar shows the page's own name, tidied (see onViewCreated).
     override fun shouldObserveTitleChanges(): Boolean = false
 
-    override fun createWebChromeClient(): HotwireWebChromeClient = AppWebChromeClient(navigator.session)
+    // The chrome client belongs to the screen showing the web view, so a page
+    // that retitles itself (a chat's automatic title) retitles this screen.
+    override fun createWebChromeClient(): HotwireWebChromeClient = AppWebChromeClient(navigator.session) { title ->
+        if (isAdded && view != null) fragmentViewModel.setTitle(title)
+    }
 
     @SuppressLint("InflateParams") // Hotwire Native adds it to its own container.
     override fun createProgressView(location: String): View = layoutInflater.inflate(R.layout.view_progress, null)

@@ -19,4 +19,15 @@ object PageTitles {
         result = appSuffix.replace(result, "")
         return result
     }
+
+    /**
+     * A title the page set after it rendered, worth showing: WebView reports
+     * the address as the title while a page has none (Turbo swaps `<title>`
+     * elements as it renders), so blanks and addresses are left out.
+     */
+    fun live(title: String?, url: String?): String? {
+        val text = title?.trim().orEmpty()
+        if (text.isEmpty() || text == url || text.startsWith("http://") || text.startsWith("https://")) return null
+        return text
+    }
 }
