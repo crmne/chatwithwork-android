@@ -1,0 +1,1 @@
+On tablets, the welcome screen's buttons keep a comfortable width, the composer lines up with the conversation above it, and the model picker and other sheets open whole instead of half folded.
