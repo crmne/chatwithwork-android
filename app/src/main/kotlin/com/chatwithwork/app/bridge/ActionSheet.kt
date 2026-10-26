@@ -11,6 +11,7 @@ import android.widget.TextView
 import androidx.appcompat.R as AppCompatR
 import androidx.core.view.isVisible
 import com.chatwithwork.app.R
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.color.MaterialColors
 
@@ -79,12 +80,23 @@ object ActionSheet {
         }
 
         dialog.setContentView(content)
+        dialog.opensExpanded()
         dialog.dismissWithActivity(context)
         dialog.show()
         return dialog
     }
 
     private const val DISABLED_ALPHA = 0.38f
+}
+
+/**
+ * Opens a sheet whole and closes it in one swipe. On a large screen or in
+ * landscape, Material's peek height is less than a sheet's content, so it
+ * would otherwise open collapsed, its choices cut off at the bottom.
+ */
+fun BottomSheetDialog.opensExpanded() {
+    behavior.skipCollapsed = true
+    behavior.state = BottomSheetBehavior.STATE_EXPANDED
 }
 
 /**

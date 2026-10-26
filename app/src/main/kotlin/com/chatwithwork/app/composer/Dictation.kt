@@ -13,6 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.SnackbarHost
+import com.chatwithwork.app.bridge.opensExpanded
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import java.io.File
@@ -70,6 +71,7 @@ object Dictation {
         val cancel = content.findViewById<Button>(R.id.dictation_cancel)
         val dialog = BottomSheetDialog(activity)
         dialog.setContentView(content)
+        dialog.opensExpanded()
         dialog.setCancelable(false)
 
         var meter: Job? = null

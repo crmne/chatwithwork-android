@@ -52,6 +52,25 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     val text: String get() = input.text?.toString().orEmpty()
 
+    // The gutter the layout gives the composer, kept on phones; on a tablet the composer centres under the page's
+    // column instead of spanning the screen.
+    private var gutterStart = -1
+    private var gutterEnd = -1
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        if (gutterStart < 0) {
+            gutterStart = paddingStart
+            gutterEnd = paddingEnd
+        }
+        val width = MeasureSpec.getSize(widthMeasureSpec)
+        val widest = (COLUMN_WIDTH_DP * resources.displayMetrics.density).toInt() + gutterStart + gutterEnd
+        val extra = ((width - widest) / 2).coerceAtLeast(0)
+        if (paddingStart != gutterStart + extra || paddingEnd != gutterEnd + extra) {
+            setPaddingRelative(gutterStart + extra, paddingTop, gutterEnd + extra, paddingBottom)
+        }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+    }
+
     override fun onFinishInflate() {
         super.onFinishInflate()
         val ink = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface)
@@ -183,5 +202,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     private companion object {
         const val DISABLED_ALPHA = 0.38f
+
+        // The web conversation's column, 46rem (components/conversation.css): CSS pixels are dp in the web view.
+        const val COLUMN_WIDTH_DP = 736
     }
 }

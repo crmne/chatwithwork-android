@@ -12,6 +12,7 @@ import androidx.core.view.isVisible
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.SymbolDrawable
 import com.chatwithwork.app.bridge.dismissWithActivity
+import com.chatwithwork.app.bridge.opensExpanded
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -87,6 +88,7 @@ object AttachSheet {
         }
 
         dialog.setContentView(content)
+        dialog.opensExpanded()
         dialog.dismissWithActivity(context)
         dialog.show()
         return dialog
