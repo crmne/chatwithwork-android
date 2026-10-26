@@ -21,7 +21,7 @@ it needs a Play service account key, which never goes in this repository).
    (git-ignored; see `docs/push-notifications.md`) before building the
    release, or the app builds with push off.
 3. **The upload key.** `script/upload-key` makes it once and keeps it in
-   1Password (item "Android upload key", vault chatwithwork). Play App
+   1Password (item "Android upload key", vault chatwithwork, the keystore base64-encoded in `keystore_base64`). Play App
    Signing is on by default for new apps: Play signs what it distributes,
    and this key only proves an upload is yours.
 4. **The app.** Play Console > Create app: name "Chat with Work", default

@@ -25,11 +25,9 @@ import kotlin.random.Random
  * its bottom row, never with animations turned off (Remove animations, or an
  * animator scale of 0).
  */
-class BotMarkDrawable(
-    context: Context,
-    @ColorInt color: Int,
-    sizeDp: Float = 20f
-) : Drawable(), Runnable {
+class BotMarkDrawable(context: Context, @ColorInt color: Int, sizeDp: Float = 20f) :
+    Drawable(),
+    Runnable {
     private val sizePx = Math.round(sizeDp * context.resources.displayMetrics.density)
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
     private var blinking = false
@@ -58,7 +56,13 @@ class BotMarkDrawable(
             row.forEachIndexed { x, square ->
                 if (square in kinds) {
                     val cellPath = Path().apply {
-                        addRect(left + x * cell, top + y * cell, left + (x + 1) * cell, top + (y + 1) * cell, Path.Direction.CW)
+                        addRect(
+                            left + x * cell,
+                            top + y * cell,
+                            left + (x + 1) * cell,
+                            top + (y + 1) * cell,
+                            Path.Direction.CW
+                        )
                     }
                     path.op(cellPath, Path.Op.UNION)
                 }
