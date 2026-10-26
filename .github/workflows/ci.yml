@@ -26,7 +26,7 @@ jobs:
           java-version: 21
 
       # Caches Gradle and checks the wrapper jar against Gradle's checksums.
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Unit tests, lint, formatting
         run: ./gradlew testDebugUnitTest lintDebug spotlessCheck
