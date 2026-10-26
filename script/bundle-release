@@ -24,7 +24,7 @@ trap 'rm -rf "$dir"' EXIT
 chmod 700 "$dir"
 
 # op-cache returns text, so the keystore is kept base64-encoded.
-op-cache read "op://$vault/${ITEM:-Android upload key}/keystore_base64" | base64 -d > "$dir/upload.jks"
+op-cache read "op://$vault/${ITEM:-Android upload key}/keystore_base64" | openssl base64 -d -A > "$dir/upload.jks"
 RELEASE_KEYSTORE_PASSWORD="$(op-cache read "op://$vault/${ITEM:-Android upload key}/password")"
 export RELEASE_KEYSTORE_PATH="$dir/upload.jks" RELEASE_KEY_ALIAS=upload
 export RELEASE_KEYSTORE_PASSWORD RELEASE_KEY_PASSWORD="$RELEASE_KEYSTORE_PASSWORD"

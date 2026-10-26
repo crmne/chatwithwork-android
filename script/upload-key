@@ -46,7 +46,7 @@ cat > "$dir/item.json" <<JSON
     { "id": "password", "label": "password", "type": "CONCEALED", "value": "$UPLOAD_KEY_PASSWORD" },
     { "id": "alias", "label": "alias", "type": "STRING", "value": "upload" },
     { "id": "sha256", "label": "sha256", "type": "STRING", "value": "$fingerprint" },
-    { "id": "keystore_base64", "label": "keystore_base64", "type": "CONCEALED", "value": "$(base64 -w0 "$dir/upload.jks")" },
+    { "id": "keystore_base64", "label": "keystore_base64", "type": "CONCEALED", "value": "$(openssl base64 -A -in "$dir/upload.jks")" },
     { "id": "notesPlain", "label": "notesPlain", "type": "STRING", "purpose": "NOTES",
       "value": "Google Play upload key for com.chatwithwork.app (chatwithwork-android, script/upload-key). The keystore and key share the password." }
   ]
