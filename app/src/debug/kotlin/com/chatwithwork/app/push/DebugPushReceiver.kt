@@ -3,6 +3,7 @@ package com.chatwithwork.app.push
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import kotlin.concurrent.thread
 
 /**
  * Development builds only: shows a push as if Firebase had delivered it, so
@@ -15,12 +16,22 @@ import android.content.Intent
  *   --es body "A change is waiting for your approval in Slack."
  * ```
  *
+ * `--es notification_id <id>` fetches a notification's words from the
+ * server, as FCM's would.
+ *
  * Only the shell can send it (it holds DUMP, which apps can't get).
  */
 class DebugPushReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val extras = intent.extras ?: return
         val data = extras.keySet().mapNotNull { key -> extras.getString(key)?.let { key to it } }.toMap()
-        Push.from(data)?.let { PushNotifications.deliver(context, it) }
+        val pending = goAsync()
+        thread(name = "debug-push") {
+            try {
+                PushNotifications.receive(context.applicationContext, data)
+            } finally {
+                pending.finish()
+            }
+        }
     }
 }

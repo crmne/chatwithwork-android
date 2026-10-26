@@ -126,12 +126,25 @@ class BridgeMessagesTest {
                 )
             )
         val fields = json.parseToJsonElement(reply).jsonObject
-        assertThat(fields.keys).containsExactly("status", "token", "platform", "environment", "appId")
+        assertThat(fields.keys).containsExactly("status", "token", "platform", "environment", "appId", "needsKey")
         assertThat(fields["platform"]?.jsonPrimitive?.content).isEqualTo("android")
         assertThat(fields["environment"]?.jsonPrimitive?.content).isEqualTo("production")
 
         val noToken = json.encodeToString(NotificationTokenComponent.Reply(status = "not_determined", appId = "x"))
         assertThat(json.parseToJsonElement(noToken).jsonObject.keys).doesNotContain("token")
+    }
+
+    @Test
+    fun `notification token hands over the phone's notification key and its token`() {
+        val key =
+            json.decodeFromString<NotificationTokenComponent.Key>(
+                """{"key":"eyJ--abc","token":"fcm-token","metadata":{"url":"https://x"}}"""
+            )
+        assertThat(key).isEqualTo(NotificationTokenComponent.Key("eyJ--abc", "fcm-token"))
+        val needs = json.encodeToString(
+            NotificationTokenComponent.Reply(status = "authorized", token = "t", appId = "x", needsKey = true)
+        )
+        assertThat(json.parseToJsonElement(needs).jsonObject["needsKey"]?.jsonPrimitive?.content).isEqualTo("true")
     }
 
     @Test

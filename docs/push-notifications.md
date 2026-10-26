@@ -42,21 +42,34 @@ that chat, in Chats, inside the right organization.
   turns push off until someone turns it on again. The server deletes the
   registration when it signs the person out.
 - **Data-only messages.** The server sends `kind`, `path`, `thread`,
-  `title` and `body` as FCM data, never content from the chat. The app
-  checks them (`Push.from`: a known kind, a path on this app's server) and
-  writes the notification itself:
+  `title` and `body` as FCM data, never content from the chat, and
+  `notification_id`, an id the app can't read. The app checks them
+  (`Push.from`: a known kind, a path on this app's server), fetches the
+  chat's words from the server with the id and the phone's notification key
+  (`NotificationWords`, at most 5 seconds, the push's own words otherwise),
+  and writes the notification itself:
   - approvals and questions on the "Approvals and questions" channel (high
     importance), answers, failures and hand-offs on "Answers" (default
     importance), which the person can silence in Android's settings apart;
   - one per chat (`thread` is the notification's tag), so a newer one
     replaces it;
   - tapping it opens the page in the app, as an App Link would;
+  - the chat's title and the answer's start, or what waits and what's to
+    decide, privately: a lock screen set to hide sensitive content shows
+    the public version, which says only the push's own words;
   - `kind: resolved` removes the chat's notification, for a change approved
     or a question answered somewhere else.
+- **The notification key.** The page registers the token and hands the app
+  the key the server answered with (`notification-token`'s `key`); the app
+  keeps it with its token in the `push` preferences and forgets it on
+  sign-out. Until it has one for the current token it says `needsKey`, and
+  the page registers at once.
 
-The code: `push/PushNotifications.kt` (permission, opt-in, token, showing
-notifications), `push/PushMessagingService.kt` (Firebase's callbacks),
-`push/Push.kt` (the payload), and `bridge/NotificationTokenComponent.kt`.
+The code: `push/PushNotifications.kt` (permission, opt-in, token, the
+notification key, showing notifications), `push/PushMessagingService.kt`
+(Firebase's callbacks), `push/Push.kt` (the payload), `push/NotificationWords.kt`
+(fetching a notification's words), `push/LiveUpdates.kt` (Live Updates),
+and `bridge/NotificationTokenComponent.kt`.
 
 ## Setting up Firebase
 
@@ -89,7 +102,12 @@ adb shell am broadcast -n com.chatwithwork.app.debug/com.chatwithwork.app.push.D
 
 adb shell am broadcast -n com.chatwithwork.app.debug/com.chatwithwork.app.push.DebugPushReceiver \
   --es kind resolved --es path /1000001/chats/42 --es thread chat-1000001-42
+
 ```
+
+A push with `--es notification_id <id>` fetches its words from the server
+like FCM's would, with the key the page handed over; an id the server
+doesn't know shows the push's own words.
 
 Grant the permission first if the app hasn't asked yet:
 `adb shell pm grant com.chatwithwork.app.debug android.permission.POST_NOTIFICATIONS`.

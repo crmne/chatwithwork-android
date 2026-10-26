@@ -5,9 +5,10 @@ import com.google.firebase.messaging.RemoteMessage
 
 /**
  * Receives Chat with Work's pushes. They are data-only messages that never
- * carry chat content (docs/push-notifications.md); the app writes the
- * notification itself, so a tap opens the right chat in the right tab and a
- * resolved change can take its notification away.
+ * carry chat content (docs/push-notifications.md); the app fetches the
+ * chat's words from the server and writes the notification itself, so a tap
+ * opens the right chat and a resolved change can take its notification
+ * away. FCM calls this off the main thread and waits for it.
  */
 class PushMessagingService : FirebaseMessagingService() {
     @Deprecated("FCM 25.1 hands tokens to onRegistered; kept for tokens rotated outside a registration.")
@@ -26,6 +27,6 @@ class PushMessagingService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
-        Push.from(message.data)?.let { PushNotifications.deliver(this, it) }
+        PushNotifications.receive(this, message.data)
     }
 }

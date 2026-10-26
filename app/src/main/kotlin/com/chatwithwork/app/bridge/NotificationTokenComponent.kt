@@ -34,13 +34,18 @@ import kotlinx.serialization.Serializable
  *   Otherwise it replies at once.
  * - `openSettings` opens this app's notification settings, for someone who
  *   turned notifications off there.
+ * - `key` with `{key, token}`: the phone's notification key, which the
+ *   server answered the token's registration with. The app keeps it to fetch
+ *   each notification's words from the server as its push arrives.
  *
  * Replies to `connect`, `get`, and `offer`: `{status, token?, platform, environment,
- * appId}`. `status` is `authorized`, `denied`, or `not_determined`; `token`
+ * appId, needsKey}`. `status` is `authorized`, `denied`, or `not_determined`; `token`
  * is the FCM registration token, absent until authorized (and in builds
  * without a Firebase configuration); `platform` is "android";
  * `environment` is always "production" (FCM has no sandbox); `appId` is the
- * application id, which tells the server which app the token belongs to.
+ * application id, which tells the server which app the token belongs to;
+ * `needsKey` that the app has no key for the token yet, so the page
+ * registers it now rather than once a day.
  */
 class NotificationTokenComponent(name: String, private val bridgeDelegate: BridgeDelegate<HotwireDestination>) :
     BridgeComponent<HotwireDestination>(name, bridgeDelegate) {
@@ -58,6 +63,11 @@ class NotificationTokenComponent(name: String, private val bridgeDelegate: Bridg
             "offer" -> offerThenAnswer(message.data<Offer>()?.reason)
 
             "openSettings" -> openSettings()
+
+            "key" ->
+                message.data<Key>()?.let { data ->
+                    fragment.context?.let { PushNotifications.keepKey(it.applicationContext, data.key, data.token) }
+                }
         }
     }
 
@@ -105,7 +115,8 @@ class NotificationTokenComponent(name: String, private val bridgeDelegate: Bridg
                 Reply(
                     status = permission.web,
                     token = token,
-                    appId = context.packageName
+                    appId = context.packageName,
+                    needsKey = PushNotifications.needsKey(context, token)
                 )
             )
         }
@@ -123,12 +134,16 @@ class NotificationTokenComponent(name: String, private val bridgeDelegate: Bridg
     data class Offer(val reason: String? = null)
 
     @Serializable
+    data class Key(val key: String = "", val token: String = "")
+
+    @Serializable
     data class Reply(
         val status: String,
         val token: String? = null,
         val platform: String = "android",
         val environment: String = "production",
-        val appId: String
+        val appId: String,
+        val needsKey: Boolean = false
     )
 
     companion object {

@@ -218,7 +218,7 @@ draws each one its own way:
 | `review-prompt` | Joe Masilotti's component: Google Play's in-app review. Not used yet. |
 | `context-menu` | A popup menu at `rect` (CSS pixels, converted with the page's zoom), with icons; without a `rect`, a sheet titled with `title`. Items with `copy` text are copied to the clipboard by the app, with no reply; with `copyHtml` too (an answer as HTML, left out when the reader copies Markdown), the clip carries both (`ClipData.newHtmlText`), else plain text (Android 13 and later confirm a copy themselves; older versions get a "Copied" snackbar). |
 | `auth-session` | An **Auth Tab** (Chrome's tab for sign-ins, which hands the `chatwithwork://` redirect straight back), or a Custom Tab where the browser has none, with `ephemeral` as ephemeral browsing where supported. The `url` must be on this app's server, and https outside development, or the reply is `{error: "invalid_url"}`; `{error: "unavailable"}` when no browser can open it; `{error: "canceled"}` when the person comes back without finishing. Otherwise `{url}`, the callback URL. |
-| `notification-token` | `status` is `authorized`, `denied` or `not_determined` (Android has no provisional or ephemeral). `get` shows Android 13's notification permission prompt the first time, `openSettings` opens the app's notification settings. `offer` `{reason}` (`approval` or `answer`) shows, once per install and only while nobody has decided, the app's "Want a nudge when it's ready?" explanation worded for the reason, then Android's prompt on Continue (on Android 12 and earlier, Continue turns push on); it replies like `get`, at once when there's nothing to offer. When the person allows notifications (`offer`, or `get`), every `notification-token` on screen gets its latest `connect` answered again with the token. `token` is the FCM registration token, `platform` is `android`, `environment` is always `production`, `appId` is the package name. |
+| `notification-token` | `status` is `authorized`, `denied` or `not_determined` (Android has no provisional or ephemeral). `get` shows Android 13's notification permission prompt the first time, `openSettings` opens the app's notification settings. `offer` `{reason}` (`approval` or `answer`) shows, once per install and only while nobody has decided, the app's "Want a nudge when it's ready?" explanation worded for the reason, then Android's prompt on Continue (on Android 12 and earlier, Continue turns push on); it replies like `get`, at once when there's nothing to offer. When the person allows notifications (`offer`, or `get`), every `notification-token` on screen gets its latest `connect` answered again with the token. `token` is the FCM registration token, `platform` is `android`, `environment` is always `production`, `appId` is the package name, `needsKey` that the app has no notification key for the token yet (section 9), so the page registers at once. `key` `{key, token}` hands the app the key the registration answered. |
 
 Material Symbols names go in `androidImage` (`data-bridge-android-image`):
 `edit_square`, `keep`, `keep_off`, `link`, `edit`, `drive_file_move`,
@@ -395,6 +395,13 @@ app for a token through `notification-token` and posts it to
 registers with Firebase only after the person turns notifications on, and
 unregisters when it sees a sign-out.
 
+The answer carries the phone's notification key (`notification_key`, as in
+the iOS contract), which the page hands the app with `notification-token`'s
+`key` `{key, token}`. The app keeps it with the token it belongs to, in its
+private preferences, and forgets it when it sees a sign-out; until it holds a
+key for the current token its replies say `needsKey: true`, and the page
+registers at once.
+
 The app no longer asks after signing in. It offers notifications once per
 install when a page sends `notification-token`'s `offer` (section 6): the
 server sends it from the layout's hidden element the first time a chat page
@@ -470,6 +477,19 @@ names are fine.
   "A question is waiting for your answer.", "Your answer is ready.", "A
   chat couldn't finish its answer.", "A bot handed a conversation to your
   team.").
+- `notification_id` (2026-10-26): an id the app can't read, sent only to
+  someone whose "Show the chat and its answer" is on. Before showing the
+  notification, the app fetches its words from the server with it, as in
+  the iOS contract's "The words": `GET /native/notifications/<id>` with
+  `Authorization: Bearer <notification key>`, answering
+  `{title, subtitle?, body}`: the chat's title, what waits ("Waiting for
+  your approval in Slack"), and the answer's start or what's to decide, at
+  most 180 characters. The app shows `title` and `body`, `subtitle` as the
+  notification's sub text, privately: its public version, which a lock
+  screen set to hide sensitive content shows, says only the push's own
+  `title` and `body`. It waits at most 5 seconds, and shows the push's own
+  words when there's no key, the server answers anything but `200`, or
+  nothing comes in time. So those words never pass through Google.
 - High priority wakes the phone from Doze. Android lowers the priority of
   apps whose high-priority messages don't end in a notification, which is
   why `resolved` goes out as normal.

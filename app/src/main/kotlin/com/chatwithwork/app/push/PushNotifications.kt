@@ -30,6 +30,13 @@ import kotlinx.coroutines.withTimeoutOrNull
  * auto-init is off in the manifest and only switched on by [token]. Builds
  * without google-services.json (forks, CI) have no Firebase at all and report
  * push as unavailable. See docs/push-notifications.md.
+ *
+ * A push carries no chat content: [receive] fetches the chat's words from
+ * the server with the phone's notification key ([keepKey], which the page
+ * hands over after registering the token), and shows the push's own words
+ * if that fails. The words are private on the lock screen: a phone set to
+ * hide sensitive content shows the public version, which says only what
+ * happened.
  */
 object PushNotifications {
     const val CHANNEL_APPROVALS = "approvals"
@@ -43,6 +50,8 @@ object PushNotifications {
     // Named for the offer after signing in it replaced, so installs that saw that one aren't asked again.
     private const val KEY_OFFERED = "offered_after_sign_in"
     private const val KEY_TOKEN = "token"
+    private const val KEY_NOTIFICATION_KEY = "notification_key"
+    private const val KEY_NOTIFICATION_KEY_TOKEN = "notification_key_token"
 
     /** The permission, with the names the iOS app uses for the same states. */
     enum class Permission(val web: String) {
@@ -136,15 +145,39 @@ object PushNotifications {
         waiting.toList().forEach { it.complete(token) }
     }
 
+    /** Keeps the key the server issued for [token] (`notification-token`'s `key`). */
+    fun keepKey(context: Context, key: String, token: String) {
+        if (key.isBlank() || token.isBlank()) return
+        preferences(context).edit {
+            putString(KEY_NOTIFICATION_KEY, key)
+            putString(KEY_NOTIFICATION_KEY_TOKEN, token)
+        }
+    }
+
+    /** The phone's notification key, while it's the current token's. */
+    fun notificationKey(context: Context): String? {
+        val preferences = preferences(context)
+        val token = lastToken(context) ?: return null
+        return preferences.getString(KEY_NOTIFICATION_KEY, null)
+            ?.takeIf { preferences.getString(KEY_NOTIFICATION_KEY_TOKEN, null) == token }
+    }
+
+    /** Whether the page should register [token] now, to hand the app a key for it. */
+    fun needsKey(context: Context, token: String?): Boolean =
+        token != null && preferences(context).getString(KEY_NOTIFICATION_KEY_TOKEN, null) != token
+
     /**
      * Forgets this device's token when the session ends, so pushes for it
-     * stop at Firebase too. The next sign-in registers anew.
+     * stop at Firebase too, and the key that fetched its words. The next
+     * sign-in registers anew.
      */
     fun forget(context: Context) {
         val hadToken = lastToken(context) != null
         preferences(context).edit {
             remove(KEY_TOKEN)
             remove(KEY_OPTED_IN)
+            remove(KEY_NOTIFICATION_KEY)
+            remove(KEY_NOTIFICATION_KEY_TOKEN)
         }
         if (!hadToken || !isAvailable(context)) return
         val messaging = FirebaseMessaging.getInstance()
@@ -153,11 +186,29 @@ object PushNotifications {
     }
 
     /**
+     * A push as FCM (or, in development builds, adb) hands it over: a
+     * notification, with its words fetched from the server first when the
+     * push names them and the phone has a key. Blocks while it fetches, at
+     * most [NotificationWords.TIMEOUT_MS] a try: call it off the main thread.
+     */
+    fun receive(context: Context, data: Map<String, String>) {
+        val push = Push.from(data) ?: return
+        val words =
+            push.notificationId?.let { id ->
+                notificationKey(context)?.let { key -> NotificationWords.fetch(id, key) }
+            }
+        deliver(context, push, words)
+    }
+
+    /**
      * Shows a push as a notification, one per chat (its thread), a newer one
      * replacing it; a `resolved` push takes it away instead. Tapping it opens
-     * the push's page in the app.
+     * the push's page in the app. With [words], it shows the chat's title,
+     * what waits, and the answer's start or what's to decide, privately: the
+     * lock screen of a phone that hides sensitive content shows the push's
+     * own words instead.
      */
-    fun deliver(context: Context, push: Push) {
+    fun deliver(context: Context, push: Push, words: NotificationWords.Text? = null) {
         val manager = NotificationManagerCompat.from(context)
         if (push.kind == Push.Kind.RESOLVED) {
             manager.cancel(push.thread, NOTIFICATION_ID)
@@ -170,22 +221,29 @@ object PushNotifications {
             return
         }
 
+        val title = push.title ?: context.getString(R.string.app_name)
         val body = push.body ?: context.getString(push.defaultBody)
         val notification =
-            NotificationCompat
-                .Builder(context, if (push.waitsForPerson) CHANNEL_APPROVALS else CHANNEL_ANSWERS)
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle(push.title ?: context.getString(R.string.app_name))
-                .setContentText(body)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-                .setPriority(
-                    if (push.waitsForPerson) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT
-                )
-                .setAutoCancel(true)
-                .setContentIntent(openIntent(context, push.url))
+            builder(context, push, words?.title ?: title, words?.body ?: body)
+                .setSubText(words?.subtitle)
+                .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                .setPublicVersion(builder(context, push, title, body).build())
                 .build()
         manager.notify(push.thread, NOTIFICATION_ID, notification)
     }
+
+    private fun builder(context: Context, push: Push, title: String, body: String): NotificationCompat.Builder =
+        NotificationCompat
+            .Builder(context, if (push.waitsForPerson) CHANNEL_APPROVALS else CHANNEL_ANSWERS)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(
+                if (push.waitsForPerson) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT
+            )
+            .setAutoCancel(true)
+            .setContentIntent(openIntent(context, push.url))
 
     private fun openIntent(context: Context, url: String): PendingIntent {
         val intent =

@@ -13,7 +13,7 @@ Material top app bars with the page's actions and overflow
 menu, a native composer (with the photo picker, camera, ML Kit's document
 scanner, and dictation recorded on the phone and transcribed on the server), full-screen modals, a welcome screen, native dialogs, snackbars,
 haptics, search, the share sheet (both ways: text and files shared into a new chat too), Live Updates for answers you leave running, a home screen widget and a Quick Settings tile, sign-in through Chrome's Auth Tab, push
-notifications, App Links, predictive back, edge to edge, and Live Wire's
+notifications that show the answer's start or what waits for you (fetched from the server as they arrive, never through Google), App Links, predictive back, edge to edge, and Live Wire's
 colors in light and dark.
 
 What the server has to do for all of that is written down in

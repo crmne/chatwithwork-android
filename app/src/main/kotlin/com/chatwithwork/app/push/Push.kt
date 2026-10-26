@@ -6,10 +6,19 @@ import com.chatwithwork.app.routing.AppUrls
 
 /**
  * One push, as the server sends it: an FCM data message (docs/push-notifications.md).
- * The same keys as the iOS payload, with the alert's text as plain data.
+ * The same keys as the iOS payload, with the alert's text as plain data:
+ * the organization's name and what happened, never the chat's words, which
+ * the app fetches with [notificationId] (NotificationWords).
  * Unknown kinds and paths that aren't a page of this app are dropped.
  */
-data class Push(val kind: Kind, val url: String, val thread: String, val title: String?, val body: String?) {
+data class Push(
+    val kind: Kind,
+    val url: String,
+    val thread: String,
+    val title: String?,
+    val body: String?,
+    val notificationId: String? = null
+) {
     enum class Kind(val wire: String) {
         APPROVAL_WAITING("approval_waiting"),
         INPUT_REQUESTED("input_requested"),
@@ -49,7 +58,8 @@ data class Push(val kind: Kind, val url: String, val thread: String, val title: 
                 url = url,
                 thread = data["thread"]?.takeIf { it.isNotBlank() } ?: path,
                 title = data["title"]?.takeIf { it.isNotBlank() },
-                body = data["body"]?.takeIf { it.isNotBlank() }
+                body = data["body"]?.takeIf { it.isNotBlank() },
+                notificationId = data["notification_id"]?.takeIf { it.isNotBlank() }
             )
         }
     }

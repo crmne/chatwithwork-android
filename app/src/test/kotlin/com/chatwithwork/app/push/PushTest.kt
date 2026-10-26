@@ -50,6 +50,32 @@ class PushTest {
     }
 
     @Test
+    fun `carries the id its words are fetched with, never the words`() {
+        val push = Push.from(mapOf("kind" to "answered", "path" to path, "notification_id" to "c2VjcmV0--aXY--dGFn"))
+        assertThat(push?.notificationId).isEqualTo("c2VjcmV0--aXY--dGFn")
+        assertThat(Push.from(mapOf("kind" to "answered", "path" to path))?.notificationId).isNull()
+    }
+
+    @Test
+    fun `asks this server for a notification's words, only by an id shaped like the server's`() {
+        assertThat(NotificationWords.url("c2VjcmV0--aXY--dGFn_x-y"))
+            .isEqualTo("${AppConfig.baseUrl}/native/notifications/c2VjcmV0--aXY--dGFn_x-y")
+        assertThat(NotificationWords.url("../../settings")).isNull()
+        assertThat(NotificationWords.url("abc?x=1")).isNull()
+        assertThat(NotificationWords.url("")).isNull()
+    }
+
+    @Test
+    fun `reads the server's words, which need a title and a body`() {
+        assertThat(NotificationWords.parse("""{"title":"Q3 numbers","body":"Revenue grew 12%."}"""))
+            .isEqualTo(NotificationWords.Text("Q3 numbers", null, "Revenue grew 12%."))
+        val wait = """{"title":"Acme launch","subtitle":"Waiting for your approval in Slack","body":"Post the recap"}"""
+        assertThat(NotificationWords.parse(wait)?.subtitle).isEqualTo("Waiting for your approval in Slack")
+        assertThat(NotificationWords.parse("""{"title":"","body":"x"}""")).isNull()
+        assertThat(NotificationWords.parse("not json")).isNull()
+    }
+
+    @Test
     fun `drops pushes it can't trust or doesn't know`() {
         assertThat(Push.from(mapOf("kind" to "approval_waiting", "path" to "https://evil.example/chats/42"))).isNull()
         assertThat(Push.from(mapOf("kind" to "approval_waiting", "path" to "//evil.example/chats/42"))).isNull()
