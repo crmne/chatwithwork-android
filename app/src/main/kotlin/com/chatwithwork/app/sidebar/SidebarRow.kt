@@ -17,10 +17,10 @@ sealed interface SidebarRow {
         /** Where it leads, for those the server names (New bot). */
         val url: String? = null
     ) : SidebarRow {
-        enum class Kind { NEW_CHAT, WAITING, BOTS, NEW_BOT }
+        enum class Kind { NEW_CHAT, BOTS, NEW_BOT }
     }
 
-    /** The Chats | Bots switch under Decisions; Bots carries a dot when [botsAttention], never a number. */
+    /** The Chats | Bots switch, the sidebar's first control; Bots carries a dot when [botsAttention], never a number. */
     data class Views(val view: View, val botsAttention: Boolean) : SidebarRow
 
     /** What the sidebar shows under its switch. */
@@ -67,11 +67,12 @@ sealed interface SidebarRow {
          * ignoring case, as the web's sidebar search does. [current] is the
          * page showing, whose chat is marked. [pinnedTitle] heads the pins.
          * Without a [sidebar], the rows that need no data: New chat and Bots
-         * (when [botsKnown]). [otherTitle] heads the list's chats in none of
+         * (when [botsKnown]). Decisions isn't here: it's the pill in the
+         * chat's top bar. [otherTitle] heads the list's chats in none of
          * the person's sections, when they have any.
          *
          * A server that lists the person's bots (`bots.items`) gets the
-         * Chats | Bots switch under Decisions instead of the Bots row, and
+         * Chats | Bots switch at the top instead of the Bots row, and
          * [view] picks the half: Bots draws, in the same places, a card for
          * the list switcher, New bot for New chat, and the bots for the
          * chats, under [needsYouTitle] and [quietTitle] when there are both.
@@ -98,16 +99,14 @@ sealed interface SidebarRow {
             }
 
             val rows = mutableListOf<SidebarRow>()
+            if (bots != null && botItems != null) rows += Views(View.CHATS, botsAttention = bots.attention)
             sidebar.list?.let { rows += Switcher(it) }
             rows += Search
             val words = query.trim().lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
 
             if (words.isEmpty()) {
                 rows += Nav(Nav.Kind.NEW_CHAT)
-                rows += decisions(sidebar)
-                if (bots != null && botItems != null) {
-                    rows += Views(View.CHATS, botsAttention = bots.attention)
-                } else if (bots != null) {
+                if (bots != null && botItems == null) {
                     val meta = bots.count.takeIf { it > 0 }?.toString() ?: bots.nextRun
                     rows += Nav(Nav.Kind.BOTS, meta = meta, attention = bots.attention || bots.count > 0)
                 }
@@ -161,12 +160,6 @@ sealed interface SidebarRow {
             return rows
         }
 
-        private fun decisions(sidebar: Sidebar) = Nav(
-            Nav.Kind.WAITING,
-            meta = sidebar.waiting.count.takeIf { it > 0 }?.toString(),
-            attention = sidebar.waiting.count > 0
-        )
-
         private fun buildBots(
             sidebar: Sidebar,
             bots: Sidebar.Bots,
@@ -176,6 +169,7 @@ sealed interface SidebarRow {
             quietTitle: String
         ): List<SidebarRow> {
             val rows = mutableListOf<SidebarRow>()
+            rows += Views(View.BOTS, botsAttention = bots.attention)
             rows +=
                 BotsCard(
                     organization = sidebar.organization.name,
@@ -185,8 +179,6 @@ sealed interface SidebarRow {
                     url = bots.url ?: sidebar.links.bots
                 )
             rows += Nav(Nav.Kind.NEW_BOT, url = bots.newUrl)
-            rows += decisions(sidebar)
-            rows += Views(View.BOTS, botsAttention = bots.attention)
 
             if (items.isEmpty()) {
                 rows += NoBots(bots.newUrl)

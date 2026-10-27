@@ -50,9 +50,6 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
 
         fun chooseList()
 
-        /** Decisions: the Decisions page, or, from an older server, the list of what waits. */
-        fun showWaiting()
-
         /** A long press on [chat]'s row, [anchor]: its actions as a menu. */
         fun showChatActions(chat: Sidebar.Chat, anchor: View)
 
@@ -507,7 +504,6 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             val (icon, label) =
                 when (row.kind) {
                     SidebarRow.Nav.Kind.NEW_CHAT -> "edit_square" to R.string.new_chat
-                    SidebarRow.Nav.Kind.WAITING -> "back_hand" to R.string.sidebar_waiting
                     SidebarRow.Nav.Kind.BOTS -> BOT_MARK to R.string.sidebar_bots
                     SidebarRow.Nav.Kind.NEW_BOT -> "add" to R.string.new_bot
                 }
@@ -524,7 +520,6 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             view.setOnClickListener {
                 when (row.kind) {
                     SidebarRow.Nav.Kind.NEW_CHAT -> actions.startNewChat()
-                    SidebarRow.Nav.Kind.WAITING -> actions.showWaiting()
                     SidebarRow.Nav.Kind.BOTS -> actions.openBots()
                     SidebarRow.Nav.Kind.NEW_BOT -> row.url?.let(actions::openPath) ?: actions.openBots()
                 }

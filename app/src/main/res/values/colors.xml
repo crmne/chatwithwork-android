@@ -23,6 +23,9 @@
     <color name="lw_live_ink">#1569B5</color>
     <color name="lw_attention">#D99A06</color>
     <color name="lw_attention_ink">#8A5F00</color>
+    <!-- A decision waiting: the attention wash and its edge (tokens.css: attention-wash, attention-edge). -->
+    <color name="lw_attention_wash">#F9EFD7</color>
+    <color name="lw_attention_edge">#D7C088</color>
     <color name="lw_negative">#F0552F</color>
     <color name="lw_dot">#1A0A0D14</color>
     <!-- Over the page while the sidebar is open: Material's scrim, in ink. -->

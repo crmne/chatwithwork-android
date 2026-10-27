@@ -707,9 +707,10 @@ one of `waiting`, `failed`, `working`, `paused`, `next`, `listening` and
 many decisions wait for the person in it; `working` whether one of its chats
 is answering now; `next_run` its next timed run, if any.
 
-With `items`, the sidebar draws a segmented Chats | Bots switch right under
-Decisions, in place of the Bots row. Its Bots half shows an attention dot,
-never a number, while `bots.attention`: Decisions carries the one count.
+With `items`, the sidebar's first control is a segmented Chats | Bots
+switch, in place of the Bots row. Its Bots half shows an attention dot,
+never a number, while `bots.attention`: the Decisions pill carries the one
+count.
 Chats shows the sidebar as before. Bots keeps the same skeleton: a card in
 the list switcher's place ("Bots in <organization>", how many bots, and how
 many are working or waiting for the person), opening `url`; New bot where New
@@ -721,7 +722,7 @@ and at its end `waiting` with an attention dot when it's more than 0, else
 `url` like any sidebar link, and the row shows as current on the bot's pages.
 With no bots it says "Your bots, and the ones shared with you, show up here."
 and offers "Start from a recipe" (`new_url`). The search shows only with the
-chats. The app remembers the chosen half per install. Guests get no `bots`,
+chats, under the switch and the list switcher. The app remembers the chosen half per install. Guests get no `bots`,
 so no switch; a server that sends no `items` keeps the Bots row. The sidebar
 keeps checking every 5 seconds while it's open and a bot is `working`, as it
 does for a chat.
@@ -750,19 +751,26 @@ so every device shows it the same; a long press offers Rename (`edit_url`,
 a modal). A search lists the matches in sections too. Without `sections`
 (an older server) the list is as before.
 
-What the app draws from it, top to bottom: the list switcher (`list`; a
+What the app draws from it, top to bottom: the Chats | Bots switch (above,
+from servers that send `bots.items`), the list switcher (`list`; a
 chooser of `lists`, then "All projects..." and "New project"), a search
 that filters titles on the phone, New chat (`links.new_chat`, also where
-the bar's New chat and a cold start go), Decisions (`waiting`, with its
-count), the Chats | Bots switch (above; from a server without `bots.items`,
-the Bots row instead: `bots`' count with an attention dot, else the next
-run), Pinned, the person's own sections (`sections`, below), then
+the bar's New chat and a cold start go), from a server without
+`bots.items` the Bots row (`bots`' count with an attention dot, else the
+next run), Pinned, the person's own sections (`sections`, below), then
 the chats by `group` (under one "Other chats" heading instead when there
 are sections, as on the web), a live dot on those
 answering and an attention dot on those waiting, loading `next` near the
-end. Decisions is named as on the web and opens the Decisions
-page (`waiting.url`, else `links.decisions`), or, from a server with
-neither, a sheet of its items; earlier builds called it "Waiting for you".
+end.
+
+**Decisions in the top bar (2026-10-27).** As on the web, Decisions is no
+longer a sidebar row: it's a small pill in the chat's top bar, just after
+the sidebar's button. It shows the list-checks icon and `waiting.count` on
+the attention wash, or the icon alone at 0, and opens the Decisions page
+(`waiting.url`, else `links.decisions`), or, from a server with neither, a
+sheet of its items. It reads the same JSON, so no key changes; it shows
+once the JSON has answered. Earlier builds had a Decisions row under New
+chat (and before that, "Waiting for you").
 The person at the foot opens a sheet of `organizations` (each `url`
 starts the app over there), All organizations, New organization and
 Settings. Without the JSON (offline, an older server), the sidebar still
@@ -770,7 +778,8 @@ offers New chat, Bots and Settings.
 
 It fetches the JSON as the sidebar opens, when the app comes back to the
 foreground, after a page in another organization, every 5 seconds while
-it's open and something answers, and on `changed`.
+it's open and something answers, and on `changed`, open or shut, since the
+top bar's Decisions pill shows its count.
 
 ### The `sidebar` component
 
@@ -780,7 +789,7 @@ element, subscribed to the person's own chat-list streams. It sends:
 | Event | Data | The app |
 |---|---|---|
 | `connect` | `{}` | keeps it, to reply with a chat's action from a long press: `{action: "perform", url, method, confirm?, destructive?}` |
-| `changed` | `{}` | fetches the JSON again (debounced, 500 ms) if the sidebar is open, else on its next opening |
+| `changed` | `{}` | fetches the JSON again (debounced, 500 ms), for the sidebar and the Decisions pill |
 
 No replies.
 
