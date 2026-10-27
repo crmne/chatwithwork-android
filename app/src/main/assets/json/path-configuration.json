@@ -83,6 +83,16 @@
     },
     {
       "patterns": [
+        "/chats/\\d+/files/"
+      ],
+      "properties": {
+        "context": "modal",
+        "pull_to_refresh_enabled": false,
+        "uri": "hotwire://fragment/web/modal"
+      }
+    },
+    {
+      "patterns": [
         "^/rails/active_storage/",
         "^/$",
         "^/(pricing|security|self-hosted|imprint|privacy-policy|terms-of-service|survey)(\\?|$)",

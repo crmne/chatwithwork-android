@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Only the camera's photos, in the cache, are ever shared out. -->
+<!--
+  Only what's in the cache is ever shared out: the camera's photos, and the
+  files a file's viewer shares (FileDownloads).
+-->
 <paths>
     <cache-path name="camera" path="camera/" />
+    <cache-path name="shared" path="shared/" />
 </paths>

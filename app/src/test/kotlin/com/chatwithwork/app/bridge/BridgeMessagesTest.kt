@@ -38,6 +38,25 @@ class BridgeMessagesTest {
     }
 
     @Test
+    fun `file reads the files a viewer shares, the file first, then its PDF`() {
+        val data =
+            json.decodeFromString<FileComponent.Data>(
+                """{"files":[{"url":"https://chatwithwork.com/rails/active_storage/blobs/proxy/abc/deck.pptx?disposition=attachment","name":"deck.pptx","contentType":"application/vnd.openxmlformats-officedocument.presentationml.presentation","title":"PowerPoint"},{"url":"/rails/active_storage/blobs/proxy/def/deck.pdf","name":"deck.pdf","contentType":"application/pdf","title":"PDF"}],"metadata":{"url":"https://x"}}"""
+            )
+        assertThat(data.files.map { it.name }).containsExactly("deck.pptx", "deck.pdf").inOrder()
+        assertThat(data.files.first().title).isEqualTo("PowerPoint")
+
+        val page = "https://chatwithwork.com/482139075/chats/42/files/xyz"
+        assertThat(
+            data.files[1].resolvedUrl(page)
+        ).isEqualTo("https://chatwithwork.com/rails/active_storage/blobs/proxy/def/deck.pdf")
+        assertThat(FileComponent.SharedFile(url = "javascript:alert(1)", name = "x").resolvedUrl(page)).isNull()
+
+        val bare = json.decodeFromString<FileComponent.Data>("""{"files":[{"url":"/a.csv","name":"a.csv"}]}""")
+        assertThat(bare.files.single().contentType).isNull()
+    }
+
+    @Test
     fun `menu items may be checked or disabled`() {
         val data =
             json.decodeFromString<MenuComponent.Data>(

@@ -74,11 +74,13 @@ abstract class ToolbarComponent(name: String, private val bridgeDelegate: Bridge
         const val GROUP_BUTTON = 0x0C3
         const val GROUP_SHARE = 0x0C4
         const val GROUP_MENU = 0x0C5
+        const val GROUP_FILE = 0x0C6
 
         const val ORDER_SEARCH = 10
         const val ORDER_FORM = 20
         const val ORDER_BUTTON = 30
         const val ORDER_SHARE = 60
+        const val ORDER_FILE = 70
         const val ORDER_MENU = 90
 
         @ColorInt

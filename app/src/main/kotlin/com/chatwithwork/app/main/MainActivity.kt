@@ -1,7 +1,9 @@
 package com.chatwithwork.app.main
 
 import android.Manifest
+import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
@@ -19,6 +21,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.widget.PopupMenu
@@ -44,6 +47,7 @@ import com.chatwithwork.app.bridge.ActionSheet
 import com.chatwithwork.app.bridge.AuthTabHost
 import com.chatwithwork.app.bridge.BrowserReturnHost
 import com.chatwithwork.app.bridge.ComposerHost
+import com.chatwithwork.app.bridge.FileSaveHost
 import com.chatwithwork.app.bridge.NotificationPermissionHost
 import com.chatwithwork.app.bridge.NotificationTokenComponent
 import com.chatwithwork.app.bridge.OfferReason
@@ -116,6 +120,7 @@ class MainActivity :
     BrowserReturnHost,
     SidebarHost,
     ComposerHost,
+    FileSaveHost,
     SidebarDrawer.Actions {
     private val viewModel: MainViewModel by viewModels()
     private val memory by lazy { SessionMemory(this) }
@@ -192,6 +197,14 @@ class MainActivity :
                 }
             scanResult?.invoke(pdf)
             scanResult = null
+        }
+
+    // A file's viewer's "Save to device": the system's own picker of where.
+    private var saveResult: ((Uri?) -> Unit)? = null
+    private val saveDocument =
+        registerForActivityResult(CreateTypedDocument()) { uri ->
+            saveResult?.invoke(uri)
+            saveResult = null
         }
 
     private var microphoneResult: ((Boolean) -> Unit)? = null
@@ -1222,6 +1235,16 @@ class MainActivity :
             }.addOnFailureListener { showSnackbar(getString(R.string.composer_scan_unavailable), long = true) }
     }
 
+    override fun chooseSaveLocation(name: String, type: String, onResult: (Uri?) -> Unit) {
+        saveResult = onResult
+        try {
+            saveDocument.launch(name to type)
+        } catch (_: ActivityNotFoundException) {
+            saveResult = null
+            showSnackbar(getString(R.string.external_link_failed))
+        }
+    }
+
     override fun requestMicrophone(onResult: (granted: Boolean) -> Unit) {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             onResult(true)
@@ -1276,5 +1299,22 @@ class MainActivity :
 
         /** While the sidebar is open and something answers. */
         const val POLL_MS = 5_000L
+    }
+}
+
+/**
+ * Asks where to save a new file, named and typed per launch, which the
+ * stock CreateDocument contract fixes once for all its launches.
+ */
+private class CreateTypedDocument : ActivityResultContract<Pair<String, String>, Uri?>() {
+    override fun createIntent(context: Context, input: Pair<String, String>): Intent =
+        Intent(Intent.ACTION_CREATE_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType(input.second)
+            .putExtra(Intent.EXTRA_TITLE, input.first)
+
+    override fun parseResult(resultCode: Int, intent: Intent?): Uri? = intent?.data.takeIf {
+        resultCode ==
+            Activity.RESULT_OK
     }
 }

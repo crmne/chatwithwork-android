@@ -174,6 +174,7 @@ written with `^`):
 | `^/shared/` | default | push | off | |
 | `/settings(\?\|$)` | modal | | on | a section (`?tab=`) pushes inside the modal |
 | `/chats(\?\|$)`, `/projects(\?\|$)`, `/bots(\?\|$)` | default | push | on | pushed over the chat |
+| `/chats/\d+/files/` | modal | | off | a chat's file in its viewer, a full-screen modal over the chat (iOS contract, "A file") |
 | files and the marketing site | | `none` | | `open_in_browser: true`: a Chrome Custom Tab |
 
 Compared with `ios_v2.json`:
@@ -190,7 +191,12 @@ Compared with `ios_v2.json`:
   ignores them; `uri` and `open_in_browser` are Android's and iOS ignores
   them.
 - The last rule is Android's own: files (`/rails/active_storage/...`) and
-  the marketing site open in a Chrome Custom Tab over the app.
+  the marketing site open in a Chrome Custom Tab over the app. A chat's files
+  open in their viewer instead (`/chats/\d+/files/`), so a deck shows as its
+  slides in the app, never as a download Chrome hands to another app; only a
+  viewer's Download in a build without `file` still opens a tab. The viewer
+  is the one page whose web view zooms with two fingers (`WebFragment`
+  turns the web view's built-in zoom on for it and off for every other page).
 
 Hotwire Native adds its own rules for `/recede_historical_location`,
 `/resume_historical_location` and `/refresh_historical_location` after
@@ -211,6 +217,7 @@ draws each one its own way:
 | `search` | Joe Masilotti's component: a search action in the top app bar that opens a search field there, replying `{query}` on every change. |
 | `form` | The submit as a text action in the top app bar ("Save", "Create"), faded and disabled between `disableSubmit` and `enableSubmit`. |
 | `share` | `connect` adds a share icon to the top app bar; `share` opens Android's share sheet at once. The reply is `{completed, activityType}`: `completed` is whether an app was picked, `activityType` that app's package name (`com.google.android.gm`). |
+| `file` | In a file's viewer: `connect` `{files}` adds a share icon to the top app bar and "Save to device" to the overflow menu; with more than one file (an Office file, then the PDF of its pages) each first asks which in a dialog named for the action, listing each `title` (what the file is: "PowerPoint", "PDF"). Both download the file with the web view's cookies, only from this app's server, into the cache's `shared/` folder: Share hands it to the share sheet through the FileProvider (`ACTION_SEND` with the file itself), Save writes it where the person picks (`ACTION_CREATE_DOCUMENT`). No reply. |
 | `toast` | A snackbar; `alert` and `error` stay up longer. |
 | `haptic` | `success` confirms, `warning` and `error` reject, `selection` ticks, `light` and `soft` tick lightly, `medium` and `rigid` tap, `heavy` presses long. Android's touch feedback setting applies. |
 | `alert` | A Material dialog: `title`, `description` as its message, `dismiss` and `confirm` buttons, the confirm in red when `destructive`. |

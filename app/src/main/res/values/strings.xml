@@ -65,6 +65,11 @@
 
     <!-- Toolbar actions -->
     <string name="share">Share</string>
+    <!-- A file's viewer: its overflow menu, and what the download and save say. -->
+    <string name="file_save">Save to device</string>
+    <string name="file_saved">Saved</string>
+    <string name="file_save_failed">Couldn\'t save the file there. Try another place.</string>
+    <string name="file_download_failed">Couldn\'t download the file. Try again.</string>
     <string name="copied">Copied</string>
     <string name="selected">Selected</string>
     <string name="close">Close</string>

@@ -81,6 +81,22 @@ class PathConfigurationTest {
     }
 
     @Test
+    fun `a chat's files open in their viewer, a full-screen modal over the chat`() {
+        listOf(
+            "/482139075/chats/42/files/eyJfcmFpbHMiOnsiZGF0YSI6MTJ9fQ==--abc",
+            "/482139075/chats/42/files/abc?poll=2"
+        ).forEach { path ->
+            properties(path).let {
+                assertWithMessage(path).that(it["context"]).isEqualTo("modal")
+                assertWithMessage(path).that(it["uri"]).isEqualTo("hotwire://fragment/web/modal")
+                assertWithMessage(path).that(it["pull_to_refresh_enabled"]).isEqualTo(false)
+                assertWithMessage(path).that(it["presentation"]).isNull()
+                assertWithMessage(path).that(it["open_in_browser"]).isNull()
+            }
+        }
+    }
+
+    @Test
     fun `sign-in pages are modals`() {
         listOf(
             "/users/sign_in",

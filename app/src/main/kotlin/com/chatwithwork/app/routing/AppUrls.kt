@@ -144,6 +144,9 @@ object AppUrls {
     /** Uploaded files and previews (Active Storage): not pages, so not for the web view. */
     fun isFile(url: String): Boolean = parse(url)?.rawPath.orEmpty().startsWith("/rails/active_storage/")
 
+    /** A chat's file in its viewer (the server's chats/files/show), which zooms like a document. */
+    fun isFileViewer(url: String): Boolean = Regex("^/chats/\\d+/files/").containsMatchIn(pathWithinAccount(url))
+
     private fun parse(url: String): URI? = runCatching { URI(url) }.getOrNull()?.takeIf { it.host != null }
 
     private fun effectivePort(uri: URI): Int = when {

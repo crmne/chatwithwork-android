@@ -11,6 +11,7 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.SymbolDrawable
+import com.chatwithwork.app.routing.AppUrls
 import com.google.android.material.color.MaterialColors
 import dev.hotwire.core.config.Hotwire
 import dev.hotwire.core.turbo.config.context
@@ -106,7 +107,20 @@ open class WebFragment : HotwireWebFragment() {
 
     override fun onVisitCompleted(location: String, completedOffline: Boolean) {
         super.onVisitCompleted(location, completedOffline)
+        allowZoom(AppUrls.isFileViewer(location))
         host?.onVisitCompleted(this, location)
+    }
+
+    /**
+     * Two fingers zoom a file's pages, as in a document viewer. The web view
+     * is the screens' shared one, so every other page turns it off again;
+     * those that set a maximum scale wouldn't zoom anyway.
+     */
+    private fun allowZoom(allowed: Boolean) {
+        navigator.session.webView.settings.apply {
+            builtInZoomControls = allowed
+            displayZoomControls = false
+        }
     }
 
     override fun onVisitErrorReceived(location: String, error: VisitError) {
