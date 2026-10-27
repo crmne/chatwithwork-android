@@ -15,67 +15,101 @@
     android:orientation="horizontal"
     android:padding="3dp">
 
-    <LinearLayout
+    <!--
+      Each half is the same height and padding whether chosen or not, its icon
+      and label centred together as one group. Bots' dot hangs just past its
+      label, out of the group's measure, so it never moves the group.
+    -->
+    <FrameLayout
         android:id="@+id/sidebar_view_chats"
         android:layout_width="0dp"
         android:layout_height="36dp"
         android:layout_weight="1"
         android:background="@drawable/sidebar_view_segment"
-        android:focusable="true"
-        android:gravity="center"
-        android:orientation="horizontal">
+        android:focusable="true">
 
-        <ImageView
-            android:id="@+id/sidebar_view_chats_icon"
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:layout_marginEnd="6dp"
-            android:importantForAccessibility="no" />
-
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/sidebar_view_chats"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
-            android:textColor="?attr/colorOnSurface" />
+            android:layout_gravity="center"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-    </LinearLayout>
+            <ImageView
+                android:id="@+id/sidebar_view_chats_icon"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginEnd="6dp"
+                android:importantForAccessibility="no" />
 
-    <LinearLayout
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:text="@string/sidebar_view_chats"
+                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:textColor="?attr/colorOnSurface" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <FrameLayout
         android:id="@+id/sidebar_view_bots"
         android:layout_width="0dp"
         android:layout_height="36dp"
         android:layout_weight="1"
         android:background="@drawable/sidebar_view_segment"
-        android:focusable="true"
-        android:gravity="center"
-        android:orientation="horizontal">
+        android:clipChildren="false"
+        android:focusable="true">
 
-        <ImageView
-            android:id="@+id/sidebar_view_bots_icon"
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:layout_marginEnd="6dp"
-            android:importantForAccessibility="no"
-            android:scaleType="center" />
-
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/sidebar_bots"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
-            android:textColor="?attr/colorOnSurface" />
+            android:layout_gravity="center"
+            android:clipChildren="false"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <View
-            android:id="@+id/sidebar_view_bots_dot"
-            android:layout_width="7dp"
-            android:layout_height="7dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/sidebar_dot"
-            android:backgroundTint="@color/lw_attention"
-            android:visibility="gone"
-            tools:visibility="visible" />
+            <!-- The mark's bubble sits above its tail, so it drops 1dp to line up with the label's centre. -->
+            <ImageView
+                android:id="@+id/sidebar_view_bots_icon"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginEnd="6dp"
+                android:importantForAccessibility="no"
+                android:scaleType="center"
+                android:translationY="1dp" />
 
-    </LinearLayout>
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:clipChildren="false">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:includeFontPadding="false"
+                    android:text="@string/sidebar_bots"
+                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <!-- 7dp wide, pulled 12dp past the label's end: 5dp of gap, outside the group's width. -->
+                <View
+                    android:id="@+id/sidebar_view_bots_dot"
+                    android:layout_width="7dp"
+                    android:layout_height="7dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="-12dp"
+                    android:background="@drawable/sidebar_dot"
+                    android:backgroundTint="@color/lw_attention"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+    </FrameLayout>
 
 </LinearLayout>
