@@ -105,6 +105,12 @@ open class WebFragment : HotwireWebFragment() {
         onRetry = { refresh(displayProgress = true) }
     )
 
+    override fun onVisitStarted(location: String) {
+        // A file's pages may have been zoomed; the page after them starts whole.
+        if (!AppUrls.isFileViewer(location)) unzoom()
+        super.onVisitStarted(location)
+    }
+
     override fun onVisitCompleted(location: String, completedOffline: Boolean) {
         super.onVisitCompleted(location, completedOffline)
         allowZoom(AppUrls.isFileViewer(location))
@@ -113,14 +119,21 @@ open class WebFragment : HotwireWebFragment() {
 
     /**
      * Two fingers zoom a file's pages, as in a document viewer. The web view
-     * is the screens' shared one, so every other page turns it off again;
-     * those that set a maximum scale wouldn't zoom anyway.
+     * is the screens' shared one, so every other page turns it off again,
+     * zoomed back out first: a page keeps the scale it was left at.
      */
     private fun allowZoom(allowed: Boolean) {
+        if (!allowed) unzoom()
         navigator.session.webView.settings.apply {
             builtInZoomControls = allowed
             displayZoomControls = false
         }
+    }
+
+    /** Zooms out as far as the page goes, if it could have been zoomed. */
+    private fun unzoom() {
+        val webView = navigator.session.webView
+        if (webView.settings.builtInZoomControls) webView.zoomBy(MIN_ZOOM_FACTOR)
     }
 
     override fun onVisitErrorReceived(location: String, error: VisitError) {
@@ -157,6 +170,12 @@ interface WebScreenHost {
 
     fun startNewChat()
 }
+
+/**
+ * Small enough that any zoom comes out at the page's own minimum scale,
+ * which WebView.zoomBy clamps to; it refuses 0.01 and below.
+ */
+private const val MIN_ZOOM_FACTOR = 0.02f
 
 private const val GROUP_SHELL = 0x0C0
 private const val ITEM_NEW_CHAT = 0x0C001
