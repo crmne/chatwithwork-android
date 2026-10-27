@@ -14,12 +14,13 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.SymbolDrawable
 import com.google.android.material.color.MaterialColors
 
 /**
- * The native composer: "+", the field, the model, and Send or Stop. It only
+ * The native composer: "+", the field, the model, Stop while an answer runs, and Send. It only
  * draws a [ComposerState] and says what the person did ([Actions]); the
  * composer component turns that into replies to the web composer, which keeps
  * every rule. Words stay here until they're sent.
@@ -46,6 +47,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private val input by lazy { findViewById<EditText>(R.id.composer_field) }
     private val plus by lazy { findViewById<ImageButton>(R.id.composer_plus) }
     private val model by lazy { findViewById<TextView>(R.id.composer_model) }
+    private val stop by lazy { findViewById<ImageButton>(R.id.composer_stop) }
     private val send by lazy { findViewById<ImageButton>(R.id.composer_send) }
     private val filesScroll by lazy { findViewById<View>(R.id.composer_files_scroll) }
     private val files by lazy { findViewById<LinearLayout>(R.id.composer_files) }
@@ -77,14 +79,15 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         plus.setImageDrawable(SymbolDrawable(context, "add", color = ink))
         plus.setOnClickListener { actions?.openSheet() }
         model.setOnClickListener { actions?.chooseModel() }
-        send.setOnClickListener { onSendOrStop() }
+        stop.setOnClickListener { onStop() }
+        send.setOnClickListener { onSend() }
         input.addTextChangedListener(
             object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
 
-                override fun afterTextChanged(s: Editable?) = renderButton()
+                override fun afterTextChanged(s: Editable?) = renderButtons()
             }
         )
     }
@@ -127,7 +130,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         )
 
         renderFiles()
-        renderButton()
+        renderButtons()
     }
 
     /** Adds dictated (or shared) words to what's typed. */
@@ -142,11 +145,11 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         input.setText("")
     }
 
-    private fun onSendOrStop() {
-        if (state.showsStop(text)) {
-            actions?.stop()
-            return
-        }
+    private fun onStop() {
+        if (state.canStop) actions?.stop()
+    }
+
+    private fun onSend() {
         if (!state.canSend(text)) return
         performHapticFeedback(
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
@@ -159,16 +162,37 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         clear()
     }
 
-    private fun renderButton() {
-        val stop = state.showsStop(text)
-        val enabled = if (stop) !state.stopping else state.canSend(text)
-        send.isEnabled = enabled
-        val color =
-            ContextCompat.getColor(context, if (enabled) R.color.lw_ink_inverted else R.color.lw_ink_faint)
-        send.setImageDrawable(
-            SymbolDrawable(context, if (stop) "stop" else "arrow_upward", filled = stop, color = color)
+    // While an answer runs, Stop stands alone in ink until there are words or files; then Send joins it as the ink
+    // button and Stop steps back to an outline beside it.
+    private fun renderButtons() {
+        val showsSend = state.showsSend(text)
+        stop.isVisible = state.showsStop()
+        send.isVisible = showsSend
+
+        val stopAlone = !showsSend
+        stop.isEnabled = state.canStop
+        stop.setBackgroundResource(
+            if (stopAlone) R.drawable.composer_send_background else R.drawable.composer_stop_quiet_background
         )
-        send.contentDescription = context.getString(if (stop) R.string.composer_stop else R.string.composer_send)
+        val stopColor =
+            when {
+                !stop.isEnabled -> R.color.lw_ink_faint
+                stopAlone -> R.color.lw_ink_inverted
+                else -> R.color.lw_ink
+            }
+        stop.setImageDrawable(
+            SymbolDrawable(context, "stop", filled = true, color = ContextCompat.getColor(context, stopColor))
+        )
+        val gap = if (showsSend) (BUTTON_GAP_DP * resources.displayMetrics.density).toInt() else 0
+        if ((stop.layoutParams as MarginLayoutParams).marginEnd != gap) {
+            stop.updateLayoutParams<MarginLayoutParams> { marginEnd = gap }
+        }
+
+        send.isEnabled = state.canSend(text)
+        val sendColor = if (send.isEnabled) R.color.lw_ink_inverted else R.color.lw_ink_faint
+        send.setImageDrawable(
+            SymbolDrawable(context, "arrow_upward", color = ContextCompat.getColor(context, sendColor))
+        )
     }
 
     private fun renderFiles() {
@@ -202,6 +226,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     private companion object {
         const val DISABLED_ALPHA = 0.38f
+
+        // Between Stop and Send when both show, the same as between the model chip and Send.
+        const val BUTTON_GAP_DP = 8
 
         // The web conversation's column, 46rem (components/conversation.css): CSS pixels are dp in the web view.
         const val COLUMN_WIDTH_DP = 736

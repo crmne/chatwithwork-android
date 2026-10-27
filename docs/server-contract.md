@@ -740,7 +740,7 @@ No replies.
 
 Builds that register the `composer` component draw the composer
 themselves, docked above the keyboard and the gesture bar, under the page:
-"+", the field, the model, and Send or Stop, on the composer's rainbow
+"+", the field, the model, Stop while an answer runs, and Send, on the composer's rainbow
 edge. The web composer (`#new_message`, with `bridge--composer`) stays in
 the page out of sight (native.css, once `data-bridge-components` lists
 `composer`), and the app drives it, so every rule it carries holds: locks,
@@ -763,9 +763,11 @@ What the app does with it:
   shared in, or a draft the web restored), and keeps what's typed until Send, which sends `send {text}`
   (with a confirming haptic) and clears it. Send needs words or a file and
   waits while a file uploads (the web would refuse). While `working`, an
-  empty field turns the button into Stop (disabled while `stopping`);
-  words typed then are sent as `send`, and the web decides whether they
-  steer the answer or wait for it.
+  empty field shows Stop alone (`stop`, disabled while `stopping`); once
+  there are words or a file, Send shows beside it, so either can be
+  pressed: Stop sends `stop`, and Send sends `send` and the web decides
+  whether the words steer the answer or wait for it. Emptying the field
+  leaves Stop alone again. Not working, Send stands alone.
 - **Locked**: the field and "+" are disabled and `lockReason` shows above
   the composer.
 - **The model**: a chip with the selected model's name, hidden while locked

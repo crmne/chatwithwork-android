@@ -38,7 +38,7 @@
     <string name="composer_placeholder">Ask anything…</string>
     <string name="composer_add">Add photos, files, or a scan</string>
     <string name="composer_send">Send</string>
-    <string name="composer_stop">Stop</string>
+    <string name="composer_stop">Stop response</string>
     <string name="composer_model_description">Model: %1$s. Choose another.</string>
     <string name="composer_remove_file">Remove %1$s</string>
     <string name="composer_models_title">Model</string>

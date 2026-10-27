@@ -55,8 +55,14 @@ data class ComposerState(
     /** Send goes out with words or files, never while a file still uploads (the web would refuse). */
     fun canSend(text: String): Boolean = !locked && !uploading && (text.isNotBlank() || attachments.isNotEmpty())
 
-    /** While an answer runs with nothing typed, the main button stops it; with words, it sends them (steering). */
-    fun showsStop(text: String): Boolean = working && text.isBlank() && attachments.isEmpty()
+    /** Stop shows for as long as an answer runs, beside Send once there's something to steer with. */
+    fun showsStop(): Boolean = working
+
+    /** Send shows unless an answer runs with nothing typed or attached, when Stop stands alone. */
+    fun showsSend(text: String): Boolean = !working || text.isNotBlank() || attachments.isNotEmpty()
+
+    /** Stop can't be pressed again while the answer is already stopping. */
+    val canStop: Boolean get() = working && !stopping
 }
 
 /** One file for `attach`: its name, media type, and bytes as base64. */

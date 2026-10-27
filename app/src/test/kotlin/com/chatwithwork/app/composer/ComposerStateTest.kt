@@ -48,11 +48,36 @@ class ComposerStateTest {
     }
 
     @Test
-    fun `while an answer runs, the button stops it unless there's something to steer with`() {
+    fun `while an answer runs, Stop stands alone until there's something to steer with, then Send joins it`() {
         val working = ComposerState(working = true)
-        assertThat(working.showsStop("")).isTrue()
-        assertThat(working.showsStop("And check Slack")).isFalse()
-        assertThat(ComposerState().showsStop("")).isFalse()
+        assertThat(working.showsStop()).isTrue()
+        assertThat(working.showsSend("")).isFalse()
+        assertThat(working.showsSend("  ")).isFalse()
+
+        assertThat(working.showsSend("And check Slack")).isTrue()
+        assertThat(working.canSend("And check Slack")).isTrue()
+        assertThat(working.showsStop()).isTrue()
+
+        val file = ComposerState.Attachment(id = "1")
+        assertThat(working.copy(attachments = listOf(file)).showsSend("")).isTrue()
+    }
+
+    @Test
+    fun `without an answer running, Send stands alone`() {
+        val idle = ComposerState()
+        assertThat(idle.showsStop()).isFalse()
+        assertThat(idle.showsSend("")).isTrue()
+        assertThat(idle.showsSend("Hello")).isTrue()
+        assertThat(idle.canStop).isFalse()
+    }
+
+    @Test
+    fun `Stop is disabled while the answer is stopping, with or without words`() {
+        val stopping = ComposerState(working = true, stopping = true)
+        assertThat(stopping.showsStop()).isTrue()
+        assertThat(stopping.canStop).isFalse()
+        assertThat(stopping.showsSend("And check Slack")).isTrue()
+        assertThat(ComposerState(working = true).canStop).isTrue()
     }
 
     @Test
