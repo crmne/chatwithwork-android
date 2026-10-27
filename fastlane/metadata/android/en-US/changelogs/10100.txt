@@ -1,0 +1,1 @@
+Before your first question goes to an AI model, the app now asks once and says which companies run the models, and where. Rate any answer, or report one as offensive or harmful, from its menu. While an answer runs, Send shows beside Stop as you type, so you can steer it or stop it.
