@@ -67,6 +67,11 @@ needs no closed test first.
   carried the app's setup: the store listing, App content, and the store
   settings below. Until Play approves the app, testers see the temporary
   name "com.chatwithwork.app (unreviewed)".
+- **Version 1.1.0** (10100) went to internal testing on 2026-10-27. It's
+  the first release meant for production: when the launch is approved,
+  promote it (Internal testing > Promote release > Production) and update
+  App content's App access instructions to the text below, which describe
+  the first question's yes and reporting an answer.
 
 ## The listing
 
@@ -130,7 +135,7 @@ listing's words, and what backs each claim, are in the Rails app's
   it's a work tool). Not designed for children.
 - **News app:** no. **Government app:** no. **Financial features:** none.
   **Health:** no.
-- **Account deletion:** yes, in the app (Settings > Account > Delete
+- **Account deletion:** yes, in the app (Settings > Profile > Delete
   account), and the web link https://chatwithwork.com/account-deletion, which
   gives the steps, what's deleted at once and after 30 days, what stays, and
   how to ask by email without signing in.
