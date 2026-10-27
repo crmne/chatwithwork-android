@@ -28,9 +28,11 @@ it needs a Play service account key, which never goes in this repository).
    language English (United States), App, Free.
 5. **The demo login** for review, on production: the 1Password item "App
    Review demo login" holds it, and the Rails app's `script/store/seed
-   production review app-review@chatwithwork.com <password file>` creates it
-   with synthetic content, once the release that serves the apps is
-   deployed.
+   production review app-review@chatwithwork.com <password file>` makes it
+   with synthetic content, past the first-run tour. It was first made on
+   2026-10-27; run it again just before sending a release for review, so its
+   morning brief reads as that day's, its change waits again, and an
+   earlier reviewer's yes to AI models is taken back.
 
 ## Building and uploading
 
@@ -100,16 +102,24 @@ listing's words, and what backs each claim, are in the Rails app's
 - **App access:** all or some functionality is restricted. Add the demo
   login: email `app-review@chatwithwork.com`, password from 1Password, and
   the instructions: "Sign in on the welcome screen. The account belongs to
-  a made-up organization with synthetic chats. Open 'Morning Acme brief'
-  for an answer with sources and 'Acme launch update' for a change waiting
-  for approval (no Slack is connected, so approving posts nothing). Services
-  are connected on chatwithwork.com from a computer."
+  a made-up organization with synthetic chats. Your first question asks
+  first: before anything goes to an AI model, the app names the companies
+  that run the models and where, with Not now and Agree and continue. To
+  report an answer, tap the '...' under it, then Bad answer, pick
+  'Offensive or harmful', and Send. Open 'Morning Acme brief' for an answer
+  with sources, and Decisions (from the sidebar) for a change waiting for
+  approval (no Slack is connected, so approving posts nothing). Services
+  are connected through the browser's sign-in sheet; the demo account has
+  none."
 - **AI-generated content:** Play's AI-Generated Content policy asks apps
   whose AI output is central for a way to report offensive output without
-  leaving the app. On the web that's the thumbs down beside each answer
-  (with its reasons and a comment), but the app hides the answer's actions
-  and its long-press menu doesn't offer the thumbs: add them before
-  submitting (the Rails app's `docs/marketing/marketplaces.md`, decision 8).
+  leaving the app. An answer's menu (the "..." under it) has Good answer
+  and Bad answer, and Bad answer's reasons include "Offensive or harmful",
+  with a comment, sent to our staff (the Rails app's `docs/feedback.md`).
+  Before the first question goes to a model, the app also asks once and
+  names the companies that run the models and where (the Rails app's
+  `docs/model-consent.md`). Both are drawn by the server's pages, so every
+  build has them.
 - **Content rating (IARC):** category "Productivity, communication, or
   other". No violence, sexuality, language, controlled substances, or
   gambling. Users interact or exchange content: yes (chats shared inside an
@@ -145,6 +155,12 @@ services a person connects receive only what they approve.
 | App info and performance > Diagnostics (server error reports, by user ID only) | Yes | No | App functionality |
 | Device or other IDs (the push token, once notifications are on) | Yes | Yes | App functionality |
 | Location, financial info, health, contacts, calendar, web browsing, app activity, installed apps | No | | |
+
+Two things that look new aren't types of their own: the words a
+notification shows, which the app fetches from our server as the push
+arrives (it sends only the phone's notification key), and the record of a
+person's yes to AI models (when, which wording, from the Android app),
+which is account data.
 
 Data is not used for advertising, analytics, or tracking. Payment details
 are never collected in the app: the app sells nothing (Settings > Billing

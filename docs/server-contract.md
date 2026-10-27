@@ -269,6 +269,11 @@ the apps. On Android:
   the context menu as a popup at the button. The approval and composer
   haptics vibrate as in the table above. The composer's keyboard-shortcut
   hint (`.kbd-hint`) stays in the markup: native.css hides it in the apps.
+  The answer's menu also holds Good answer (`thumb_up`) and Bad answer
+  (`thumb_down`), the `.fill` symbols and "Remove your rating" once
+  pressed (2026-10-27): Bad answer opens its reasons under the answer,
+  including "Offensive or harmful", the in-app report Play's AI-Generated
+  Content policy asks for.
 - **The chat list** (`chats/index`) and **projects** (`projects/index`,
   from the sidebar's "All projects..."): pushed over the chat, when a link
   leads there. The sidebar is the app's list, so the app opens neither by
@@ -790,3 +795,11 @@ What the app does with it:
   leave Dictate out.
 - Files shared into the app from elsewhere (section 7, "Sharing into the
   app") wait for the next composer that connects and go to it as `attach`.
+- **The yes before the first question (2026-10-27).** Before anything a
+  person sends goes to a model, the page asks once in a dialog of its own,
+  over the chat (the server's `docs/model-consent.md`). The app does
+  nothing new: after `send`, the web composer waits for the dialog. Agree
+  sends the words; Not now sends nothing and the page connects again, with
+  the words as `text`, which the empty field takes back. Until the person
+  agrees, `dictation` is `null`, so Dictate stays out of "+", and a `state`
+  brings it back once they do.
