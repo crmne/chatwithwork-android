@@ -83,6 +83,18 @@ data class Sidebar(
         val url: String,
         /** `approval`, `question`, or `bot`. */
         val kind: String = "approval",
+        val project: String? = null,
+        /** One line saying what's to decide (servers from 2026-10-26). */
+        val summary: String? = null,
+        /** Who asks (servers from 2026-10-27), which the list leads with, as the web's decision row does. */
+        val asker: Asker? = null
+    )
+
+    @Serializable
+    data class Asker(
+        /** `bot`, `agent`, or `chat`. */
+        val kind: String = "chat",
+        val name: String,
         val project: String? = null
     )
 

@@ -688,6 +688,14 @@ version needs: the page decides through the chat's own cards, swiping left
 or right on it moves between decisions, and the sidebar's `changed` follows
 its count.
 
+**Who asks (server, 2026-10-27).** Each of `waiting.items` also carries
+`asker`, `{"kind": "bot", "name": "Front desk", "project": "Website
+relaunch"}` (`kind` `bot`, `agent` or `chat`, `project` null outside one),
+the server's `Decision#asker`. The sheet of `waiting.items` (shown only from
+a server without `waiting.url`) leads each with `asker.name`, then `summary`
+and the project, as the web's decision row does. Without `asker` it's as
+before.
+
 **Chats | Bots (server, 2026-10-27).** `bots` also carries `url` (the Bots
 page), `new_url` (New bot) and `items`, the person's bots and the shared ones
 they read, as the web sidebar's Bots view lists them (`bots/_sidebar_list`),

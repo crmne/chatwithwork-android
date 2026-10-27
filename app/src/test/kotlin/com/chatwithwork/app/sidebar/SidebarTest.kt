@@ -295,6 +295,21 @@ class SidebarTest {
     }
 
     @Test
+    fun `reads who asks for each decision, which older servers leave out`() {
+        val asked = Sidebar.parse(
+            json.replace(
+                """"kind": "approval", "project": "Website relaunch"}""",
+                """"kind": "bot", "project": "Website relaunch", "summary": "Send the refund?",
+                   "asker": {"kind": "bot", "name": "Front desk", "project": "Website relaunch"}}"""
+            )
+        )
+        val item = asked.waiting.items.single()
+        assertThat(item.asker).isEqualTo(Sidebar.Asker("bot", "Front desk", "Website relaunch"))
+        assertThat(item.summary).isEqualTo("Send the refund?")
+        assertThat(sidebar.waiting.items.single().asker).isNull()
+    }
+
+    @Test
     fun `the chosen half reads back from what the app remembered`() {
         assertThat(SidebarRow.View.from("bots")).isEqualTo(SidebarRow.View.BOTS)
         assertThat(SidebarRow.View.from("chats")).isEqualTo(SidebarRow.View.CHATS)

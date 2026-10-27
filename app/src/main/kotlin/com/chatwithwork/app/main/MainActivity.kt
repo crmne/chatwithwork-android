@@ -647,7 +647,10 @@ class MainActivity :
         val actions =
             waiting.items.map { item ->
                 ActionSheet.Action(
-                    title = listOfNotNull(item.title, item.project).joinToString(" · "),
+                    title =
+                        item.asker?.let { asker ->
+                            listOfNotNull(asker.name, item.summary ?: item.title, item.project).joinToString(" · ")
+                        } ?: listOfNotNull(item.title, item.project).joinToString(" · "),
                     image =
                         when (item.kind) {
                             "question" -> "help"
