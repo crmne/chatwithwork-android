@@ -1,0 +1,1 @@
+While an answer runs, Stop stays in reach as you type: Send shows beside it, so you can steer the answer with your words or stop it.
