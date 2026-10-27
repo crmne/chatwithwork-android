@@ -57,8 +57,18 @@ the web with their Google account), which chatwithwork.com links as
 needs no closed test first.
 
 - **The track.** Test and release > Testing > Open testing: unlimited
-  testers, all countries and regions (managed apart from production), and
-  feedback to support@chatwithwork.com.
+  testers, every country and region but Russia, Belarus, Iran and Cuba
+  (managed apart from production), and feedback to support@chatwithwork.com.
+- **Countries left out.** Russia and Belarus are under EU sanctions on
+  software and IT services (Regulations 833/2014 and 765/2006), Iran and
+  Cuba under sanctions the services the app runs on follow (AWS, Google,
+  Stripe). North Korea, Syria and Crimea aren't in Play's list. "Rest of
+  World" is off too, so no country Play adds later gets the app before
+  someone checks it. Production has no countries yet: leave out the same
+  ones when it gets them. The change was saved on 2026-10-27 but not sent,
+  since sending it restarts the first review (in progress since
+  2026-10-26): send it with the next change, or on its own once that
+  review ends.
 - **A release.** Internal testing > Promote release > Open testing, or
   create one there. Every change goes through Play's review (Publishing
   overview > Send changes for review; usually hours, at most 7 days), and
