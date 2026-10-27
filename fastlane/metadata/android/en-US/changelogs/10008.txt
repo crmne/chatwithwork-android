@@ -1,0 +1,1 @@
+Files in a chat open right in the app: a deck shows as its slides, a document, spreadsheet, or PDF as its pages, a CSV as a table, with no other app or sign-in needed. Share in the viewer's bar sends the file itself, or a PDF of its pages, and Save to device keeps a copy.
