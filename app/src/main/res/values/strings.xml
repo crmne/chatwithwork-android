@@ -76,7 +76,7 @@
     <string name="menu">Menu</string>
 
     <!-- Signed out -->
-    <string name="welcome_tagline">AI bots in Europe. They work. You just decide.</string>
+    <string name="welcome_tagline">AI bots in Europe. They work. You decide.</string>
     <string name="sign_up">Create an account</string>
 
     <!-- States the native screens draw -->
