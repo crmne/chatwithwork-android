@@ -90,8 +90,48 @@ data class Sidebar(
     data class Bots(
         val count: Int = 0,
         val attention: Boolean = false,
-        @SerialName("next_run") val nextRun: String? = null
+        @SerialName("next_run") val nextRun: String? = null,
+        /** The Bots page. */
+        val url: String? = null,
+        /** New bot: the recipes, Describe your bot, Start from nothing. */
+        @SerialName("new_url") val newUrl: String? = null,
+        /**
+         * The person's bots and the shared ones they read, as the web's Bots
+         * view lists them: those that need them first. Null from servers
+         * before the apps' Chats | Bots switch, which keep the Bots row.
+         */
+        val items: List<Bot>? = null
     )
+
+    /** One bot in the sidebar's Bots view (the web's `bots/_sidebar_bot`). */
+    @Serializable
+    data class Bot(
+        val id: Long,
+        val name: String,
+        val url: String,
+        /** `needs_you` or `quiet`, the web's two headings; the items come in that order. */
+        val group: String = QUIET,
+        /** The project a shared bot is in; null for the person's own. */
+        val project: String? = null,
+        /** `waiting`, `failed`, `working`, `paused`, `next`, `listening`, or `idle`. */
+        val state: String = "idle",
+        /** The state in the web's words ("Waiting for you", "Next 08:30"). */
+        @SerialName("state_label") val stateLabel: String? = null,
+        /** `attention`, `negative`, `live`, `positive`, or none. */
+        val tone: String? = null,
+        /** How many decisions wait for the person in it. */
+        val waiting: Int = 0,
+        /** One of its chats is answering now. */
+        val working: Boolean = false,
+        @SerialName("next_run") val nextRun: String? = null
+    ) {
+        val needsYou: Boolean get() = group == NEEDS_YOU
+
+        companion object {
+            const val NEEDS_YOU = "needs_you"
+            const val QUIET = "quiet"
+        }
+    }
 
     @Serializable
     data class Chat(
@@ -162,8 +202,10 @@ data class Sidebar(
         next = next.next
     )
 
-    /** Whether anything in it is answering right now, to keep it fresh while the sidebar is open. */
-    val anyProcessing: Boolean get() = (chats + pins + sections.flatMap { it.chats }).any { it.isProcessing }
+    /** Whether anything in it (a chat, or a bot's) is answering right now, to keep it fresh while the sidebar is open. */
+    val anyProcessing: Boolean
+        get() = (chats + pins + sections.flatMap { it.chats }).any { it.isProcessing } ||
+            bots?.items.orEmpty().any { it.working }
 
     /** This sidebar with section [id] shown open or closed, before the server hears of it. */
     fun withCollapsed(id: Long, collapsed: Boolean): Sidebar = copy(

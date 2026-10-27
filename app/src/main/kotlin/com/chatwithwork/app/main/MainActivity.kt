@@ -67,6 +67,7 @@ import com.chatwithwork.app.routing.RouteDecisionHandlers
 import com.chatwithwork.app.sidebar.Sidebar
 import com.chatwithwork.app.sidebar.SidebarClient
 import com.chatwithwork.app.sidebar.SidebarDrawer
+import com.chatwithwork.app.sidebar.SidebarRow
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -426,7 +427,12 @@ class MainActivity :
     /** The sidebar as known now, for the organization showing. */
     private fun showSidebar() {
         val data = viewModel.sidebar?.takeIf { it.organization.id == viewModel.account }
-        sidebar.show(data, navigator?.currentDestination?.location, botsKnown = viewModel.account != null)
+        sidebar.show(
+            data,
+            navigator?.currentDestination?.location,
+            botsKnown = viewModel.account != null,
+            view = SidebarRow.View.from(memory.sidebarView)
+        )
     }
 
     override fun onSidebarChanged() {
@@ -503,8 +509,16 @@ class MainActivity :
     }
 
     override fun openBots() {
-        val path = viewModel.sidebar?.links?.bots ?: viewModel.account?.let { "/$it/bots" } ?: return
+        val path =
+            viewModel.sidebar?.let { it.bots?.url ?: it.links.bots } ?: viewModel.account?.let { "/$it/bots" } ?: return
         openPath(path)
+    }
+
+    /** The Chats | Bots switch: the half chosen shows at once, and stays chosen on this install. */
+    override fun chooseView(view: SidebarRow.View) {
+        memory.sidebarView = view.name.lowercase()
+        sidebar.resetSearch()
+        showSidebar()
     }
 
     override fun chooseList() {

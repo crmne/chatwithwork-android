@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- What the sidebar is about, at its top: Private chats, All chats, or a project. Opens the chooser. -->
+<!--
+  What the sidebar is about, at its top: Private chats, All chats, or a
+  project, opening the chooser. In the Bots view, the card for the Bots page:
+  "Bots in" the organization, how many, and what's working or waiting.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -66,9 +70,19 @@
             android:textColor="?attr/colorOnSurface"
             tools:text="Website relaunch" />
 
+        <TextView
+            android:id="@+id/sidebar_switcher_states"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:visibility="gone" />
+
     </LinearLayout>
 
     <ImageView
+        android:id="@+id/sidebar_switcher_caret"
         android:layout_width="20dp"
         android:layout_height="20dp"
         android:importantForAccessibility="no"

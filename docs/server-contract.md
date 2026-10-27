@@ -645,7 +645,8 @@ following page. A 401 means the session is gone.
             "projects": "/482139075/projects", "new_project": "/482139075/projects/new",
             "organizations": "/accounts", "new_organization": "/accounts/new"},
   "waiting": {"count": 1, "items": [{"title": "Launch date in #launch", "url": "/482139075/chats/42", "kind": "approval", "project": "Website relaunch"}]},
-  "bots": {"count": 0, "attention": false, "next_run": "08:30"},
+  "bots": {"count": 0, "attention": false, "next_run": "08:30",
+           "url": "/482139075/bots", "new_url": "/482139075/bots/new", "items": [BOT]},
   "pins": [CHAT],
   "sections": [SECTION],
   "chats": [CHAT],
@@ -657,6 +658,9 @@ CHAT = {"number": 42, "title": "Launch date in #launch", "url": "/482139075/chat
 SECTION = {"id": 7, "name": "Customers", "collapsed": false, "chats": [CHAT],
            "edit_url": "/482139075/sidebar/sections/7/edit", "collapse_url": "/482139075/sidebar/sections/7/collapse",
            "position_url": "/482139075/sidebar/sections/7/position"}
+BOT = {"id": 5, "name": "Front desk", "url": "/482139075/bots/5", "group": "needs_you", "project": "Website relaunch",
+       "state": "waiting", "state_label": "Waiting for you", "tone": "attention", "waiting": 1, "working": false,
+       "next_run": null}
 ACTION = {"key": "delete", "title": "Delete", "method": "delete", "url": "/482139075/chats/42",
           "iosImage": "trash", "androidImage": "delete", "confirm": "Delete this chat?", "destructive": true}
 ```
@@ -683,6 +687,36 @@ Opening `waiting.url` or an item's `url` in the web view is all a first
 version needs: the page decides through the chat's own cards, swiping left
 or right on it moves between decisions, and the sidebar's `changed` follows
 its count.
+
+**Chats | Bots (server, 2026-10-27).** `bots` also carries `url` (the Bots
+page), `new_url` (New bot) and `items`, the person's bots and the shared ones
+they read, as the web sidebar's Bots view lists them (`bots/_sidebar_list`),
+those that need them first. In `BOT`, `group` is `needs_you` or `quiet`,
+already in order; `project` a shared bot's, null for a personal one; `state`
+one of `waiting`, `failed`, `working`, `paused`, `next`, `listening` and
+`idle` (`Bot::Overview#state`), with the web's words in `state_label` and its
+`tone` (`attention`, `negative`, `live`, `positive`, or null); `waiting` how
+many decisions wait for the person in it; `working` whether one of its chats
+is answering now; `next_run` its next timed run, if any.
+
+With `items`, the sidebar draws a segmented Chats | Bots switch right under
+Decisions, in place of the Bots row. Its Bots half shows an attention dot,
+never a number, while `bots.attention`: Decisions carries the one count.
+Chats shows the sidebar as before. Bots keeps the same skeleton: a card in
+the list switcher's place ("Bots in <organization>", how many bots, and how
+many are working or waiting for the person), opening `url`; New bot where New
+chat sits, opening `new_url`; then the bots, under "Needs you" and "Quiet"
+only when both have some. Each row is the bot mark (holding still while
+`paused`, with a live dot while `working`), the name, a shared bot's project,
+and at its end `waiting` with an attention dot when it's more than 0, else
+`state_label` with a dot in its `tone` (a neutral one without). A tap opens
+`url` like any sidebar link, and the row shows as current on the bot's pages.
+With no bots it says "Your bots, and the ones shared with you, show up here."
+and offers "Start from a recipe" (`new_url`). The search shows only with the
+chats. The app remembers the chosen half per install. Guests get no `bots`,
+so no switch; a server that sends no `items` keeps the Bots row. The sidebar
+keeps checking every 5 seconds while it's open and a bot is `working`, as it
+does for a chat.
 
 **Long press (2026-10-26).** Each chat's `actions` are what the web row's
 menu offers for it, in order: `rename`, `pin` or `unpin`, `section`,
@@ -712,8 +746,9 @@ What the app draws from it, top to bottom: the list switcher (`list`; a
 chooser of `lists`, then "All projects..." and "New project"), a search
 that filters titles on the phone, New chat (`links.new_chat`, also where
 the bar's New chat and a cold start go), Decisions (`waiting`, with its
-count), Bots (`bots`: the count with an attention dot, else
-the next run), Pinned, the person's own sections (`sections`, below), then
+count), the Chats | Bots switch (above; from a server without `bots.items`,
+the Bots row instead: `bots`' count with an attention dot, else the next
+run), Pinned, the person's own sections (`sections`, below), then
 the chats by `group` (under one "Other chats" heading instead when there
 are sections, as on the web), a live dot on those
 answering and an attention dot on those waiting, loading `next` near the
