@@ -19,6 +19,9 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.chatwithwork.app.R
@@ -89,6 +92,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     /** The dictation running now, listening or transcribing, if any. */
     private var dictation: Dictation.Session? = null
+
+    // The screen's lifecycle while a recording runs, watched for the app stopping.
+    private var stopWatch: Pair<Lifecycle, DefaultLifecycleObserver>? = null
 
     val dictating: Boolean get() = dictation != null
 
@@ -250,6 +256,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
                     search.note?.takeIf { search.disabled && it.isNotBlank() }
                 ).joinToString(". ")
         }
+
+        val buttons = listOf(plus, dictateButton, webSearchButton).count { it.isVisible }
+        model.maxWidth = (ComposerBar.modelMaxWidthDp(barWidthDp, buttons) * resources.displayMetrics.density).toInt()
     }
 
     /**
@@ -276,6 +285,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
                     override fun onTranscribing() = renderDictation()
 
                     override fun onResult(result: Dictation.Result) {
+                        unwatchStop()
                         dictation = null
                         renderDictation()
                         onResult(result)
@@ -284,13 +294,38 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             )
         if (!session.start()) return false
         dictation = session
+        watchStop(findViewTreeLifecycleOwner()?.lifecycle)
         waveform.reset()
         dictationTime.text = Dictation.elapsed(0)
         renderDictation()
         return true
     }
 
+    /**
+     * Going to the background or locking the phone ends a recording, unsent:
+     * Android gives a stopped app no microphone, so it would only record
+     * silence. Words already sent to be transcribed still come back.
+     */
+    private fun watchStop(lifecycle: Lifecycle?) {
+        unwatchStop()
+        if (lifecycle == null) return
+        val observer =
+            object : DefaultLifecycleObserver {
+                override fun onStop(owner: LifecycleOwner) {
+                    if (dictation?.transcribing == false) cancelDictation()
+                }
+            }
+        lifecycle.addObserver(observer)
+        stopWatch = lifecycle to observer
+    }
+
+    private fun unwatchStop() {
+        stopWatch?.let { (lifecycle, observer) -> lifecycle.removeObserver(observer) }
+        stopWatch = null
+    }
+
     private fun cancelDictation() {
+        unwatchStop()
         dictation?.cancel()
         dictation = null
         renderDictation()

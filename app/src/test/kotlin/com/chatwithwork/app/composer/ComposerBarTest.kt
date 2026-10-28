@@ -51,4 +51,13 @@ class ComposerBarTest {
         assertThat(ComposerBar.inSheet(locked, bar, dictationSupported = true).empty).isTrue()
         assertThat(ComposerBar.inSheet(locked, emptySet(), dictationSupported = true).empty).isFalse()
     }
+
+    @Test
+    fun `the model chip never takes Send's room`() {
+        // A 360dp phone's 320dp bar with "+", the microphone and the globe: 320 - 3 * 44 - 8 - 44.
+        assertThat(ComposerBar.modelMaxWidthDp(320, buttons = 3)).isEqualTo(136)
+        // A wide bar lets it reach its widest, and it never drops below its narrowest.
+        assertThat(ComposerBar.modelMaxWidthDp(600, buttons = 1)).isEqualTo(180)
+        assertThat(ComposerBar.modelMaxWidthDp(0, buttons = 0)).isEqualTo(96)
+    }
 }

@@ -13,9 +13,13 @@ package com.chatwithwork.app.composer
 object ComposerBar {
     enum class Control { DICTATE, WEB_SEARCH }
 
-    // "+" (44), the model chip at its narrowest (96) with its gap (8), and Send (44).
-    private const val BASE_DP = 44 + 96 + 8 + 44
     private const val BUTTON_DP = 44
+    private const val CHIP_GAP_DP = 8
+    private const val CHIP_MIN_DP = 96
+    private const val CHIP_MAX_DP = 180
+
+    // "+", the model chip at its narrowest with its gap, and Send.
+    private const val BASE_DP = BUTTON_DP + CHIP_MIN_DP + CHIP_GAP_DP + BUTTON_DP
 
     /** The controls the page offers now that have a button of their own. */
     fun offered(state: ComposerState, dictationSupported: Boolean = Dictation.supported): List<Control> = listOfNotNull(
@@ -29,6 +33,15 @@ object ComposerBar {
         val room = ((widthDp - BASE_DP) / BUTTON_DP).coerceAtLeast(0)
         return offered.take(room).toSet()
     }
+
+    /**
+     * How wide the model chip may grow in a bar [widthDp] wide with [buttons]
+     * round buttons showing before it: what Send and the chip's gap leave,
+     * between its narrowest and its widest. The chip measures before Send,
+     * so without this cap a long model name would push Send off the bar.
+     */
+    fun modelMaxWidthDp(widthDp: Int, buttons: Int): Int =
+        (widthDp - buttons * BUTTON_DP - CHIP_GAP_DP - BUTTON_DP).coerceIn(CHIP_MIN_DP, CHIP_MAX_DP)
 
     /** What "+" holds: attaching, when the page takes files, and whatever didn't fit in the bar. */
     fun inSheet(state: ComposerState, bar: Set<Control>, dictationSupported: Boolean = Dictation.supported): Sheet =

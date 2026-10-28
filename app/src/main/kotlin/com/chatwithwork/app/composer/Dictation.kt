@@ -11,6 +11,7 @@ import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.log10
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -75,6 +76,9 @@ object Dictation {
         private val file = File(context.cacheDir, "dictation-${System.currentTimeMillis()}.ogg")
         private var recorder: MediaRecorder? = null
         private var job: Job? = null
+
+        // The transcription's request while it's on its way, so Cancel can drop it.
+        private val request = AtomicReference<HttpURLConnection?>()
         private var started = 0L
         var transcribing = false
             private set
@@ -116,7 +120,7 @@ object Dictation {
             listener.onTranscribing()
             job =
                 scope.launch {
-                    val result = upload(AppConfig.baseUrl + path, file, csrfToken, userAgent)
+                    val result = upload(AppConfig.baseUrl + path, file, csrfToken, userAgent, request)
                     file.delete()
                     if (finished) return@launch
                     finished = true
@@ -129,6 +133,8 @@ object Dictation {
             if (finished) return
             finished = true
             job?.cancel()
+            // A blocking request ignores the coroutine's cancelling: closing it stops the upload.
+            request.getAndSet(null)?.disconnect()
             release()
             file.delete()
         }
@@ -175,46 +181,53 @@ object Dictation {
         return recorder
     }
 
-    private suspend fun upload(url: String, file: File, csrfToken: String?, userAgent: String?): Result =
-        withContext(Dispatchers.IO) {
-            val boundary = "dictation" + System.nanoTime()
-            val connection =
-                try {
-                    URL(url).openConnection() as HttpURLConnection
-                } catch (_: IOException) {
-                    return@withContext Result(null, null)
-                }
+    private suspend fun upload(
+        url: String,
+        file: File,
+        csrfToken: String?,
+        userAgent: String?,
+        active: AtomicReference<HttpURLConnection?>
+    ): Result = withContext(Dispatchers.IO) {
+        val boundary = "dictation" + System.nanoTime()
+        val connection =
             try {
-                connection.requestMethod = "POST"
-                connection.doOutput = true
-                connection.connectTimeout = 15_000
-                connection.readTimeout = 120_000
-                connection.setRequestProperty("Accept", "application/json")
-                connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
-                csrfToken?.let { connection.setRequestProperty("X-CSRF-Token", it) }
-                userAgent?.let { connection.setRequestProperty("User-Agent", it) }
-                CookieManager.getInstance().getCookie(url)?.let { connection.setRequestProperty("Cookie", it) }
-                connection.outputStream.use { out ->
-                    val disposition = "Content-Disposition: form-data; name=\"audio\"; filename=\"dictation.ogg\""
-                    out.write("--$boundary\r\n$disposition\r\nContent-Type: audio/ogg\r\n\r\n".toByteArray())
-                    file.inputStream().use { it.copyTo(out) }
-                    out.write("\r\n--$boundary--\r\n".toByteArray())
-                }
-                val code = connection.responseCode
-                val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-                val body = stream?.bufferedReader()?.use { it.readText() }
-                val json = body?.let { runCatching { Json.parseToJsonElement(it).jsonObject }.getOrNull() }
-                val text = json?.get("text")?.jsonPrimitive?.contentOrNull
-                val error = json?.get("error")?.jsonPrimitive?.contentOrNull
-                when {
-                    code in 200..299 && !text.isNullOrBlank() -> Result(text, null)
-                    code in 200..299 -> Result(null, null, nothingHeard = true)
-                    else -> Result(null, error)
-                }
+                URL(url).openConnection() as HttpURLConnection
             } catch (_: IOException) {
-                Result(null, null)
-            } finally {
-                connection.disconnect()
+                return@withContext Result(null, null)
             }
+        active.set(connection)
+        try {
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.connectTimeout = 15_000
+            connection.readTimeout = 120_000
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+            csrfToken?.let { connection.setRequestProperty("X-CSRF-Token", it) }
+            userAgent?.let { connection.setRequestProperty("User-Agent", it) }
+            CookieManager.getInstance().getCookie(url)?.let { connection.setRequestProperty("Cookie", it) }
+            connection.outputStream.use { out ->
+                val disposition = "Content-Disposition: form-data; name=\"audio\"; filename=\"dictation.ogg\""
+                out.write("--$boundary\r\n$disposition\r\nContent-Type: audio/ogg\r\n\r\n".toByteArray())
+                file.inputStream().use { it.copyTo(out) }
+                out.write("\r\n--$boundary--\r\n".toByteArray())
+            }
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val body = stream?.bufferedReader()?.use { it.readText() }
+            val json = body?.let { runCatching { Json.parseToJsonElement(it).jsonObject }.getOrNull() }
+            val text = json?.get("text")?.jsonPrimitive?.contentOrNull
+            val error = json?.get("error")?.jsonPrimitive?.contentOrNull
+            when {
+                code in 200..299 && !text.isNullOrBlank() -> Result(text, null)
+                code in 200..299 -> Result(null, null, nothingHeard = true)
+                else -> Result(null, error)
+            }
+        } catch (_: IOException) {
+            Result(null, null)
+        } finally {
+            active.compareAndSet(connection, null)
+            connection.disconnect()
         }
+    }
 }
