@@ -15,15 +15,25 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.SymbolDrawable
 import com.google.android.material.color.MaterialColors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
 
 /**
  * The native composer: "+", the field, the model, Stop while an answer runs, and Send. It only
  * draws a [ComposerState] and says what the person did ([Actions]); the
  * composer component turns that into replies to the web composer, which keeps
  * every rule. Words stay here until they're sent.
+ *
+ * While dictation listens and transcribes ([dictate]), its line takes the
+ * field's place, since nobody types while dictating, as the web composer's
+ * does: "Listening", the waveform across the composer and the time, with
+ * Cancel where "+" is and Stop where Send is. The field comes back with the
+ * words.
  */
 class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout(context, attrs) {
     interface Actions {
@@ -51,6 +61,20 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private val send by lazy { findViewById<ImageButton>(R.id.composer_send) }
     private val filesScroll by lazy { findViewById<View>(R.id.composer_files_scroll) }
     private val files by lazy { findViewById<LinearLayout>(R.id.composer_files) }
+    private val dictationLine by lazy { findViewById<View>(R.id.composer_dictation) }
+    private val dictationStatus by lazy { findViewById<TextView>(R.id.composer_dictation_status) }
+    private val dictationDot by lazy { findViewById<View>(R.id.composer_dictation_dot) }
+    private val dictationTime by lazy { findViewById<TextView>(R.id.composer_dictation_time) }
+    private val waveform by lazy { findViewById<WaveformView>(R.id.composer_waveform) }
+    private val dictationCancel by lazy { findViewById<ImageButton>(R.id.composer_dictation_cancel) }
+    private val dictationStopFrame by lazy { findViewById<View>(R.id.composer_dictation_stop_frame) }
+    private val dictationStop by lazy { findViewById<ImageButton>(R.id.composer_dictation_stop) }
+    private val dictationSpinner by lazy { findViewById<View>(R.id.composer_dictation_spinner) }
+
+    /** The dictation running now, listening or transcribing, if any. */
+    private var dictation: Dictation.Session? = null
+
+    val dictating: Boolean get() = dictation != null
 
     val text: String get() = input.text?.toString().orEmpty()
 
@@ -81,6 +105,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         model.setOnClickListener { actions?.chooseModel() }
         stop.setOnClickListener { onStop() }
         send.setOnClickListener { onSend() }
+        dictationCancel.setImageDrawable(SymbolDrawable(context, "close", color = ink))
+        dictationCancel.setOnClickListener { cancelDictation() }
+        dictationStop.setOnClickListener { dictation?.stop() }
         input.addTextChangedListener(
             object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -100,6 +127,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             input.setSelection(input.length())
         }
         isVisible = true
+        // A lock (out of credits, a failed answer) ends dictation, unsent, as the web's does.
+        if (state.locked && dictation != null) cancelDictation()
         input.hint = state.placeholder.ifBlank { context.getString(R.string.composer_placeholder) }
         input.isEnabled = !state.locked
         plus.isEnabled = !state.locked
@@ -117,7 +146,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         )
 
         val selected = state.selectedModel
-        model.isVisible = selected != null && !state.locked && !state.working
+        model.isVisible = selected != null && !state.locked && !state.working && !dictating
         model.text = selected?.name
         model.contentDescription = selected?.let { context.getString(R.string.composer_model_description, it.name) }
         model.setCompoundDrawablesRelativeWithIntrinsicBounds(
@@ -131,6 +160,97 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
         renderFiles()
         renderButtons()
+    }
+
+    /**
+     * Records and transcribes, in the field's place, then hands the words (or
+     * why there are none) to [onResult]; false when the microphone couldn't
+     * start. [path] is the page's dictation URL.
+     */
+    fun dictate(path: String, csrfToken: String?, userAgent: String?, onResult: (Dictation.Result) -> Unit): Boolean {
+        if (dictation != null) return true
+        val scope: CoroutineScope = findViewTreeLifecycleOwner()?.lifecycleScope ?: MainScope()
+        val session =
+            Dictation.Session(
+                context,
+                scope,
+                path,
+                csrfToken,
+                userAgent,
+                object : Dictation.Listener {
+                    override fun onLevel(level: Float, elapsedMs: Long) {
+                        waveform.add(level)
+                        dictationTime.text = Dictation.elapsed(elapsedMs)
+                    }
+
+                    override fun onTranscribing() = renderDictation()
+
+                    override fun onResult(result: Dictation.Result) {
+                        dictation = null
+                        renderDictation()
+                        onResult(result)
+                    }
+                }
+            )
+        if (!session.start()) return false
+        dictation = session
+        waveform.reset()
+        dictationTime.text = Dictation.elapsed(0)
+        renderDictation()
+        return true
+    }
+
+    private fun cancelDictation() {
+        dictation?.cancel()
+        dictation = null
+        renderDictation()
+    }
+
+    override fun onDetachedFromWindow() {
+        // Leaving the page, or the app closing, ends the recording, unsent.
+        if (dictation != null) cancelDictation()
+        super.onDetachedFromWindow()
+    }
+
+    private fun renderDictation() {
+        val session = dictation
+        val on = session != null
+        val transcribing = session?.transcribing == true
+        dictationLine.isVisible = on
+        input.isVisible = !on
+        if (on && input.hasFocus()) {
+            input.clearFocus()
+            context.getSystemService(android.view.inputmethod.InputMethodManager::class.java)
+                ?.hideSoftInputFromWindow(input.windowToken, 0)
+        }
+        dictationStatus.setText(if (transcribing) R.string.dictation_transcribing else R.string.dictation_listening)
+        dictationStatus.setTextColor(
+            ContextCompat.getColor(context, if (transcribing) R.color.lw_ink_muted else R.color.lw_live_ink)
+        )
+        dictationDot.isVisible = !transcribing
+        waveform.frozen = transcribing
+        dictationTime.alpha = if (transcribing) TRANSCRIBING_ALPHA else 1f
+
+        plus.isVisible = !on
+        dictationCancel.isVisible = on
+        dictationStopFrame.isVisible = on
+        dictationStop.isEnabled = !transcribing
+        dictationStop.setImageDrawable(
+            if (transcribing) {
+                null
+            } else {
+                SymbolDrawable(
+                    context,
+                    "stop",
+                    filled = true,
+                    color = ContextCompat.getColor(context, R.color.lw_ink_inverted)
+                )
+            }
+        )
+        dictationSpinner.isVisible = transcribing
+        model.isVisible = state.selectedModel != null && !state.locked && !state.working && !on
+        renderButtons()
+        if (!on) input.requestFocus()
     }
 
     /** Adds dictated (or shared) words to what's typed. */
@@ -165,8 +285,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     // While an answer runs, Stop stands alone in ink until there are words or files; then Send joins it as the ink
     // button and Stop steps back to an outline beside it.
     private fun renderButtons() {
-        val showsSend = state.showsSend(text)
-        stop.isVisible = state.showsStop()
+        val showsSend = state.showsSend(text) && !dictating
+        stop.isVisible = state.showsStop() && !dictating
         send.isVisible = showsSend
 
         val stopAlone = !showsSend
@@ -226,6 +346,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     private companion object {
         const val DISABLED_ALPHA = 0.38f
+        const val TRANSCRIBING_ALPHA = 0.5f
 
         // Between Stop and Send when both show, the same as between the model chip and Send.
         const val BUTTON_GAP_DP = 8

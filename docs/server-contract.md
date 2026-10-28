@@ -842,8 +842,14 @@ What the app does with it:
   snackbar and left out). Each attachment shows as a chip with its name, its
   size or upload progress, and remove (`remove {id}`).
 - **Dictation**: Android 10 and later record OGG/Opus (at most five
-  minutes, with a level meter, Stop and Cancel), never Android's speech
-  recognizer, and post it as multipart field `audio` to `{base}{dictation.url}`
+  minutes), never Android's speech recognizer. While it listens, and while
+  it transcribes, its line takes the field's place, as the web composer's
+  does (`[data-dictating]`): "Listening" with a live dot, the waveform
+  across the composer (newest on the right; a still meter with animations
+  off), and the time, with Cancel where "+" is and Stop where Send is; then
+  "Transcribing", the waveform faded and a spinner on Stop. The field comes
+  back with the words. The app posts the recording as multipart field
+  `audio` to `{base}{dictation.url}`
   with the web view's cookies, `X-CSRF-Token: csrfToken` and `Accept:
   application/json`. `200 {text}` puts the words in the field and sends
   `text {text}`; an empty text says nothing was heard; `{error}` (403 for no

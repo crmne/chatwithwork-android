@@ -1,25 +1,18 @@
 package com.chatwithwork.app.composer
 
-import android.annotation.SuppressLint
+import android.content.Context
 import android.media.MediaRecorder
 import android.os.Build
-import android.view.LayoutInflater
+import android.os.SystemClock
 import android.webkit.CookieManager
-import android.widget.Button
-import android.widget.TextView
 import androidx.annotation.RequiresApi
-import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.lifecycleScope
 import com.chatwithwork.app.AppConfig
-import com.chatwithwork.app.R
-import com.chatwithwork.app.bridge.SnackbarHost
-import com.chatwithwork.app.bridge.opensExpanded
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.progressindicator.LinearProgressIndicator
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.math.log10
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -36,104 +29,136 @@ import kotlinx.serialization.json.jsonPrimitive
  * five minutes) and posts the recording to the page's dictation URL with the
  * web view's session, where it's transcribed in the EU like the web
  * composer's. Never Android's speech recognizer, which sends audio to Google.
- * See docs/server-contract.md, "The composer".
+ * While it listens and transcribes, the composer draws it in its field's
+ * place (ComposerView). See docs/server-contract.md, "The composer".
  */
 object Dictation {
     /** OGG/Opus recording needs Android 10; earlier phones dictate in the page. */
     val supported: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
 
-    private const val MAX_MS = 5 * 60 * 1000
-    private const val LEVEL_MS = 80L
-    private const val MAX_AMPLITUDE = 32767
+    const val MAX_MS = 5 * 60 * 1000
+    private const val LEVEL_MS = 70L
+    private const val MAX_AMPLITUDE = 32767.0
 
-    @SuppressLint("InflateParams")
-    fun start(
-        activity: FragmentActivity,
-        path: String,
-        csrfToken: String?,
-        userAgent: String?,
-        onText: (String) -> Unit
+    // The level, from a whisper to shouting, as the waveform draws it (the web's dictation_controller.js maps
+    // -50 to -10 dB of RMS; MediaRecorder gives the peak, which runs a little louder).
+    private const val QUIET_DB = -50.0
+    private const val LOUD_DB = -6.0
+
+    /** What the composer draws while a [Session] runs. */
+    interface Listener {
+        /** The microphone's loudness, 0 to 1, about every 70 ms, and how long it's listened. */
+        fun onLevel(level: Float, elapsedMs: Long)
+
+        /** Recording ended; the words are on their way. */
+        fun onTranscribing()
+
+        /** The transcription's words, or why there are none; never after [Session.cancel]. */
+        fun onResult(result: Result)
+    }
+
+    class Result(val text: String?, val error: String?, val nothingHeard: Boolean = false)
+
+    /**
+     * One dictation: records until [stop] (or five minutes), then posts the
+     * recording to [path] with the web view's session and hands the words to
+     * [listener]. [cancel] throws it away, recording or transcribing.
+     */
+    class Session(
+        private val context: Context,
+        private val scope: CoroutineScope,
+        private val path: String,
+        private val csrfToken: String?,
+        private val userAgent: String?,
+        private val listener: Listener
     ) {
-        if (!supported) return
-        val file = File(activity.cacheDir, "dictation-${System.currentTimeMillis()}.ogg")
-        val recorder =
-            try {
-                record(activity, file)
-            } catch (_: Exception) {
-                fail(activity, activity.getString(R.string.dictation_failed))
-                return
+        private val file = File(context.cacheDir, "dictation-${System.currentTimeMillis()}.ogg")
+        private var recorder: MediaRecorder? = null
+        private var job: Job? = null
+        private var started = 0L
+        var transcribing = false
+            private set
+        var finished = false
+            private set
+
+        /** Starts recording; false when the microphone couldn't. */
+        fun start(): Boolean {
+            if (!supported) return false
+            val recorder =
+                try {
+                    record(context, file)
+                } catch (_: Exception) {
+                    file.delete()
+                    return false
+                }
+            this.recorder = recorder
+            started = SystemClock.elapsedRealtime()
+            recorder.setOnInfoListener { _, what, _ ->
+                if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) stop()
             }
+            job =
+                scope.launch {
+                    while (isActive) {
+                        val amplitude = runCatching { recorder.maxAmplitude }.getOrDefault(0)
+                        listener.onLevel(loudness(amplitude), SystemClock.elapsedRealtime() - started)
+                        delay(LEVEL_MS)
+                    }
+                }
+            return true
+        }
 
-        val content = LayoutInflater.from(activity).inflate(R.layout.sheet_dictation, null)
-        val status = content.findViewById<TextView>(R.id.dictation_status)
-        val level = content.findViewById<LinearProgressIndicator>(R.id.dictation_level)
-        val stop = content.findViewById<Button>(R.id.dictation_stop)
-        val cancel = content.findViewById<Button>(R.id.dictation_cancel)
-        val dialog = BottomSheetDialog(activity)
-        dialog.setContentView(content)
-        dialog.opensExpanded()
-        dialog.setCancelable(false)
+        /** Stops recording and transcribes what was heard. */
+        fun stop() {
+            if (finished || transcribing) return
+            transcribing = true
+            job?.cancel()
+            release()
+            listener.onTranscribing()
+            job =
+                scope.launch {
+                    val result = upload(AppConfig.baseUrl + path, file, csrfToken, userAgent)
+                    file.delete()
+                    if (finished) return@launch
+                    finished = true
+                    listener.onResult(result)
+                }
+        }
 
-        var meter: Job? = null
-        var stopped = false
-        fun finish(send: Boolean) {
-            if (stopped) return
-            stopped = true
-            meter?.cancel()
+        /** Throws the recording away, or ignores the transcription still on its way. */
+        fun cancel() {
+            if (finished) return
+            finished = true
+            job?.cancel()
+            release()
+            file.delete()
+        }
+
+        private fun release() {
+            val recorder = recorder ?: return
+            this.recorder = null
             runCatching { recorder.stop() }
             recorder.release()
-            if (!send) {
-                file.delete()
-                dialog.dismiss()
-                return
-            }
-            status.setText(R.string.dictation_transcribing)
-            level.isIndeterminate = true
-            stop.isEnabled = false
-            activity.lifecycleScope.launch {
-                val result = upload(AppConfig.baseUrl + path, file, csrfToken, userAgent)
-                file.delete()
-                dialog.dismiss()
-                when {
-                    result.text != null -> onText(result.text)
-                    result.nothingHeard -> fail(activity, activity.getString(R.string.dictation_no_speech))
-                    else -> fail(activity, result.error ?: activity.getString(R.string.dictation_failed))
-                }
-            }
         }
+    }
 
-        recorder.setOnInfoListener { _, what, _ ->
-            if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) finish(send = true)
-        }
-        stop.setOnClickListener { finish(send = true) }
-        cancel.setOnClickListener { finish(send = false) }
-        // A theme change or the app closing ends the recording, unsent.
-        activity.lifecycle.addObserver(
-            object : androidx.lifecycle.DefaultLifecycleObserver {
-                override fun onDestroy(owner: androidx.lifecycle.LifecycleOwner) {
-                    finish(send = false)
-                    if (dialog.isShowing) dialog.dismiss()
-                }
-            }
-        )
-        status.setText(R.string.dictation_listening)
-        level.max = MAX_AMPLITUDE
-        dialog.show()
+    /** A peak amplitude (0 to 32767) as the waveform's 0 to 1. */
+    fun loudness(amplitude: Int): Float {
+        if (amplitude <= 0) return 0f
+        val decibels = 20 * log10(amplitude / MAX_AMPLITUDE)
+        return ((decibels - QUIET_DB) / (LOUD_DB - QUIET_DB)).coerceIn(0.0, 1.0).toFloat()
+    }
 
-        meter =
-            activity.lifecycleScope.launch {
-                while (isActive) {
-                    level.setProgressCompat(runCatching { recorder.maxAmplitude }.getOrDefault(0), true)
-                    delay(LEVEL_MS)
-                }
-            }
+    /** How long it's listened, as "0:07" or "1:42", as the web composer writes it. */
+    fun elapsed(ms: Long): String {
+        val seconds = ms / 1000
+        return String.format(java.util.Locale.ROOT, "%d:%02d", seconds / 60, seconds % 60)
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
-    private fun record(activity: FragmentActivity, file: File): MediaRecorder {
+    private fun record(context: Context, file: File): MediaRecorder {
         val recorder =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                MediaRecorder(activity)
+                MediaRecorder(context)
             } else {
                 @Suppress("DEPRECATION")
                 MediaRecorder()
@@ -149,8 +174,6 @@ object Dictation {
         recorder.start()
         return recorder
     }
-
-    private class Result(val text: String?, val error: String?, val nothingHeard: Boolean = false)
 
     private suspend fun upload(url: String, file: File, csrfToken: String?, userAgent: String?): Result =
         withContext(Dispatchers.IO) {
@@ -194,8 +217,4 @@ object Dictation {
                 connection.disconnect()
             }
         }
-
-    private fun fail(activity: FragmentActivity, message: String) {
-        (activity as? SnackbarHost)?.showSnackbar(message, long = true)
-    }
 }

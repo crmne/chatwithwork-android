@@ -9,7 +9,6 @@ import com.chatwithwork.app.composer.ComposerFile
 import com.chatwithwork.app.composer.ComposerFiles
 import com.chatwithwork.app.composer.ComposerState
 import com.chatwithwork.app.composer.ComposerView
-import com.chatwithwork.app.composer.Dictation
 import com.chatwithwork.app.composer.PendingShares
 import dev.hotwire.core.bridge.BridgeComponent
 import dev.hotwire.core.bridge.BridgeComponentFactory
@@ -120,11 +119,27 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
                 )
                 return@requestMicrophone
             }
-            Dictation.start(activity, url, view?.state?.csrfToken, userAgent()) { words ->
-                view?.append(words)
-                reply("text") { put("text", words) }
-            }
+            val view = view ?: return@requestMicrophone
+            val started =
+                view.dictate(url, view.state.csrfToken, userAgent()) { result ->
+                    val words = result.text
+                    when {
+                        words != null -> {
+                            this.view?.append(words)
+                            reply("text") { put("text", words) }
+                        }
+
+                        result.nothingHeard -> snackbar(activity.getString(R.string.dictation_no_speech))
+
+                        else -> snackbar(result.error ?: activity.getString(R.string.dictation_failed))
+                    }
+                }
+            if (!started) snackbar(activity.getString(R.string.dictation_failed))
         }
+    }
+
+    private fun snackbar(message: String) {
+        (activity as? SnackbarHost)?.showSnackbar(message, long = true)
     }
 
     private fun userAgent(): String? = (fragment as? dev.hotwire.navigation.fragments.HotwireWebFragment)
