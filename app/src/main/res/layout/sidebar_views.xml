@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The sidebar's Chats | Bots switch, its first control, as the web's
+  The sidebar's Chats | Bots switch, just under Decisions, as the web's
   (chats/_sidebar_views): two halves, the chosen one raised. Bots carries a
   dot when something in the person's bots needs them, never a number.
 -->

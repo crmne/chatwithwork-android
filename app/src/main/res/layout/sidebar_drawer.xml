@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   The sidebar: Material 3's modal navigation drawer, drawn with Live Wire's
-  sunken canvas like the web's sidebar. The list scrolls (the Chats | Bots
+  sunken canvas like the web's sidebar. The list scrolls (Decisions, the Chats | Bots
   switch, list switcher, search, New chat, pins, chats, or the bots); the person stays at the foot. SidebarDrawer fills it from the
   server's JSON.
 -->
