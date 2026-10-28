@@ -72,7 +72,11 @@
 
     <!-- The composer -->
     <string name="composer_placeholder">Ask anything…</string>
-    <string name="composer_add">Add photos, files, or a scan</string>
+    <string name="composer_add">Add files and more</string>
+    <string name="composer_attach">Attach photos, files, or a scan</string>
+    <string name="composer_web_search_button">Search the web</string>
+    <string name="composer_web_search_on">On</string>
+    <string name="composer_web_search_off">Off</string>
     <string name="composer_send">Send</string>
     <string name="composer_stop">Stop response</string>
     <string name="composer_model_description">Model: %1$s. Choose another.</string>

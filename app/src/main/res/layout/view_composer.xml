@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The native composer: what the web one has (attach, the field, the model,
-  Stop and Send), docked above the keyboard and the gesture bar, on the
+  The native composer: what the web one has (attach, the field, the
+  microphone and the web search globe while there's room, the model, Stop
+  and Send), docked above the keyboard and the gesture bar, on the
   rainbow edge that is the brand's. It drives the web composer, hidden in
   the page, through the composer bridge component (ComposerComponent).
   While dictation listens or transcribes, its line takes the field's place,
@@ -138,6 +139,24 @@
                 android:layout_height="44dp"
                 android:background="@drawable/composer_round_button"
                 android:contentDescription="@string/composer_add" />
+
+            <ImageButton
+                android:id="@+id/composer_dictate"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/composer_ghost_button"
+                android:contentDescription="@string/composer_dictate"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <ImageButton
+                android:id="@+id/composer_web_search"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/composer_ghost_button"
+                android:contentDescription="@string/composer_web_search_button"
+                android:visibility="gone"
+                tools:visibility="visible" />
 
             <ImageButton
                 android:id="@+id/composer_dictation_cancel"

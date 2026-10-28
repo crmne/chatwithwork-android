@@ -12,7 +12,11 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.ToggleButton
 import androidx.core.content.ContextCompat
+import androidx.core.view.AccessibilityDelegateCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.findViewTreeLifecycleOwner
@@ -24,7 +28,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 
 /**
- * The native composer: "+", the field, the model, Stop while an answer runs, and Send. It only
+ * The native composer: "+", the microphone and the web search globe while
+ * there's room (ComposerBar), the field, the model, Stop while an answer runs, and Send. It only
  * draws a [ComposerState] and says what the person did ([Actions]); the
  * composer component turns that into replies to the web composer, which keeps
  * every rule. Words stay here until they're sent.
@@ -43,6 +48,15 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
         fun openSheet()
 
+        /** The bar's microphone. */
+        fun dictate()
+
+        /** The bar's globe: web search [on] or off. */
+        fun webSearch(on: Boolean)
+
+        /** The globe while web search can't be switched now: why, from the page ([note]). */
+        fun explainWebSearch(note: String?)
+
         fun chooseModel()
 
         fun remove(id: String)
@@ -56,6 +70,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private val lock by lazy { findViewById<TextView>(R.id.composer_lock) }
     private val input by lazy { findViewById<EditText>(R.id.composer_field) }
     private val plus by lazy { findViewById<ImageButton>(R.id.composer_plus) }
+    private val dictateButton by lazy { findViewById<ImageButton>(R.id.composer_dictate) }
+    private val webSearchButton by lazy { findViewById<ImageButton>(R.id.composer_web_search) }
     private val model by lazy { findViewById<TextView>(R.id.composer_model) }
     private val stop by lazy { findViewById<ImageButton>(R.id.composer_stop) }
     private val send by lazy { findViewById<ImageButton>(R.id.composer_send) }
@@ -76,6 +92,14 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     val dictating: Boolean get() = dictation != null
 
+    // How wide the bar is, in dp, from the last measure; the controls that fit in it follow (ComposerBar).
+    private var barWidthDp = 0
+
+    /** What "+" holds now: attaching, and whatever didn't fit in the bar. */
+    val sheet: ComposerBar.Sheet get() = ComposerBar.inSheet(state, bar())
+
+    private fun bar(): Set<ComposerBar.Control> = ComposerBar.inBar(barWidthDp, state)
+
     val text: String get() = input.text?.toString().orEmpty()
 
     // The gutter the layout gives the composer, kept on phones; on a tablet the composer centres under the page's
@@ -94,14 +118,37 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         if (paddingStart != gutterStart + extra || paddingEnd != gutterEnd + extra) {
             setPaddingRelative(gutterStart + extra, paddingTop, gutterEnd + extra, paddingBottom)
         }
+        // The bar's width: the composer's, less its gutters and the box's padding.
+        val box = width - paddingStart - paddingEnd - (BOX_PADDING_DP * 2 * resources.displayMetrics.density).toInt()
+        val barDp = (box / resources.displayMetrics.density).toInt()
+        if (barDp != barWidthDp) {
+            barWidthDp = barDp
+            renderBar()
+        }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
     }
 
     override fun onFinishInflate() {
         super.onFinishInflate()
         val ink = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface)
-        plus.setImageDrawable(SymbolDrawable(context, "add", color = ink))
         plus.setOnClickListener { actions?.openSheet() }
+        dictateButton.setImageDrawable(SymbolDrawable(context, "mic", color = muted()))
+        dictateButton.setOnClickListener { actions?.dictate() }
+        webSearchButton.setOnClickListener {
+            val search = state.webSearch ?: return@setOnClickListener
+            if (search.disabled) actions?.explainWebSearch(search.note) else actions?.webSearch(!search.on)
+        }
+        ViewCompat.setAccessibilityDelegate(
+            webSearchButton,
+            object : AccessibilityDelegateCompat() {
+                override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfoCompat) {
+                    super.onInitializeAccessibilityNodeInfo(host, info)
+                    info.className = ToggleButton::class.java.name
+                    info.isCheckable = true
+                    info.isChecked = state.webSearch?.on == true
+                }
+            }
+        )
         model.setOnClickListener { actions?.chooseModel() }
         stop.setOnClickListener { onStop() }
         send.setOnClickListener { onSend() }
@@ -158,8 +205,51 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             null
         )
 
+        renderBar()
         renderFiles()
         renderButtons()
+    }
+
+    private fun muted() = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant)
+
+    /**
+     * "+", the microphone and the globe: what fits in the bar shows there,
+     * the rest waits in "+", which is the paperclip when it only attaches
+     * and goes when it holds nothing.
+     */
+    private fun renderBar() {
+        val bar = bar()
+        val sheet = sheet
+        val ink = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface)
+        val on = dictating
+
+        plus.isVisible = !on && !sheet.empty
+        plus.setImageDrawable(SymbolDrawable(context, if (sheet.attachOnly) "attach_file" else "add", color = ink))
+        plus.contentDescription =
+            context.getString(if (sheet.attachOnly) R.string.composer_attach else R.string.composer_add)
+
+        dictateButton.isVisible = !on && ComposerBar.Control.DICTATE in bar
+        dictateButton.isEnabled = !state.locked
+        dictateButton.alpha = if (state.locked) DISABLED_ALPHA else 1f
+
+        val search = state.webSearch
+        webSearchButton.isVisible = !on && search != null && ComposerBar.Control.WEB_SEARCH in bar
+        if (search != null) {
+            webSearchButton.isSelected = search.on
+            webSearchButton.alpha = if (search.disabled) DISABLED_ALPHA else 1f
+            webSearchButton.setImageDrawable(
+                SymbolDrawable(context, "language", filled = search.on, color = if (search.on) ink else muted())
+            )
+            ViewCompat.setStateDescription(
+                webSearchButton,
+                context.getString(if (search.on) R.string.composer_web_search_on else R.string.composer_web_search_off)
+            )
+            webSearchButton.contentDescription =
+                listOfNotNull(
+                    context.getString(R.string.composer_web_search_button),
+                    search.note?.takeIf { search.disabled && it.isNotBlank() }
+                ).joinToString(". ")
+        }
     }
 
     /**
@@ -231,7 +321,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         waveform.frozen = transcribing
         dictationTime.alpha = if (transcribing) TRANSCRIBING_ALPHA else 1f
 
-        plus.isVisible = !on
+        renderBar()
         dictationCancel.isVisible = on
         dictationStopFrame.isVisible = on
         dictationStop.isEnabled = !transcribing
@@ -347,6 +437,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private companion object {
         const val DISABLED_ALPHA = 0.38f
         const val TRANSCRIBING_ALPHA = 0.5f
+
+        // The box's padding around the bar (view_composer.xml).
+        const val BOX_PADDING_DP = 8
 
         // Between Stop and Send when both show, the same as between the model chip and Send.
         const val BUTTON_GAP_DP = 8

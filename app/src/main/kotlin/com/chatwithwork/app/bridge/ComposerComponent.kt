@@ -86,11 +86,12 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
 
     override fun openSheet() {
         val activity = activity ?: return
-        val state = view?.state ?: return
+        val view = view ?: return
         val host = activity as? ComposerHost ?: return
         AttachSheet.show(
             activity,
-            state,
+            view.state,
+            view.sheet,
             object : AttachSheet.Choices {
                 override fun camera() = host.takePhoto { it?.let { uri -> attachUris(listOf(uri)) } }
 
@@ -102,12 +103,18 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
 
                 override fun dictate() = this@ComposerComponent.dictate()
 
-                override fun webSearch(on: Boolean) = reply("webSearch") { put("on", on) }
+                override fun webSearch(on: Boolean) = this@ComposerComponent.webSearch(on)
             }
         )
     }
 
-    private fun dictate() {
+    override fun webSearch(on: Boolean) = reply("webSearch") { put("on", on) }
+
+    override fun explainWebSearch(note: String?) {
+        if (!note.isNullOrBlank()) (activity as? SnackbarHost)?.showSnackbar(note, long = true)
+    }
+
+    override fun dictate() {
         val activity = activity ?: return
         val url = view?.state?.dictation?.url ?: return
         val host = activity as? ComposerHost ?: return

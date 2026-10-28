@@ -801,7 +801,8 @@ No replies.
 
 Builds that register the `composer` component draw the composer
 themselves, docked above the keyboard and the gesture bar, under the page:
-"+", the field, the model, Stop while an answer runs, and Send, on the composer's rainbow
+"+", the microphone and the web search globe, the field, the model, Stop
+while an answer runs, and Send, on the composer's rainbow
 edge. The web composer (`#new_message`, with `bridge--composer`) stays in
 the page out of sight (native.css, once `data-bridge-components` lists
 `composer`), and the app drives it, so every rule it carries holds: locks,
@@ -834,10 +835,18 @@ What the app does with it:
 - **The model**: a chip with the selected model's name, hidden while locked
   or working, which opens a sheet of `models` (name and rate, the selected
   one checked) and answers `model {index}`.
+- **The bar's own controls (2026-10-28)**, one tap away while there's
+  room, as on the web's folding bar: the microphone when `dictation` is
+  set, and the web search globe when `webSearch` is set (selected while
+  `on`, sending `webSearch {on}`; faint while `disabled`, when a tap shows
+  its `note`). They fold into "+" as the bar narrows, web search first and
+  dictation after it, so the model chip keeps room for a short name; on a
+  360dp phone both fit. Nothing new comes from the server.
 - **"+"** opens a sheet: Camera, Photos (Android's photo picker, no
-  permission needed), Files, Scan (ML Kit's document scanner, one PDF),
-  Dictate when `dictation` is set, and Web search as a switch with its
-  `note` when `webSearch` is set (`webSearch {on}`). Files go to the page
+  permission needed), Files, Scan (ML Kit's document scanner, one PDF), and
+  whatever the bar had no room for: Dictate, and Web search as a switch with
+  its `note`. When it holds only attaching it shows as the paperclip; when it
+  holds nothing it goes. Files go to the page
   as `attach`, base64, at most 25 MB each (larger ones are named in a
   snackbar and left out). Each attachment shows as a chip with its name, its
   size or upload progress, and remove (`remove {id}`).
