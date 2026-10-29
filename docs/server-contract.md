@@ -645,7 +645,8 @@ following page. A 401 means the session is gone.
             "projects": "/482139075/projects", "new_project": "/482139075/projects/new",
             "organizations": "/accounts", "new_organization": "/accounts/new"},
   "waiting": {"count": 1, "items": [{"title": "Launch date in #launch", "url": "/482139075/chats/42", "kind": "approval", "project": "Website relaunch"}]},
-  "bots": {"count": 0, "attention": false, "next_run": "08:30"},
+  "bots": {"count": 0, "attention": false, "next_run": "08:30",
+           "url": "/482139075/bots", "new_url": "/482139075/bots/new", "items": [BOT]},
   "pins": [CHAT],
   "sections": [SECTION],
   "chats": [CHAT],
@@ -657,6 +658,9 @@ CHAT = {"number": 42, "title": "Launch date in #launch", "url": "/482139075/chat
 SECTION = {"id": 7, "name": "Customers", "collapsed": false, "chats": [CHAT],
            "edit_url": "/482139075/sidebar/sections/7/edit", "collapse_url": "/482139075/sidebar/sections/7/collapse",
            "position_url": "/482139075/sidebar/sections/7/position"}
+BOT = {"id": 5, "name": "Front desk", "url": "/482139075/bots/5", "group": "needs_you", "project": "Website relaunch",
+       "state": "waiting", "state_label": "Waiting for you", "tone": "attention", "waiting": 1, "working": false,
+       "next_run": null}
 ACTION = {"key": "delete", "title": "Delete", "method": "delete", "url": "/482139075/chats/42",
           "iosImage": "trash", "androidImage": "delete", "confirm": "Delete this chat?", "destructive": true}
 ```
@@ -684,6 +688,45 @@ version needs: the page decides through the chat's own cards, swiping left
 or right on it moves between decisions, and the sidebar's `changed` follows
 its count.
 
+**Who asks (server, 2026-10-27).** Each of `waiting.items` also carries
+`asker`, `{"kind": "bot", "name": "Front desk", "project": "Website
+relaunch"}` (`kind` `bot`, `agent` or `chat`, `project` null outside one),
+the server's `Decision#asker`. The sheet of `waiting.items` (shown only from
+a server without `waiting.url`) leads each with `asker.name`, then `summary`
+and the project, as the web's decision row does. Without `asker` it's as
+before.
+
+**Chats | Bots (server, 2026-10-27).** `bots` also carries `url` (the Bots
+page), `new_url` (New bot) and `items`, the person's bots and the shared ones
+they read, as the web sidebar's Bots view lists them (`bots/_sidebar_list`),
+those that need them first. In `BOT`, `group` is `needs_you` or `quiet`,
+already in order; `project` a shared bot's, null for a personal one; `state`
+one of `waiting`, `failed`, `working`, `paused`, `next`, `listening` and
+`idle` (`Bot::Overview#state`), with the web's words in `state_label` and its
+`tone` (`attention`, `negative`, `live`, `positive`, or null); `waiting` how
+many decisions wait for the person in it; `working` whether one of its chats
+is answering now; `next_run` its next timed run, if any.
+
+With `items`, the sidebar's first control is a segmented Chats | Bots
+switch, in place of the Bots row. Its Bots half shows an attention dot,
+never a number, while `bots.attention`: the Decisions pill carries the one
+count.
+Chats shows the sidebar as before. Bots keeps the same skeleton: a card in
+the list switcher's place ("Bots in <organization>", how many bots, and how
+many are working or waiting for the person), opening `url`; New bot where New
+chat sits, opening `new_url`; then the bots, under "Needs you" and "Quiet"
+only when both have some. Each row is the bot mark (holding still while
+`paused`, with a live dot while `working`), the name, a shared bot's project,
+and at its end `waiting` with an attention dot when it's more than 0, else
+`state_label` with a dot in its `tone` (a neutral one without). A tap opens
+`url` like any sidebar link, and the row shows as current on the bot's pages.
+With no bots it says "Your bots, and the ones shared with you, show up here."
+and offers "Start from a recipe" (`new_url`). The search shows only with the
+chats, under the switch and the list switcher. The app remembers the chosen half per install. Guests get no `bots`,
+so no switch; a server that sends no `items` keeps the Bots row. The sidebar
+keeps checking every 5 seconds while it's open and a bot is `working`, as it
+does for a chat.
+
 **Long press (2026-10-26).** Each chat's `actions` are what the web row's
 menu offers for it, in order: `rename`, `pin` or `unpin`, `section`,
 `project` and `delete`, the creator's own only where the web's are;
@@ -708,18 +751,26 @@ so every device shows it the same; a long press offers Rename (`edit_url`,
 a modal). A search lists the matches in sections too. Without `sections`
 (an older server) the list is as before.
 
-What the app draws from it, top to bottom: the list switcher (`list`; a
+What the app draws from it, top to bottom: the Chats | Bots switch (above,
+from servers that send `bots.items`), the list switcher (`list`; a
 chooser of `lists`, then "All projects..." and "New project"), a search
 that filters titles on the phone, New chat (`links.new_chat`, also where
-the bar's New chat and a cold start go), Decisions (`waiting`, with its
-count), Bots (`bots`: the count with an attention dot, else
-the next run), Pinned, the person's own sections (`sections`, below), then
+the bar's New chat and a cold start go), from a server without
+`bots.items` the Bots row (`bots`' count with an attention dot, else the
+next run), Pinned, the person's own sections (`sections`, below), then
 the chats by `group` (under one "Other chats" heading instead when there
 are sections, as on the web), a live dot on those
 answering and an attention dot on those waiting, loading `next` near the
-end. Decisions is named as on the web and opens the Decisions
-page (`waiting.url`, else `links.decisions`), or, from a server with
-neither, a sheet of its items; earlier builds called it "Waiting for you".
+end.
+
+**Decisions in the top bar (2026-10-27).** As on the web, Decisions is no
+longer a sidebar row: it's a small pill in the chat's top bar, just after
+the sidebar's button. It shows the list-checks icon and `waiting.count` on
+the attention wash, or the icon alone at 0, and opens the Decisions page
+(`waiting.url`, else `links.decisions`), or, from a server with neither, a
+sheet of its items. It reads the same JSON, so no key changes; it shows
+once the JSON has answered. Earlier builds had a Decisions row under New
+chat (and before that, "Waiting for you").
 The person at the foot opens a sheet of `organizations` (each `url`
 starts the app over there), All organizations, New organization and
 Settings. Without the JSON (offline, an older server), the sidebar still
@@ -727,7 +778,8 @@ offers New chat, Bots and Settings.
 
 It fetches the JSON as the sidebar opens, when the app comes back to the
 foreground, after a page in another organization, every 5 seconds while
-it's open and something answers, and on `changed`.
+it's open and something answers, and on `changed`, open or shut, since the
+top bar's Decisions pill shows its count.
 
 ### The `sidebar` component
 
@@ -737,7 +789,7 @@ element, subscribed to the person's own chat-list streams. It sends:
 | Event | Data | The app |
 |---|---|---|
 | `connect` | `{}` | keeps it, to reply with a chat's action from a long press: `{action: "perform", url, method, confirm?, destructive?}` |
-| `changed` | `{}` | fetches the JSON again (debounced, 500 ms) if the sidebar is open, else on its next opening |
+| `changed` | `{}` | fetches the JSON again (debounced, 500 ms), for the sidebar and the Decisions pill |
 
 No replies.
 

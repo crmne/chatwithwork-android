@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The sidebar's Chats | Bots switch, its first control, as the web's
+  (chats/_sidebar_views): two halves, the chosen one raised. Bots carries a
+  dot when something in the person's bots needs them, never a number.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="6dp"
+    android:layout_marginBottom="4dp"
+    android:background="@drawable/sidebar_views_track"
+    android:baselineAligned="false"
+    android:orientation="horizontal"
+    android:padding="3dp">
+
+    <!--
+      Each half is the same height and padding whether chosen or not, its icon
+      and label centred together as one group. Bots' dot hangs just past its
+      label, out of the group's measure, so it never moves the group.
+    -->
+    <FrameLayout
+        android:id="@+id/sidebar_view_chats"
+        android:layout_width="0dp"
+        android:layout_height="36dp"
+        android:layout_weight="1"
+        android:background="@drawable/sidebar_view_segment"
+        android:focusable="true">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/sidebar_view_chats_icon"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginEnd="6dp"
+                android:importantForAccessibility="no" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:text="@string/sidebar_view_chats"
+                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:textColor="?attr/colorOnSurface" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/sidebar_view_bots"
+        android:layout_width="0dp"
+        android:layout_height="36dp"
+        android:layout_weight="1"
+        android:background="@drawable/sidebar_view_segment"
+        android:clipChildren="false"
+        android:focusable="true">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:clipChildren="false"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- The mark's bubble sits above its tail, so it drops 1dp to line up with the label's centre. -->
+            <ImageView
+                android:id="@+id/sidebar_view_bots_icon"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginEnd="6dp"
+                android:importantForAccessibility="no"
+                android:scaleType="center"
+                android:translationY="1dp" />
+
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:clipChildren="false">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:includeFontPadding="false"
+                    android:text="@string/sidebar_bots"
+                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <!-- 7dp wide, pulled 12dp past the label's end: 5dp of gap, outside the group's width. -->
+                <View
+                    android:id="@+id/sidebar_view_bots_dot"
+                    android:layout_width="7dp"
+                    android:layout_height="7dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="-12dp"
+                    android:background="@drawable/sidebar_dot"
+                    android:backgroundTint="@color/lw_attention"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+</LinearLayout>

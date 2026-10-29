@@ -23,9 +23,9 @@ import kotlin.random.Random
  * It blinks now and then: for a tenth of a second every 4 to 9 seconds while
  * it's shown it draws its closed frame, the same drawing with each eye only
  * its bottom row, never with animations turned off (Remove animations, or an
- * animator scale of 0).
+ * animator scale of 0), nor while [blinks] is false (a paused bot holds still).
  */
-class BotMarkDrawable(context: Context, @ColorInt color: Int, sizeDp: Float = 20f) :
+class BotMarkDrawable(context: Context, @ColorInt color: Int, sizeDp: Float = 20f, private val blinks: Boolean = true) :
     Drawable(),
     Runnable {
     private val sizePx = Math.round(sizeDp * context.resources.displayMetrics.density)
@@ -74,7 +74,7 @@ class BotMarkDrawable(context: Context, @ColorInt color: Int, sizeDp: Float = 20
         val changed = super.setVisible(visible, restart)
         unscheduleSelf(this)
         blinking = false
-        if (visible && ValueAnimator.areAnimatorsEnabled()) {
+        if (visible && blinks && ValueAnimator.areAnimatorsEnabled()) {
             scheduleSelf(this, SystemClock.uptimeMillis() + nextBlink())
         }
         return changed

@@ -19,6 +19,8 @@
     <color name="lw_live_ink">#44B0FF</color>
     <color name="lw_attention">#FFC247</color>
     <color name="lw_attention_ink">#FFC247</color>
+    <color name="lw_attention_wash">#312B20</color>
+    <color name="lw_attention_edge">#7B653A</color>
     <color name="lw_negative">#FF6644</color>
     <color name="lw_dot">#14E9ECF4</color>
     <!-- Over the page while the sidebar is open: Material's scrim, in ink. -->

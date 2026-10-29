@@ -39,6 +39,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.BuildConfig
@@ -67,6 +69,7 @@ import com.chatwithwork.app.routing.RouteDecisionHandlers
 import com.chatwithwork.app.sidebar.Sidebar
 import com.chatwithwork.app.sidebar.SidebarClient
 import com.chatwithwork.app.sidebar.SidebarDrawer
+import com.chatwithwork.app.sidebar.SidebarRow
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -129,6 +132,8 @@ class MainActivity :
     private lateinit var root: View
     private lateinit var welcome: View
     private lateinit var sidebar: SidebarDrawer
+    private val decisions = MutableLiveData<Int?>()
+    override val decisionsCount: LiveData<Int?> get() = decisions
 
     private var keyboardVisible = false
 
@@ -423,17 +428,22 @@ class MainActivity :
         drawer.closeDrawer(GravityCompat.START)
     }
 
-    /** The sidebar as known now, for the organization showing. */
+    /** The sidebar as known now, for the organization showing, and the top bar's Decisions pill with it. */
     private fun showSidebar() {
         val data = viewModel.sidebar?.takeIf { it.organization.id == viewModel.account }
-        sidebar.show(data, navigator?.currentDestination?.location, botsKnown = viewModel.account != null)
+        if (decisions.value != data?.waiting?.count) decisions.value = data?.waiting?.count
+        sidebar.show(
+            data,
+            navigator?.currentDestination?.location,
+            botsKnown = viewModel.account != null,
+            view = SidebarRow.View.from(memory.sidebarView)
+        )
     }
 
+    /** Fetches it again even while it's shut: the Decisions pill in the top bar shows its count. */
     override fun onSidebarChanged() {
         viewModel.sidebarStale = true
-        if (drawer.isDrawerOpen(GravityCompat.START) || drawer.isDrawerVisible(GravityCompat.START)) {
-            refreshSidebar(debounce = true)
-        }
+        refreshSidebar(debounce = true)
     }
 
     /** Fetches the sidebar for the organization showing (the first page, or every chat while searching). */
@@ -503,8 +513,16 @@ class MainActivity :
     }
 
     override fun openBots() {
-        val path = viewModel.sidebar?.links?.bots ?: viewModel.account?.let { "/$it/bots" } ?: return
+        val path =
+            viewModel.sidebar?.let { it.bots?.url ?: it.links.bots } ?: viewModel.account?.let { "/$it/bots" } ?: return
         openPath(path)
+    }
+
+    /** The Chats | Bots switch: the half chosen shows at once, and stays chosen on this install. */
+    override fun chooseView(view: SidebarRow.View) {
+        memory.sidebarView = view.name.lowercase()
+        sidebar.resetSearch()
+        showSidebar()
     }
 
     override fun chooseList() {
@@ -620,7 +638,8 @@ class MainActivity :
         }
     }
 
-    override fun showWaiting() {
+    /** The top bar's Decisions pill: the Decisions page, or, from a server without one, a sheet of what waits. */
+    override fun openDecisions() {
         val waiting = viewModel.sidebar?.waiting ?: return
         (waiting.url ?: viewModel.sidebar?.links?.decisions)?.let {
             openPath(it)
@@ -633,7 +652,10 @@ class MainActivity :
         val actions =
             waiting.items.map { item ->
                 ActionSheet.Action(
-                    title = listOfNotNull(item.title, item.project).joinToString(" · "),
+                    title =
+                        item.asker?.let { asker ->
+                            listOfNotNull(asker.name, item.summary ?: item.title, item.project).joinToString(" · ")
+                        } ?: listOfNotNull(item.title, item.project).joinToString(" · "),
                     image =
                         when (item.kind) {
                             "question" -> "help"

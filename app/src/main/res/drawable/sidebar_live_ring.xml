@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The live dot on a working bot's mark, ringed in the sidebar's canvas so it stands off the mark. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@color/lw_live" />
+    <stroke android:width="2dp" android:color="@color/lw_canvas_sunken" />
+</shape>

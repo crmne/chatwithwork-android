@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  A row of the sidebar: New chat, Waiting for you, Bots, or a chat. Material's
+  A row of the sidebar: New chat, Bots, New bot, or a chat. Material's
   navigation drawer item, a pill when it's the page showing, with a dot for
   state (answering, waiting) and a count or time at its end.
 -->

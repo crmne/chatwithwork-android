@@ -6,10 +6,11 @@ import androidx.core.content.edit
 /**
  * The little the app remembers between launches about the session the web
  * view holds: whether someone signed in, which organization they were in,
- * what the sidebar showed there (and so where New chat starts), and the
- * chat they left while it was still answering. The session itself is the
- * server's cookie in the web view's cookie store; this only decides what to
- * show before the first page answers.
+ * what the sidebar showed there (and so where New chat starts), whether it
+ * showed chats or bots, and the chat they left while it was still
+ * answering. The session itself is the server's cookie in the web view's
+ * cookie store; this only decides what to show before the first page
+ * answers.
  */
 class SessionMemory(context: Context) {
     private val preferences = context.getSharedPreferences("session", Context.MODE_PRIVATE)
@@ -26,6 +27,11 @@ class SessionMemory(context: Context) {
     fun listKey(account: String): String? = preferences.getString("$KEY_LIST$account", null)
 
     fun setListKey(account: String, key: String?) = preferences.edit { putString("$KEY_LIST$account", key) }
+
+    /** The half of the sidebar's Chats | Bots switch last chosen, on this install ("chats" or "bots"). */
+    var sidebarView: String?
+        get() = preferences.getString(KEY_VIEW, null)
+        set(value) = preferences.edit { putString(KEY_VIEW, value) }
 
     /** Where New chat starts in [account], as the sidebar last said ("/482139075/chats/new?project_id=3"). */
     fun newChatPath(account: String): String? = preferences.getString("$KEY_NEW_CHAT$account", null)
@@ -49,6 +55,7 @@ class SessionMemory(context: Context) {
         const val KEY_ACCOUNT = "account"
         const val KEY_LIST = "list:"
         const val KEY_NEW_CHAT = "new_chat:"
+        const val KEY_VIEW = "sidebar_view"
         const val KEY_LEFT_CHAT = "left_answering_chat"
         const val KEY_LEFT_AT = "left_answering_at"
     }
