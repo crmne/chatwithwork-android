@@ -209,6 +209,8 @@ object Dictation {
             userAgent?.let { connection.setRequestProperty("User-Agent", it) }
             CookieManager.getInstance().getCookie(url)?.let { connection.setRequestProperty("Cookie", it) }
             connection.outputStream.use { out ->
+                // Opening the stream connects: a Cancel meanwhile sends nothing.
+                if (!isActive) return@withContext Result(null, null)
                 val disposition = "Content-Disposition: form-data; name=\"audio\"; filename=\"dictation.ogg\""
                 out.write("--$boundary\r\n$disposition\r\nContent-Type: audio/ogg\r\n\r\n".toByteArray())
                 file.inputStream().use { it.copyTo(out) }
