@@ -9,10 +9,12 @@
     <string name="sidebar_search">Search chats</string>
     <string name="sidebar_waiting">Decisions</string>
     <string name="sidebar_nothing_waiting">No decisions are waiting.</string>
-    <plurals name="decisions_pill_description">
-        <item quantity="one">Decisions, %d waiting</item>
-        <item quantity="other">Decisions, %d waiting</item>
+    <string name="sidebar_decisions_none">None</string>
+    <plurals name="sidebar_decisions_description">
+        <item quantity="one">Decisions, %d decision waiting for you</item>
+        <item quantity="other">Decisions, %d decisions waiting for you</item>
     </plurals>
+    <string name="sidebar_decisions_none_description">Decisions, none waiting for you</string>
     <string name="sidebar_action_failed">That didn\'t work. Open a chat and try again.</string>
     <string name="sidebar_bots">Bots</string>
     <string name="sidebar_view_chats">Chats</string>

@@ -57,16 +57,19 @@ class SidebarTest {
         assertThat(rows.filterIsInstance<SidebarRow.Nav>().map { it.kind })
             .containsExactly(SidebarRow.Nav.Kind.NEW_CHAT)
         assertThat(rows.filterIsInstance<SidebarRow.Views>()).isEmpty()
+        // Guests have no switch, but Decisions still leads.
+        assertThat(rows.first()).isEqualTo(SidebarRow.Decisions(0, selected = false))
         assertThat(rows.last()).isEqualTo(SidebarRow.Empty(SidebarRow.Empty.Kind.NO_CHATS))
     }
 
     @Test
-    fun `rows run switcher, search, actions, pins, then chats by day`() {
+    fun `rows run Decisions, switcher, search, actions, pins, then chats by day`() {
         val rows = SidebarRow.build(sidebar, "", "$base/482139075/chats/41?x=1", "Pinned", botsKnown = true)
-        assertThat(rows[0]).isEqualTo(SidebarRow.Switcher(sidebar.list!!))
-        assertThat(rows[1]).isEqualTo(SidebarRow.Search)
-        assertThat(rows[2]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.NEW_CHAT))
-        assertThat(rows[3]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.BOTS, meta = "08:30", attention = false))
+        assertThat(rows[0]).isEqualTo(SidebarRow.Decisions(1, selected = false))
+        assertThat(rows[1]).isEqualTo(SidebarRow.Switcher(sidebar.list!!))
+        assertThat(rows[2]).isEqualTo(SidebarRow.Search)
+        assertThat(rows[3]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.NEW_CHAT))
+        assertThat(rows[4]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.BOTS, meta = "08:30", attention = false))
         assertThat(rows.filterIsInstance<SidebarRow.Section>().map { it.title })
             .containsExactly("Pinned", "Today", "Yesterday")
             .inOrder()
@@ -78,6 +81,7 @@ class SidebarTest {
     fun `searching filters by every word and hides the actions`() {
         val rows = SidebarRow.build(sidebar, "  LAUNCH  plan ", null, "Pinned", botsKnown = true)
         assertThat(rows.filterIsInstance<SidebarRow.Nav>()).isEmpty()
+        assertThat(rows.first()).isEqualTo(SidebarRow.Decisions(1, selected = false))
         assertThat(rows.filterIsInstance<SidebarRow.ChatRow>().map { it.chat.number }).containsExactly(7L)
 
         val none = SidebarRow.build(sidebar, "zebra", null, "Pinned", botsKnown = true)
@@ -131,6 +135,28 @@ class SidebarTest {
 
         assertThat(sidebar.waiting.url).isNull()
         assertThat(sidebar.chats.first().actions).isEmpty()
+    }
+
+    @Test
+    fun `Decisions shows how many wait, and is marked on the Decisions page and any decision on it`() {
+        val withPage = Sidebar.parse(
+            json.replace(
+                "\"waiting\": {\"count\": 1,",
+                "\"waiting\": {\"count\": 1, \"url\": \"/482139075/decisions\","
+            )
+        )
+        fun decisions(current: String?) =
+            SidebarRow.build(withPage, "", current, "Pinned", botsKnown = true).first() as SidebarRow.Decisions
+        assertThat(decisions("$base/482139075/chats/42")).isEqualTo(SidebarRow.Decisions(1, selected = false))
+        assertThat(decisions("$base/482139075/decisions").selected).isTrue()
+        assertThat(decisions("$base/482139075/decisions?decision=approval-7").selected).isTrue()
+        assertThat(decisions("$base/482139075/decisions_old").selected).isFalse()
+        // An older server without the page marks nothing.
+        assertThat(SidebarRow.isDecisions(sidebar, "$base/482139075/decisions")).isFalse()
+
+        val none = withPage.copy(waiting = withPage.waiting.copy(count = 0, items = emptyList()))
+        assertThat(SidebarRow.build(none, "", null, "Pinned", botsKnown = true).first())
+            .isEqualTo(SidebarRow.Decisions(0, selected = false))
     }
 
     private val sections =
@@ -231,25 +257,27 @@ class SidebarTest {
     }
 
     @Test
-    fun `an older server keeps the Bots row, a newer one leads with the switch`() {
+    fun `an older server keeps the Bots row, a newer one puts the switch under Decisions`() {
         val old = SidebarRow.build(sidebar, "", null, "Pinned", botsKnown = true, view = SidebarRow.View.BOTS)
         assertThat(old.filterIsInstance<SidebarRow.Views>()).isEmpty()
-        assertThat(old[3]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.BOTS, meta = "08:30", attention = false))
+        assertThat(old[4]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.BOTS, meta = "08:30", attention = false))
 
         val chats = SidebarRow.build(withBots, "", null, "Pinned", botsKnown = true)
-        assertThat(chats[0]).isEqualTo(SidebarRow.Views(SidebarRow.View.CHATS, botsAttention = true))
-        assertThat(chats[1]).isEqualTo(SidebarRow.Switcher(withBots.list!!))
+        assertThat(chats[0]).isInstanceOf(SidebarRow.Decisions::class.java)
+        assertThat(chats[1]).isEqualTo(SidebarRow.Views(SidebarRow.View.CHATS, botsAttention = true))
+        assertThat(chats[2]).isEqualTo(SidebarRow.Switcher(withBots.list!!))
         assertThat(chats.filterIsInstance<SidebarRow.Nav>().map { it.kind })
             .containsExactly(SidebarRow.Nav.Kind.NEW_CHAT)
         assertThat(chats.filterIsInstance<SidebarRow.ChatRow>()).isNotEmpty()
 
-        // It stays at the top while searching, above the field.
+        // Both stay at the top while searching, above the field.
         val search = SidebarRow.build(withBots, "launch", null, "Pinned", botsKnown = true)
-        assertThat(search.first()).isEqualTo(SidebarRow.Views(SidebarRow.View.CHATS, botsAttention = true))
+        assertThat(search[0]).isInstanceOf(SidebarRow.Decisions::class.java)
+        assertThat(search[1]).isEqualTo(SidebarRow.Views(SidebarRow.View.CHATS, botsAttention = true))
     }
 
     @Test
-    fun `the Bots half draws the switch, the card, New bot, then the bots by group`() {
+    fun `the Bots half draws Decisions, the switch, the card, New bot, then the bots by group`() {
         val rows = SidebarRow.build(
             withBots,
             "",
@@ -258,12 +286,13 @@ class SidebarTest {
             botsKnown = true,
             view = SidebarRow.View.BOTS
         )
-        assertThat(rows[0]).isEqualTo(SidebarRow.Views(SidebarRow.View.BOTS, botsAttention = true))
-        assertThat(rows[1]).isEqualTo(
+        assertThat(rows[0]).isInstanceOf(SidebarRow.Decisions::class.java)
+        assertThat(rows[1]).isEqualTo(SidebarRow.Views(SidebarRow.View.BOTS, botsAttention = true))
+        assertThat(rows[2]).isEqualTo(
             SidebarRow.BotsCard("Northwind Studio", count = 3, working = 1, waiting = 2, url = "/482139075/bots")
         )
-        assertThat(rows[2]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.NEW_BOT, url = "/482139075/bots/new"))
-        assertThat(rows.drop(3).map { (it as? SidebarRow.Section)?.title ?: (it as SidebarRow.BotRow).bot.id })
+        assertThat(rows[3]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.NEW_BOT, url = "/482139075/bots/new"))
+        assertThat(rows.drop(4).map { (it as? SidebarRow.Section)?.title ?: (it as SidebarRow.BotRow).bot.id })
             .containsExactly("Needs you", 5L, "Quiet", 3L, 4L)
             .inOrder()
         assertThat(rows.filterIsInstance<SidebarRow.BotRow>().filter { it.selected }.map { it.bot.id })

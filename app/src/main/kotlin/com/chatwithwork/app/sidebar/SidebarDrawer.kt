@@ -50,6 +50,9 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
 
         fun chooseList()
 
+        /** Decisions: the Decisions page, or, from an older server, the list of what waits. */
+        fun openDecisions()
+
         /** A long press on [chat]'s row, [anchor]: its actions as a menu. */
         fun showChatActions(chat: Sidebar.Chat, anchor: View)
 
@@ -190,6 +193,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             is SidebarRow.Switcher -> TYPE_SWITCHER
             is SidebarRow.BotsCard -> TYPE_SWITCHER
             is SidebarRow.Views -> TYPE_VIEWS
+            is SidebarRow.Decisions -> TYPE_DECISIONS
             is SidebarRow.BotRow -> TYPE_BOT
             is SidebarRow.NoBots -> TYPE_NO_BOTS
             SidebarRow.Search -> TYPE_SEARCH
@@ -208,6 +212,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                     TYPE_SECTION -> R.layout.sidebar_section
                     TYPE_CHAT_SECTION -> R.layout.sidebar_chat_section
                     TYPE_VIEWS -> R.layout.sidebar_views
+                    TYPE_DECISIONS -> R.layout.sidebar_decisions
                     TYPE_BOT -> R.layout.sidebar_bot
                     TYPE_NO_BOTS -> R.layout.sidebar_bots_empty
                     else -> R.layout.sidebar_row
@@ -246,10 +251,38 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
 
                 is SidebarRow.Views -> bindViews(view, row)
 
+                is SidebarRow.Decisions -> bindDecisions(view, row)
+
                 is SidebarRow.BotRow -> bindBot(view, row)
 
                 is SidebarRow.NoBots -> bindNoBots(view, row)
             }
+        }
+
+        private fun bindDecisions(view: View, row: SidebarRow.Decisions) {
+            val waiting = row.count > 0
+            view.findViewById<ImageView>(R.id.sidebar_decisions_icon).setImageDrawable(
+                SymbolDrawable(
+                    context,
+                    "checklist",
+                    sizeDp = 20f,
+                    color = ContextCompat.getColor(context, R.color.lw_ink_muted)
+                )
+            )
+            view.findViewById<TextView>(R.id.sidebar_decisions_count).apply {
+                text = row.count.toString()
+                isVisible = waiting
+            }
+            view.findViewById<View>(R.id.sidebar_decisions_none).isVisible = !waiting
+            view.isActivated = waiting
+            view.isSelected = row.selected
+            view.contentDescription =
+                if (waiting) {
+                    context.resources.getQuantityString(R.plurals.sidebar_decisions_description, row.count, row.count)
+                } else {
+                    context.getString(R.string.sidebar_decisions_none_description)
+                }
+            view.setOnClickListener { actions.openDecisions() }
         }
 
         private fun bindViews(view: View, row: SidebarRow.Views) {
@@ -588,6 +621,8 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
 
             oldItem is SidebarRow.Views && newItem is SidebarRow.Views -> true
 
+            oldItem is SidebarRow.Decisions && newItem is SidebarRow.Decisions -> true
+
             oldItem is SidebarRow.BotRow && newItem is SidebarRow.BotRow -> oldItem.bot.id == newItem.bot.id
 
             oldItem is SidebarRow.ChatSection && newItem is SidebarRow.ChatSection ->
@@ -608,6 +643,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         private const val TYPE_VIEWS = 6
         private const val TYPE_BOT = 7
         private const val TYPE_NO_BOTS = 8
+        private const val TYPE_DECISIONS = 9
         private const val LOAD_MORE_AHEAD = 8
         private const val BOT_MARK = "bot"
 

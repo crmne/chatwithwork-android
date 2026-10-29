@@ -6,13 +6,9 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import androidx.appcompat.R as AppCompatR
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
-import androidx.core.view.children
-import androidx.core.view.updateLayoutParams
-import androidx.lifecycle.LiveData
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.SymbolDrawable
 import com.chatwithwork.app.routing.AppUrls
@@ -30,8 +26,8 @@ import dev.hotwire.navigation.fragments.HotwireWebFragment
 
 /**
  * A page: the native top app bar over the shared web view. The root (a chat)
- * has the sidebar's button where back would be, with the Decisions pill
- * beside it; every screen but a modal has New chat in its bar.
+ * has the sidebar's button where back would be; every screen but a modal has
+ * New chat in its bar.
  */
 @HotwireDestinationDeepLink(uri = "hotwire://fragment/web")
 open class WebFragment : HotwireWebFragment() {
@@ -68,14 +64,13 @@ open class WebFragment : HotwireWebFragment() {
         }
     }
 
-    /** The sidebar's button and Decisions on the root, and New chat on every screen but a modal. */
+    /** The sidebar's button on the root, and New chat on every screen but a modal. */
     private fun addShellActions(toolbar: Toolbar) {
         val ink = MaterialColors.getColor(toolbar, com.google.android.material.R.attr.colorOnSurface)
         if (navigator.isAtStartDestination()) {
             toolbar.navigationIcon = SymbolDrawable(toolbar.context, "menu", color = ink)
             toolbar.navigationContentDescription = getString(R.string.sidebar_open)
             toolbar.setNavigationOnClickListener { host?.openSidebar() }
-            addDecisions(toolbar)
         }
         toolbar.menu.removeGroup(GROUP_SHELL)
         toolbar.menu.add(GROUP_SHELL, ITEM_NEW_CHAT, ORDER_NEW_CHAT, R.string.new_chat).apply {
@@ -84,41 +79,6 @@ open class WebFragment : HotwireWebFragment() {
             setOnMenuItemClickListener {
                 host?.startNewChat()
                 true
-            }
-        }
-    }
-
-    /**
-     * Decisions, a small pill just after the sidebar's button, as on the web
-     * (DecisionsPillDrawable, in the toolbar's logo slot, which sits between
-     * the button and the title). It shows once the sidebar's JSON has said
-     * how many wait, and opens the Decisions page.
-     */
-    private fun addDecisions(toolbar: Toolbar) {
-        val host = host ?: return
-        // The pill sits beside the button, not at the title's usual inset.
-        toolbar.contentInsetStartWithNavigation = 0
-        host.decisionsCount.observe(viewLifecycleOwner) { count ->
-            if (count == null) {
-                toolbar.logo = null
-                return@observe
-            }
-            val pill = DecisionsPillDrawable(toolbar.context, count)
-            toolbar.logo = pill
-            toolbar.logoDescription =
-                if (count > 0) {
-                    resources.getQuantityString(R.plurals.decisions_pill_description, count, count)
-                } else {
-                    getString(R.string.sidebar_waiting)
-                }
-            toolbar.children.firstOrNull { it is ImageView && it.drawable === pill }?.let { logo ->
-                logo.isClickable = true
-                logo.isFocusable = true
-                logo.setOnClickListener { host.openDecisions() }
-                logo.updateLayoutParams<Toolbar.LayoutParams> {
-                    marginEnd =
-                        (12 * resources.displayMetrics.density).toInt()
-                }
             }
         }
     }
@@ -207,12 +167,6 @@ interface WebScreenHost {
     fun presentSignIn()
 
     fun openSidebar()
-
-    /** How many decisions wait, from the sidebar's JSON; null until it's known. */
-    val decisionsCount: LiveData<Int?>
-
-    /** The Decisions pill: the Decisions page. */
-    fun openDecisions()
 
     fun startNewChat()
 }

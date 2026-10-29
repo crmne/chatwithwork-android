@@ -20,7 +20,14 @@ sealed interface SidebarRow {
         enum class Kind { NEW_CHAT, BOTS, NEW_BOT }
     }
 
-    /** The Chats | Bots switch, the sidebar's first control; Bots carries a dot when [botsAttention], never a number. */
+    /**
+     * Decisions, the sidebar's first control, in both views and for guests:
+     * how many wait ([count], `waiting.count`), opening the Decisions page.
+     * [selected] while that page shows.
+     */
+    data class Decisions(val count: Int, val selected: Boolean) : SidebarRow
+
+    /** The Chats | Bots switch, just under Decisions; Bots carries a dot when [botsAttention], never a number. */
     data class Views(val view: View, val botsAttention: Boolean) : SidebarRow
 
     /** What the sidebar shows under its switch. */
@@ -67,12 +74,12 @@ sealed interface SidebarRow {
          * ignoring case, as the web's sidebar search does. [current] is the
          * page showing, whose chat is marked. [pinnedTitle] heads the pins.
          * Without a [sidebar], the rows that need no data: New chat and Bots
-         * (when [botsKnown]). Decisions isn't here: it's the pill in the
-         * chat's top bar. [otherTitle] heads the list's chats in none of
-         * the person's sections, when they have any.
+         * (when [botsKnown]). With one, Decisions leads, in both views and
+         * while searching, as on the web. [otherTitle] heads the list's chats
+         * in none of the person's sections, when they have any.
          *
          * A server that lists the person's bots (`bots.items`) gets the
-         * Chats | Bots switch at the top instead of the Bots row, and
+         * Chats | Bots switch under Decisions instead of the Bots row, and
          * [view] picks the half: Bots draws, in the same places, a card for
          * the list switcher, New bot for New chat, and the bots for the
          * chats, under [needsYouTitle] and [quietTitle] when there are both.
@@ -98,7 +105,7 @@ sealed interface SidebarRow {
                 return buildBots(sidebar, bots, botItems, current, needsYouTitle, quietTitle)
             }
 
-            val rows = mutableListOf<SidebarRow>()
+            val rows = mutableListOf<SidebarRow>(decisions(sidebar, current))
             if (bots != null && botItems != null) rows += Views(View.CHATS, botsAttention = bots.attention)
             sidebar.list?.let { rows += Switcher(it) }
             rows += Search
@@ -168,7 +175,7 @@ sealed interface SidebarRow {
             needsYouTitle: String,
             quietTitle: String
         ): List<SidebarRow> {
-            val rows = mutableListOf<SidebarRow>()
+            val rows = mutableListOf<SidebarRow>(decisions(sidebar, current))
             rows += Views(View.BOTS, botsAttention = bots.attention)
             rows +=
                 BotsCard(
@@ -191,6 +198,16 @@ sealed interface SidebarRow {
                 group.forEach { rows += BotRow(it, selected = isCurrent(it, current)) }
             }
             return rows
+        }
+
+        private fun decisions(sidebar: Sidebar, current: String?) =
+            Decisions(sidebar.waiting.count, selected = isDecisions(sidebar, current))
+
+        /** Whether [current] is the Decisions page, on any decision (`?decision=`), as the web marks it. */
+        fun isDecisions(sidebar: Sidebar, current: String?): Boolean {
+            val url = (sidebar.waiting.url ?: sidebar.links.decisions)?.substringBefore('?')?.substringBefore('#')
+            val path = current?.let { runCatching { java.net.URI(it).rawPath }.getOrNull() }
+            return url != null && path != null && (path == url || path.startsWith("$url/"))
         }
 
         /** Whether [current] is [bot]'s page or one under it (its chats, its settings), as the web marks it. */
