@@ -72,7 +72,11 @@
 
     <!-- The composer -->
     <string name="composer_placeholder">Ask anything…</string>
-    <string name="composer_add">Add photos, files, or a scan</string>
+    <string name="composer_add">Add files and more</string>
+    <string name="composer_attach">Attach photos, files, or a scan</string>
+    <string name="composer_web_search_button">Search the web</string>
+    <string name="composer_web_search_on">On</string>
+    <string name="composer_web_search_off">Off</string>
     <string name="composer_send">Send</string>
     <string name="composer_stop">Stop response</string>
     <string name="composer_model_description">Model: %1$s. Choose another.</string>
@@ -87,10 +91,10 @@
     <string name="composer_file_too_big">%1$s is over 25 MB, too big to attach here.</string>
     <string name="composer_file_unreadable">That file couldn\'t be read.</string>
     <string name="composer_scan_unavailable">Scanning needs Google Play services, which this phone doesn\'t have.</string>
-    <string name="dictation_listening">Listening…</string>
-    <string name="dictation_transcribing">Writing down what you said…</string>
-    <string name="dictation_stop">Stop</string>
-    <string name="dictation_cancel">Cancel</string>
+    <string name="dictation_listening">Listening</string>
+    <string name="dictation_transcribing">Transcribing</string>
+    <string name="dictation_stop_description">Stop dictating and write it down</string>
+    <string name="dictation_cancel_description">Cancel dictation</string>
     <string name="dictation_failed">Dictation didn\'t work. Try again.</string>
     <string name="dictation_no_speech">Nothing was heard. Try again a little closer.</string>
     <string name="dictation_needs_microphone">Dictation needs the microphone. Allow it in the app\'s settings.</string>

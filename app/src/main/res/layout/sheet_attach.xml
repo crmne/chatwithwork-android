@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The composer's "+": add something (camera, photos, files, a scan), dictate,
-  and web search as a switch when the organization allows it. Only adding
-  and dictating live here; the model stays in the composer, so this never
-  becomes a drawer of everything.
+  The composer's "+": add something (camera, photos, files, a scan), and
+  what the bar had no room for (ComposerBar): dictate, and web search as a
+  switch when the organization allows it. The model stays in the composer,
+  so this never becomes a drawer of everything.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"

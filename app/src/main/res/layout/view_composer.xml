@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The native composer: what the web one has (attach, the field, the model,
-  Stop and Send), docked above the keyboard and the gesture bar, on the
+  The native composer: what the web one has (attach, the field, the
+  microphone and the web search globe while there's room, the model, Stop
+  and Send), docked above the keyboard and the gesture bar, on the
   rainbow edge that is the brand's. It drives the web composer, hidden in
   the page, through the composer bridge component (ComposerComponent).
+  While dictation listens or transcribes, its line takes the field's place,
+  as the web composer's does ([data-dictating]): "Listening", the waveform
+  across the composer, and the time, with Cancel and Stop in the bar.
 -->
 <com.chatwithwork.app.composer.ComposerView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -55,6 +59,57 @@
 
         </HorizontalScrollView>
 
+        <LinearLayout
+            android:id="@+id/composer_dictation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:minHeight="40dp"
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingEnd="8dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <View
+                android:id="@+id/composer_dictation_dot"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/sidebar_dot"
+                android:backgroundTint="@color/lw_live"
+                android:importantForAccessibility="no" />
+
+            <TextView
+                android:id="@+id/composer_dictation_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:accessibilityLiveRegion="polite"
+                android:maxLines="1"
+                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:textColor="@color/lw_live_ink"
+                tools:text="@string/dictation_listening" />
+
+            <com.chatwithwork.app.composer.WaveformView
+                android:id="@+id/composer_waveform"
+                android:layout_width="0dp"
+                android:layout_height="28dp"
+                android:layout_marginHorizontal="12dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/composer_dictation_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:fontFeatureSettings="tnum"
+                android:importantForAccessibility="no"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="0:07" />
+
+        </LinearLayout>
+
         <EditText
             android:id="@+id/composer_field"
             android:layout_width="match_parent"
@@ -84,6 +139,32 @@
                 android:layout_height="44dp"
                 android:background="@drawable/composer_round_button"
                 android:contentDescription="@string/composer_add" />
+
+            <ImageButton
+                android:id="@+id/composer_dictate"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/composer_ghost_button"
+                android:contentDescription="@string/composer_dictate"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <ImageButton
+                android:id="@+id/composer_web_search"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/composer_ghost_button"
+                android:contentDescription="@string/composer_web_search_button"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <ImageButton
+                android:id="@+id/composer_dictation_cancel"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/composer_round_button"
+                android:contentDescription="@string/dictation_cancel_description"
+                android:visibility="gone" />
 
             <Space
                 android:layout_width="0dp"
@@ -121,6 +202,34 @@
                 android:layout_height="44dp"
                 android:background="@drawable/composer_send_background"
                 android:contentDescription="@string/composer_send" />
+
+            <FrameLayout
+                android:id="@+id/composer_dictation_stop_frame"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:visibility="gone">
+
+                <ImageButton
+                    android:id="@+id/composer_dictation_stop"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/composer_send_background"
+                    android:contentDescription="@string/dictation_stop_description" />
+
+                <!-- Transcribing: Stop steps back to the quiet surface, with a spinner on it. -->
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/composer_dictation_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:importantForAccessibility="no"
+                    android:indeterminate="true"
+                    android:visibility="gone"
+                    app:indicatorColor="@color/lw_ink_muted"
+                    app:indicatorSize="20dp"
+                    app:trackThickness="2dp" />
+
+            </FrameLayout>
 
         </LinearLayout>
 

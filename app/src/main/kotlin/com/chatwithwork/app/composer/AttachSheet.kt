@@ -20,8 +20,9 @@ import com.google.android.material.materialswitch.MaterialSwitch
 /**
  * The composer's "+" sheet: Camera, Photos (Android's photo picker, which
  * needs no permission), Files, Scan (ML Kit's document scanner, one PDF),
- * Dictate when the page offers dictation, and Web search as a switch when
- * the page offers it.
+ * and what the bar had no room for ([ComposerBar.Sheet.folded]): Dictate
+ * when the page offers dictation, and Web search as a switch when the page
+ * offers it.
  */
 object AttachSheet {
     interface Choices {
@@ -39,7 +40,7 @@ object AttachSheet {
     }
 
     @SuppressLint("InflateParams") // A dialog's content has no parent until it's set.
-    fun show(context: Context, state: ComposerState, choices: Choices): BottomSheetDialog {
+    fun show(context: Context, state: ComposerState, sheet: ComposerBar.Sheet, choices: Choices): BottomSheetDialog {
         val dialog = BottomSheetDialog(context)
         val inflater = LayoutInflater.from(context)
         val content = inflater.inflate(R.layout.sheet_attach, null)
@@ -60,16 +61,16 @@ object AttachSheet {
             tiles.addView(view)
         }
 
-        if (state.acceptsFiles) {
+        if (sheet.attach) {
             tile("photo_camera", R.string.composer_camera, choices::camera)
             tile("photo_library", R.string.composer_photos, choices::photos)
             tile("attach_file", R.string.composer_files, choices::files)
             tile("document_scanner", R.string.composer_scan, choices::scan)
         }
-        if (state.dictation != null && Dictation.supported) tile("mic", R.string.composer_dictate, choices::dictate)
+        if (ComposerBar.Control.DICTATE in sheet.folded) tile("mic", R.string.composer_dictate, choices::dictate)
         tiles.isVisible = tiles.isNotEmpty()
 
-        val search = state.webSearch
+        val search = state.webSearch?.takeIf { ComposerBar.Control.WEB_SEARCH in sheet.folded }
         val row = content.findViewById<View>(R.id.attach_web_search)
         row.isVisible = search != null
         if (search != null) {
