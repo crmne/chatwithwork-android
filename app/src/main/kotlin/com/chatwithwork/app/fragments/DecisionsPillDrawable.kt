@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
+import android.util.TypedValue
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import com.chatwithwork.app.R
@@ -29,7 +30,7 @@ class DecisionsPillDrawable(context: Context, private val count: Int) : Drawable
     private val text =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = ink
-            textSize = COUNT_SP * context.resources.displayMetrics.scaledDensity
+            textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, COUNT_SP, context.resources.displayMetrics)
             typeface = ResourcesCompat.getFont(context, R.font.geist_semibold)
             fontFeatureSettings = "'tnum'"
         }
