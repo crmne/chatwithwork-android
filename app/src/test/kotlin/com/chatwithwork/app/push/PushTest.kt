@@ -82,6 +82,9 @@ class PushTest {
         )
         assertThat(end?.isWorking).isFalse()
         assertThat(end?.steps).isEqualTo(0)
+        val failure = LiveProgress.from(data + mapOf("phase" to "failed", "notification_id" to "encrypted-reference"))
+        assertThat(failure?.notificationId).isEqualTo("encrypted-reference")
+        assertThat(end?.notificationId).isNull()
 
         assertThat(LiveProgress.from(data + ("path" to "https://evil.example/chats/42"))).isNull()
         assertThat(LiveProgress.from(data - "thread")).isNull()
@@ -105,6 +108,19 @@ class PushTest {
         assertThat(NotificationWords.parse(wait)?.subtitle).isEqualTo("Waiting for your approval in Slack")
         assertThat(NotificationWords.parse("""{"title":"","body":"x"}""")).isNull()
         assertThat(NotificationWords.parse("not json")).isNull()
+    }
+
+    @Test
+    fun `distinguishes a suppressed old failure from a failed content fetch`() {
+        val stale = NotificationWords.parse(
+            """{"suppressed":true,"title":"Northwind","body":"This notification is no longer current."}"""
+        )
+        assertThat(stale?.suppressed).isTrue()
+        assertThat(NotificationWords.parse("""{"suppressed":true}""")?.suppressed).isTrue()
+        assertThat(NotificationWords.parse("not json")).isNull()
+        assertThat(
+            NotificationWords.parse("""{"title":"Northwind","body":"A chat couldn't finish."}""")?.suppressed
+        ).isFalse()
     }
 
     @Test

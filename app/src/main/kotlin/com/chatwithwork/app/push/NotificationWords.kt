@@ -19,7 +19,12 @@ import kotlinx.serialization.json.Json
 object NotificationWords {
     /** `GET /native/notifications/:id`'s answer. */
     @Serializable
-    data class Text(val title: String = "", val subtitle: String? = null, val body: String = "")
+    data class Text(
+        val title: String = "",
+        val subtitle: String? = null,
+        val body: String = "",
+        val suppressed: Boolean = false
+    )
 
     /** How long a push waits for its words before it shows its own. */
     const val TIMEOUT_MS = 5_000
@@ -32,7 +37,7 @@ object NotificationWords {
 
     fun parse(body: String): Text? = runCatching { json.decodeFromString<Text>(body) }
         .getOrNull()
-        ?.takeIf { it.title.isNotBlank() && it.body.isNotBlank() }
+        ?.takeIf { it.suppressed || (it.title.isNotBlank() && it.body.isNotBlank()) }
 
     /** The words for the notification [id] names, or null. Blocks: call it off the main thread. */
     fun fetch(id: String, key: String): Text? {

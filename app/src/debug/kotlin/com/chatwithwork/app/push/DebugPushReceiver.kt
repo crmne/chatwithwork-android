@@ -27,6 +27,13 @@ class DebugPushReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val extras = intent.extras ?: return
         val data = extras.keySet().mapNotNull { key -> extras.getString(key)?.let { key to it } }.toMap()
+        if (data["kind"] == "live_preview") {
+            val progress = LiveProgress.from(data + ("kind" to "progress")) ?: return
+            PushNotifications.optIn(context)
+            LiveUpdates.show(context, progress.url, "Northwind Studio")
+            LiveUpdates.progress(context, progress.copy(sentAt = System.currentTimeMillis()))
+            return
+        }
         val pending = goAsync()
         thread(name = "debug-push") {
             try {

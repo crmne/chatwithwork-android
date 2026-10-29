@@ -172,6 +172,7 @@ object PushNotifications {
      * sign-in registers anew.
      */
     fun forget(context: Context) {
+        LiveUpdates.forget(context)
         val hadToken = lastToken(context) != null
         preferences(context).edit {
             remove(KEY_TOKEN)
@@ -193,7 +194,13 @@ object PushNotifications {
      * call it off the main thread.
      */
     fun receive(context: Context, data: Map<String, String>) {
-        LiveProgress.from(data)?.let { return LiveUpdates.progress(context, it) }
+        LiveProgress.from(data)?.let { progress ->
+            val words = progress.notificationId?.let { id ->
+                notificationKey(context)?.let { key -> NotificationWords.fetch(id, key) }
+            }
+            if (words?.suppressed != true) LiveUpdates.progress(context, progress)
+            return
+        }
         val push = Push.from(data) ?: return
         val words =
             push.notificationId?.let { id ->
@@ -211,6 +218,9 @@ object PushNotifications {
      * own words instead.
      */
     fun deliver(context: Context, push: Push, words: NotificationWords.Text? = null) {
+        // An old failure may arrive after recovery. Keep any newer notification
+        // or Live Update already in this chat's slot instead of replacing it.
+        if (words?.suppressed == true) return
         val manager = NotificationManagerCompat.from(context)
         if (push.kind == Push.Kind.RESOLVED) {
             manager.cancel(push.thread, NOTIFICATION_ID)

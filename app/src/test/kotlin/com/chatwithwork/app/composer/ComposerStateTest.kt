@@ -34,6 +34,8 @@ class ComposerStateTest {
         assertThat(state.uploading).isTrue()
         assertThat(state.overlay).isTrue()
         assertThat(json.decodeFromString<ComposerState>("{}").overlay).isFalse()
+        assertThat(json.decodeFromString<ComposerState>("{}").visible).isTrue()
+        assertThat(json.decodeFromString<ComposerState>("""{"visible":false}""").visible).isFalse()
     }
 
     @Test

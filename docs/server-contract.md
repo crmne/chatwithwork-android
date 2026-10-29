@@ -489,8 +489,9 @@ names are fine.
   "A question is waiting for your answer.", "Your answer is ready.", "A
   chat couldn't finish its answer.", "A bot handed a conversation to your
   team.").
-- `notification_id` (2026-10-26): an id the app can't read, sent only to
-  someone whose "Show the chat and its answer" is on. Before showing the
+- `notification_id` (2026-10-26): an id the app can't read, sent to
+  someone whose "Show the chat and its answer" is on, and for failures even
+  when that setting is off (to validate that the failure still applies). Before showing the
   notification, the app fetches its words from the server with it, as in
   the iOS contract's "The words": `GET /native/notifications/<id>` with
   `Authorization: Bearer <notification key>`, answering
@@ -502,6 +503,11 @@ names are fine.
   `title` and `body`. It waits at most 5 seconds, and shows the push's own
   words when there's no key, the server answers anything but `200`, or
   nothing comes in time. So those words never pass through Google.
+  An authorized failure that has since resolved answers `200` with
+  `{suppressed: true, title, body}`; this app drops it without replacing a
+  newer notification or Live Update. The title and body are neutral,
+  content-free fallback words for older clients. Authentication failures
+  and network failures keep the usual fallback behavior.
 - High priority wakes the phone from Doze. Android lowers the priority of
   apps whose high-priority messages don't end in a notification, which is
   why `resolved` goes out as normal.
@@ -523,9 +529,9 @@ naming the token, for a token that's gone: destroy the registration. Retry
 
 When the person leaves the app while the chat on screen is answering (its
 composer says `working`), the app posts an ongoing notification for that
-chat: Android 16's progress style, promoted where the system allows (the
+chat: a native BigTextStyle status card, promoted where the system allows (the
 status bar chip, and OEM surfaces built on it such as OnePlus's and OPPO's
-Live Alerts), "Your answer is on its way", the organization's name and a
+Live Alerts), the current step, the organization's name and an elapsed
 timer, never the chat's title or content. It uses the chat's notification
 slot (tag `chat-<organization>-<number>`, the `thread` the server sends), so
 the push that ends the wait (`answered`, `approval_waiting`,
@@ -564,8 +570,22 @@ answer ends, the same kind comes with `phase` `answered`,
 words for it, never collapsed and kept a day, and the Live Update becomes a
 quiet notification saying so, until the push for that end (if the person
 gets one) takes its place. `sent_at` is the server's clock in milliseconds:
-the app drops a message older than the one it shows, and anything once the
-Live Update is gone.
+the app drops a message older than the latest one received for that chat,
+including after a follow ends or is cancelled. This server timestamp is
+kept across following the same chat again and cleared on sign-out, so an
+old end cannot replace new progress. A failed end can also carry
+`notification_id`: the app validates it using the same endpoint before
+ending the card, preserving current progress if the failure is suppressed.
+
+The card uses the step's icon and meaning color, "3 steps so far" (including
+a step still running), and Open chat. Ended states stop the timer and use
+Read answer, Review change or Reply as appropriate. Every action opens the
+authenticated chat; none approves a change from the notification. There is
+no percentage or ETA because the amount of work is not known. Android's
+[Live Updates API](https://developer.android.com/develop/ui/views/notifications/live-update)
+supports BigTextStyle; the app requests promoted ongoing display, while
+older Android versions and phones that disable promotion keep a standard
+native notification. Custom RemoteViews are not used.
 
 When to send is the iOS contract's "When", unchanged. The app files
 approvals and questions under the "Approvals and questions" channel, and
@@ -820,6 +840,12 @@ sets `--native-composer-height`, and clears it when the composer leaves.
 The conversation has that height plus 1.5rem of bottom padding; older apps
 leave the variable unset and keep their previous clearance.
 
+An optional `visible` state flag defaults to true. While a web modal
+dialog is open, the bridge sends false: native hides the composer, releases
+its inset and reports layout height 0, while keeping the draft. Closing the
+dialog restores the composer without taking focus from the page. This
+applies to connector search, model consent and any other web modal.
+
 Builds that register the `composer` component draw the composer
 themselves, floating over the page above the keyboard and the gesture bar:
 "+", the microphone and the web search globe, the field, the model, Stop
@@ -833,7 +859,7 @@ gutters. The page leaves room to scroll its last answer above the box.
 
 | Event | Direction | Data |
 |---|---|---|
-| `connect`, then `state` | web to app | `{overlay?, placeholder, text?, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb}], webSearch: {on, disabled, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
+| `connect`, then `state` | web to app | `{overlay?, visible?, placeholder, text?, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb}], webSearch: {on, disabled, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
 | reply to `connect` | app to web | `{action: "send", text}`, `{action: "stop"}`, `{action: "model", index}`, `{action: "webSearch", on}`, `{action: "attach", files: [{name, type, data}]}` (data base64), `{action: "remove", id}`, `{action: "text", text}`, `{action: "layout", height, width}` |
 
 A chat draws its composer again as an answer starts and ends; each new one

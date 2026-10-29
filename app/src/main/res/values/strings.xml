@@ -149,7 +149,19 @@
     <string name="channel_answering_description">A chat you left is still answering. It goes away when the answer is ready or waits for you.</string>
     <string name="live_update_answering">Answering</string>
     <string name="live_update_text">Your answer is on its way.</string>
+    <string name="live_update_background">Working in the background</string>
+    <string name="live_update_ready">Answer ready</string>
+    <string name="live_update_approval">Approval needed</string>
+    <string name="live_update_input">Your input needed</string>
+    <string name="live_update_failed">Couldn\'t finish</string>
+    <string name="live_update_stopped">Stopped</string>
+    <string name="live_update_unknown">Open chat for an update</string>
+    <string name="live_update_open">Open chat</string>
+    <string name="live_update_review">Review change</string>
+    <string name="live_update_reply">Reply</string>
+    <string name="live_update_read">Read answer</string>
     <!-- The status bar chip of a Live Update, for the step an answer is on: short enough to show whole. -->
+    <string name="live_update_chip_think">Think</string>
     <string name="live_update_chip_search">Search</string>
     <string name="live_update_chip_list">Browse</string>
     <string name="live_update_chip_read">Read</string>
@@ -159,8 +171,8 @@
     <string name="live_update_chip_ask">Ask</string>
     <string name="live_update_chip_write">Write</string>
     <plurals name="live_update_steps">
-        <item quantity="one">%d step</item>
-        <item quantity="other">%d steps</item>
+        <item quantity="one">%d step so far</item>
+        <item quantity="other">%d steps so far</item>
     </plurals>
     <string name="channel_answers">Answers</string>
     <string name="channel_answers_description">An answer is ready, a chat couldn\'t finish, or a bot handed a conversation to your team.</string>

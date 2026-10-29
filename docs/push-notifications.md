@@ -70,6 +70,12 @@ that chat, in Chats, inside the right organization.
   steps) and the end, never the chat's words. The step shows as the Live
   Update's title and as a short word in the status bar chip, and the end
   turns it into a quiet notification until the push for it takes its place.
+  The native card shows a colored state icon, elapsed time, steps so far
+  and a link back to the chat. It uses BigTextStyle, supported by Live
+  Updates, rather than an indeterminate percentage bar. Waiting and ended
+  cards use concise headlines and safe navigation actions; the timer stops.
+  A server-validated stale failure is dropped, and server timestamps survive
+  following the same chat again so an old end cannot overwrite newer work.
 
 The code: `push/PushNotifications.kt` (permission, opt-in, token, the
 notification key, showing notifications), `push/PushMessagingService.kt`
@@ -118,6 +124,10 @@ adb shell am broadcast -n com.chatwithwork.app.debug/com.chatwithwork.app.push.D
   --es kind progress --es path /1000001/chats/42 --es thread chat-1000001-42 \
   --es phase answered --es message "'Your answer is ready.'" --es sent_at $(date +%s%3N)
 ```
+
+For a synthetic card without a server, use the same broadcast with
+`--es kind live_preview`. Debug builds create a Northwind Studio Live
+Update before applying that progress; production has no such receiver.
 
 A push with `--es notification_id <id>` fetches its words from the server
 like FCM's would, with the key the page handed over; an id the server

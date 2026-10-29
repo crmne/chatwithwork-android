@@ -84,6 +84,21 @@ needs no closed test first.
   App content's App access instructions to the text below, which describe
   the first question's yes and reporting an answer.
 
+## Release 1.1.2
+
+Version 1.1.2 (10102) redesigns Live Updates with native status cards,
+elapsed time only while working, and actions that open the chat to read or
+review. It validates delayed failures against the server and preserves the
+last progress timestamp when following the same chat again. The composer
+hides while a web dialog is open and restores the draft when it closes.
+`fastlane/metadata/android/en-US/changelogs/10102.txt` is its Play text.
+
+Validation: unit tests, lint, formatting, and Debug, Staging and Release
+builds passed. Android 17 on the Mac mini's Metal emulator confirmed the
+system's `PROMOTED_ONGOING` flag; Android 16 also displayed the native
+fallback without an indeterminate progress bar. Promotion remains the
+system's decision and depends on the device and notification settings.
+
 ## Release 1.1.1
 
 Version 1.1.1 (10101) includes the floating native composer and sidebar

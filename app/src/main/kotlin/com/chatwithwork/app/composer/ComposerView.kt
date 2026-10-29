@@ -183,7 +183,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             input.setText(state.text)
             input.setSelection(input.length())
         }
-        isVisible = true
+        isVisible = state.visible
+        if (!state.visible) input.clearFocus()
         // A lock (out of credits, a failed answer) ends dictation, unsent, as the web's does.
         if (state.locked && dictation != null) cancelDictation()
         input.hint = state.placeholder.ifBlank { context.getString(R.string.composer_placeholder) }
@@ -230,10 +231,10 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         val container = parent as? View ?: return
         val page = container.findViewById<View>(R.id.composer_page) ?: return
         // Servers without overlay support cannot reserve scroll space themselves.
-        val inset = if (state.overlay) 0 else height
+        val inset = if (state.overlay || !state.visible) 0 else height
         val params = page.layoutParams as FrameLayout.LayoutParams
         if (params.bottomMargin != inset) page.updateLayoutParams<FrameLayout.LayoutParams> { bottomMargin = inset }
-        if (state.overlay && height > 0 && container.width > 0) actions?.layout(height, container.width)
+        if (state.overlay && container.width > 0) actions?.layout(if (state.visible) height else 0, container.width)
     }
 
     private fun muted() = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant)

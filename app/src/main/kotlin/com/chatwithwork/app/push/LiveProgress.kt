@@ -18,7 +18,8 @@ data class LiveProgress(
     val message: String?,
     val step: String?,
     val steps: Int,
-    val sentAt: Long
+    val sentAt: Long,
+    val notificationId: String? = null
 ) {
     /** Still answering; any other phase is how it ended. */
     val isWorking: Boolean get() = phase == ANSWERING
@@ -38,7 +39,8 @@ data class LiveProgress(
                 message = data["message"]?.takeIf { it.isNotBlank() },
                 step = data["step"]?.takeIf { it.isNotBlank() },
                 steps = data["steps"]?.toIntOrNull() ?: 0,
-                sentAt = data["sent_at"]?.toLongOrNull() ?: 0
+                sentAt = data["sent_at"]?.toLongOrNull() ?: 0,
+                notificationId = data["notification_id"]?.takeIf { it.isNotBlank() }
             )
         }
     }

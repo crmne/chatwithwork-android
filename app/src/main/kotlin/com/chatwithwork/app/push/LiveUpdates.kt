@@ -6,14 +6,20 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.os.Build
 import android.os.Bundle
 import android.webkit.CookieManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
+import androidx.core.graphics.ColorUtils
 import androidx.core.net.toUri
 import com.chatwithwork.app.R
+import com.chatwithwork.app.bridge.SymbolDrawable
 import com.chatwithwork.app.main.MainActivity
 import com.chatwithwork.app.routing.AppUrls
 import java.io.IOException
@@ -26,8 +32,8 @@ import kotlinx.serialization.json.putJsonObject
 
 /**
  * A Live Update for a chat the person left while it was answering: an
- * ongoing notification with indeterminate progress (Android 16's progress
- * style, promoted where the system allows, as OEM skins like ColorOS's and
+ * ongoing native status card (promoted on Android 16 where the system allows,
+ * as OEM skins like ColorOS's and
  * OxygenOS's Live Alerts do for apps that use it), saying the organization's
  * name and what the answer is doing, never the chat's title or anything in it.
  *
@@ -50,6 +56,7 @@ object LiveUpdates {
 
     /** The organization a Live Update names, kept in its extras for the steps that follow. */
     private const val EXTRA_ORGANIZATION = "com.chatwithwork.app.LIVE_UPDATE_ORGANIZATION"
+    private const val PREFERENCES = "live_updates"
 
     /** The push thread for a chat's page ("chat-482139075-42"), as the server names it. */
     fun threadFor(url: String): String? {
@@ -58,6 +65,7 @@ object LiveUpdates {
         return "chat-$account-$number"
     }
 
+    @Synchronized
     fun show(context: Context, url: String, organization: String?) {
         val thread = threadFor(url) ?: return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -70,8 +78,9 @@ object LiveUpdates {
 
         val notification =
             ongoing(context, url, organization ?: context.getString(R.string.app_name), System.currentTimeMillis())
-                .setContentTitle(context.getString(R.string.live_update_text))
-                .setShortCriticalText(context.getString(R.string.live_update_answering))
+                .setContentTitle(context.getString(R.string.live_update_answering))
+                .setShortCriticalText(context.getString(R.string.live_update_chip_think))
+                .addExtras(Bundle().apply { putLong(EXTRA_SENT_AT, lastSentAt(context, thread)) })
                 .build()
         NotificationManagerCompat.from(context).notify(thread, PushNotifications.NOTIFICATION_ID, notification)
     }
@@ -80,7 +89,14 @@ object LiveUpdates {
      * The server's step, or the end, for a chat whose Live Update still
      * shows; nothing for one the person came back to, or a push replaced.
      */
+    @Synchronized
     fun progress(context: Context, progress: LiveProgress) {
+        if (progress.sentAt <= lastSentAt(context, progress.thread)) return
+        // Keep the server watermark after returning to a chat or an end push.
+        // Following the same chat again must not admit that old end a second time.
+        context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE).edit {
+            putLong(progress.thread, progress.sentAt)
+        }
         val manager = NotificationManagerCompat.from(context)
         val showing =
             manager.activeNotifications.firstOrNull {
@@ -101,9 +117,8 @@ object LiveUpdates {
         val organization = shown.extras.getString(EXTRA_ORGANIZATION) ?: context.getString(R.string.app_name)
         val notification =
             if (progress.isWorking) {
-                ongoing(context, progress.url, organization, shown.`when`)
+                ongoing(context, progress.url, organization, shown.`when`, progress.step, progress.steps)
                     .setContentTitle(progress.message ?: context.getString(R.string.live_update_text))
-                    .setContentText(listOfNotNull(organization, stepsText(context, progress.steps)).joinToString(" · "))
                     .setShortCriticalText(context.getString(chipWord(progress.step)))
                     .addExtras(Bundle().apply { putLong(EXTRA_SENT_AT, progress.sentAt) })
                     .build()
@@ -111,6 +126,14 @@ object LiveUpdates {
                 ended(context, progress, organization)
             }
         manager.notify(progress.thread, PushNotifications.NOTIFICATION_ID, notification)
+    }
+
+    private fun lastSentAt(context: Context, thread: String): Long =
+        context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE).getLong(thread, 0)
+
+    /** A signed-out identity must leave no per-chat push state on this install. */
+    fun forget(context: Context) {
+        context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE).edit { clear() }
     }
 
     /** Back in the chat: its Live Update goes (a push that already replaced it stays). */
@@ -180,24 +203,33 @@ object LiveUpdates {
         "run" -> R.string.live_update_chip_run
         "ask" -> R.string.live_update_chip_ask
         "write" -> R.string.live_update_chip_write
-        else -> R.string.live_update_answering
+        else -> R.string.live_update_chip_think
     }
 
     private fun stepsText(context: Context, steps: Int): String? =
         if (steps > 0) context.resources.getQuantityString(R.plurals.live_update_steps, steps, steps) else null
 
-    /** What the answer is doing goes in the title (set by the caller), the organization under it. */
+    /** Native BigTextStyle remains eligible for promotion, without implying a known percentage. */
     private fun ongoing(
         context: Context,
         url: String,
         organization: String,
-        startedAt: Long
+        startedAt: Long,
+        step: String? = null,
+        steps: Int = 0
     ): NotificationCompat.Builder = NotificationCompat
         .Builder(context, PushNotifications.CHANNEL_ANSWERING)
         .setSmallIcon(R.drawable.ic_notification)
-        .setContentText(organization)
+        .setSubText(organization)
+        .setContentText(stepsText(context, steps) ?: context.getString(R.string.live_update_background))
+        .setStyle(
+            NotificationCompat.BigTextStyle().bigText(
+                stepsText(context, steps) ?: context.getString(R.string.live_update_background)
+            )
+        )
+        .setLargeIcon(statusIcon(context, LivePresentation(LiveProgress.ANSWERING, step)))
+        .setColor(ContextCompat.getColor(context, R.color.lw_live_ink))
         .addExtras(Bundle().apply { putString(EXTRA_ORGANIZATION, organization) })
-        .setStyle(NotificationCompat.ProgressStyle().setProgressIndeterminate(true))
         .setOngoing(true)
         .setOnlyAlertOnce(true)
         .setRequestPromotedOngoing(true)
@@ -207,19 +239,52 @@ object LiveUpdates {
         .setTimeoutAfter(TIMEOUT_MS)
         .setCategory(NotificationCompat.CATEGORY_PROGRESS)
         .setContentIntent(open(context, url))
+        .addAction(0, context.getString(R.string.live_update_open), open(context, url))
 
     /** How it ended, quietly in the chat's slot until a push takes it or the person opens it. */
-    private fun ended(context: Context, progress: LiveProgress, organization: String): Notification = NotificationCompat
-        .Builder(context, PushNotifications.CHANNEL_ANSWERING)
-        .setSmallIcon(R.drawable.ic_notification)
-        .setContentTitle(progress.message ?: context.getString(R.string.push_answered_body))
-        .setContentText(organization)
-        .setOnlyAlertOnce(true)
-        .setAutoCancel(true)
-        .setTimeoutAfter(ENDED_SHOWN_MS)
-        .setContentIntent(open(context, progress.url))
-        .addExtras(Bundle().apply { putLong(EXTRA_SENT_AT, progress.sentAt) })
-        .build()
+    private fun ended(context: Context, progress: LiveProgress, organization: String): Notification {
+        val presentation = LivePresentation(progress.phase)
+        return NotificationCompat.Builder(context, PushNotifications.CHANNEL_ANSWERING)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setSubText(organization)
+            .setContentTitle(context.getString(presentation.headline))
+            .setContentText(progress.message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(progress.message))
+            .setLargeIcon(statusIcon(context, presentation))
+            .setColor(ContextCompat.getColor(context, presentation.color))
+            .setOnlyAlertOnce(true)
+            .setAutoCancel(true)
+            .setTimeoutAfter(ENDED_SHOWN_MS)
+            .setContentIntent(open(context, progress.url))
+            .addAction(0, context.getString(presentation.action), open(context, progress.url))
+            .addExtras(Bundle().apply { putLong(EXTRA_SENT_AT, progress.sentAt) })
+            .build()
+    }
+
+    /** A real state icon, never a decorative progress gauge with a made-up total. */
+    private fun statusIcon(context: Context, presentation: LivePresentation): Bitmap {
+        val size = (48 * context.resources.displayMetrics.density).toInt()
+        val color = ContextCompat.getColor(context, presentation.color)
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val radius = size / 3f
+        canvas.drawRoundRect(
+            0f,
+            0f,
+            size.toFloat(),
+            size.toFloat(),
+            radius,
+            radius,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                this.color = ColorUtils.setAlphaComponent(color, 32)
+            }
+        )
+        SymbolDrawable(context, presentation.symbol, sizeDp = 26f, color = color).apply {
+            setBounds(0, 0, size, size)
+            draw(canvas)
+        }
+        return bitmap
+    }
 
     private fun open(context: Context, url: String): PendingIntent = PendingIntent.getActivity(
         context,
