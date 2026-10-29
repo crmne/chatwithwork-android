@@ -50,11 +50,13 @@ doesn't have to.
 
 ## Open testing (the public beta)
 
-Anybody can join the beta from
+Once Google approves the first Open release, anybody can join the beta from
 https://play.google.com/apps/testing/com.chatwithwork.app (on Android, or on
 the web with their Google account), which chatwithwork.com links as
 "Android beta". The app is in Plenty Labs' organization account, so it
-needs no closed test first.
+needs no closed test first. As of 2026-10-29 the first Open review is still
+pending: there is no public build to install yet. Internal testing access
+does not make the public opt-in link available.
 
 - **The track.** Test and release > Testing > Open testing: unlimited
   testers, every country and region but Russia, Belarus, Iran and Cuba
@@ -75,7 +77,8 @@ needs no closed test first.
 - **The first review** (sent 2026-10-26, release 10004 / 1.0.4) also
   carried the app's setup: the store listing, App content, and the store
   settings below. It was restarted on 2026-10-29 with release 10101 / 1.1.1
-  and the country exclusions. Until Play approves the app, testers see
+  and the country exclusions, then updated to 10103 / 1.1.3 with the
+  current store description later that day. Until Play approves the app, internal testers see
   the temporary name "com.chatwithwork.app (unreviewed)".
 - **Version 1.1.0** (10100) went to internal testing on 2026-10-27. It's
   superseded by 1.1.1 below. When the production launch is approved,
@@ -96,11 +99,25 @@ Silent recordings and brief microphone taps stay on the phone.
 Version 1.1.2 was prepared and tagged before the silence gate was added;
 its bundle was not uploaded to Play.
 
-Validation: unit tests, lint, formatting, and Debug, Staging and Release
+The signed Firebase-enabled bundle from `v1.1.3` became available to
+Internal testers on 2026-10-29 at 16:07 Europe/Berlin. The same bundle was
+promoted to Open testing and submitted for review that afternoon, after
+refreshing the synthetic App Review account. The submission also updates
+the full store description, including connecting tools inside the app and
+EU dictation. Publishing overview confirms 10103 and the existing 173
+countries and regions under Changes in review, with no unsent changes.
+Google's quick checks run before review; approval is still pending, and
+Production remains unpublished. Managed publishing remains off for this
+public beta.
+
+Validation: 99 unit tests, lint, formatting, and Debug, Staging and Release
 builds passed. Android 17 on the Mac mini's Metal emulator confirmed the
 system's `PROMOTED_ONGOING` flag; Android 16 also displayed the native
 fallback without an indeterminate progress bar. Promotion remains the
 system's decision and depends on the device and notification settings.
+The emulator also verified modal composer hiding and draft restoration,
+late failed progress preserving a newer Live Update, and a silent
+recording returning to typing without an upload.
 
 ## Release 1.1.1
 
