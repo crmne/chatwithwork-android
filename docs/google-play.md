@@ -207,24 +207,58 @@ listing's words, and what backs each claim, are in the Rails app's
 
 ## Data safety
 
-True to what the app and the server keep (the privacy policy is the
-reference). Data is encrypted in transit (HTTPS only). People can delete
-their account and its data in the app. Nothing is shared with third parties
-in Play's sense: the model providers and other processors act for us, and
-services a person connects receive only what they approve.
+The October 29, 2026 audit includes the native web view, server, connected
+tools, support widget, and analytics, not only the Kotlin app. The corrected
+20-type declaration was saved and submitted that evening with Open testing
+1.1.3 (10103). This restarted the pending review. Quick checks subsequently
+passed; Publishing overview confirms the changes are in review with no
+unsent changes. Production remains unpublished.
+
+Data is encrypted in transit (HTTPS only). People can delete their account
+and its data in the app. Nothing is shared with third parties in Play's
+sense: model providers and other processors act for us, and user-initiated
+transfers to connected services fall under Play's exemptions. This does not
+mean that no processor receives data. Follow [Google's definitions](https://support.google.com/googleplay/android-developer/answer/10787469)
+and the privacy policy when updating the form.
 
 | Category > type | Collected | Optional | Purposes |
 |---|---|---|---|
 | Personal info > Name | Yes | No | App functionality, Account management |
-| Personal info > Email address | Yes | No | App functionality, Account management |
-| Personal info > User IDs | Yes | No | App functionality, Account management |
-| Messages > Other in-app messages (chats with the assistant) | Yes | No | App functionality |
+| Personal info > Email address | Yes | No | App functionality, Account management, Developer communications |
+| Personal info > User IDs | Yes | No | App functionality, Account management, Analytics, Personalization, Fraud prevention, security, and compliance |
+| Personal info > Address (billing details) | Yes | Yes | App functionality |
+| Financial info > Purchase history (plan, seats and credits sent by the support widget) | Yes | Yes | App functionality |
+| Financial info > Other financial info (connected accounting balances and transactions) | Yes | Yes | App functionality |
+| Location > Approximate location (analytics country inferred from IP) | Yes | No | Analytics |
+| Messages > Emails (connected accounts) | Yes | Yes | App functionality |
+| Messages > Other in-app messages (assistant, connected chat, support) | Yes | No | App functionality |
 | Photos and videos > Photos, Videos (attachments) | Yes | Yes | App functionality |
-| Audio > Voice or sound recordings (dictation; transcribed in the EU, the recording isn't kept) | Yes | Yes | App functionality |
+| Audio > Voice or sound recordings (dictation and audio attachments) | Yes | Yes | App functionality |
 | Files and docs (attachments) | Yes | Yes | App functionality |
-| App info and performance > Diagnostics (server error reports, by user ID only) | Yes | No | App functionality |
-| Device or other IDs (the push token, once notifications are on) | Yes | Yes | App functionality |
-| Location, financial info, health, contacts, calendar, web browsing, app activity, installed apps | No | | |
+| Contacts (connected workspace directories and CRM) | Yes | Yes | App functionality |
+| Calendar > Calendar events (connected calendars) | Yes | Yes | App functionality |
+| App activity > App interactions (page views, feedback and feature counts) | Yes | No | App functionality, Analytics |
+| App activity > In-app search history (retained search tool calls) | Yes | Yes | App functionality |
+| App activity > Other user-generated content (instructions, memory and notes) | Yes | Yes | App functionality, Personalization |
+| App info and performance > Diagnostics (server errors and latency traces) | Yes | No | App functionality, Analytics |
+| Device or other IDs (push tokens and analytics visitor identifiers) | Yes | No | App functionality, Analytics |
+| Precise location, payment-card details, credit score, health, sensitive personal info, SMS/MMS, web browsing history, installed apps, native crash logs | No | | |
+
+Plausible is loaded by the production web view and records page paths,
+country and daily visitor identifiers. The support widget sends the
+identity's plan, seat and credit metadata. Editable billing details collect
+an address even though native checkout is hidden. Connected Outlook
+calendar, Slack directory and Odoo accounting tools also count: their
+results are retained in chats or encrypted provider caches. Optional means
+the person can avoid that feature or connection, not that the app has an
+analytics opt-out. The push permission is optional, but the same device-ID
+category also covers analytics, so the combined category is required.
+
+All selected types are declared non-ephemeral. Dictation itself drops the
+recording after transcription, but audio attachments can be kept in chats;
+the category cannot claim every audio collection is memory-only. Release
+emails use Google's Developer communications purpose. Apple groups that
+use under Developer's Advertising or Marketing; the two taxonomies differ.
 
 Two things that look new aren't types of their own: the words a
 notification shows, which the app fetches from our server as the push
@@ -232,10 +266,10 @@ arrives (it sends only the phone's notification key), and the record of a
 person's yes to AI models (when, which wording, from the Android app),
 which is account data.
 
-Data is not used for advertising, analytics, or tracking. Payment details
-are never collected in the app: the app sells nothing (Settings > Billing
-shows the plan without checkout), which also keeps it within Google Play's
-payments policy.
+There are no advertisements, advertising identifiers, or cross-company
+tracking. First-party analytics is declared above. Payment-card entry stays
+on the external website; the native app has no checkout. This does not
+exclude billing addresses, purchase history or connected accounting data.
 
 ## Permissions
 
