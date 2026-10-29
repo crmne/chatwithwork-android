@@ -106,9 +106,9 @@ refreshing the synthetic App Review account. The submission also updates
 the full store description, including connecting tools inside the app and
 EU dictation. Publishing overview confirms 10103 and the existing 173
 countries and regions under Changes in review, with no unsent changes.
-Google's quick checks run before review; approval is still pending, and
-Production remains unpublished. Managed publishing remains off for this
-public beta.
+Google's quick checks subsequently passed and Publishing overview confirmed
+the changes are in review. Approval is still pending, and Production
+remains unpublished. Managed publishing remains off for this public beta.
 
 Validation: 99 unit tests, lint, formatting, and Debug, Staging and Release
 builds passed. Android 17 on the Mac mini's Metal emulator confirmed the
