@@ -17,7 +17,7 @@ sealed interface SidebarRow {
         /** Where it leads, for those the server names (New bot). */
         val url: String? = null
     ) : SidebarRow {
-        enum class Kind { NEW_CHAT, BOTS, NEW_BOT }
+        enum class Kind { NEW_CHAT, INSTRUCTIONS, BOTS, NEW_BOT }
     }
 
     /**
@@ -108,11 +108,11 @@ sealed interface SidebarRow {
             val rows = mutableListOf<SidebarRow>(decisions(sidebar, current))
             if (bots != null && botItems != null) rows += Views(View.CHATS, botsAttention = bots.attention)
             sidebar.list?.let { rows += Switcher(it) }
-            rows += Search
             val words = query.trim().lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
 
             if (words.isEmpty()) {
                 rows += Nav(Nav.Kind.NEW_CHAT)
+                sidebar.links.instructions?.let { rows += Nav(Nav.Kind.INSTRUCTIONS, url = it) }
                 if (bots != null && botItems == null) {
                     val meta = bots.count.takeIf { it > 0 }?.toString() ?: bots.nextRun
                     rows += Nav(Nav.Kind.BOTS, meta = meta, attention = bots.attention || bots.count > 0)
@@ -126,6 +126,8 @@ sealed interface SidebarRow {
                 rows += Section(pinnedTitle)
                 pins.forEach { rows += ChatRow(it, selected = isCurrent(it, current)) }
             }
+
+            rows += Search
 
             // The person's sections, as the web's: each heading, then its
             // chats unless it's closed. A search lists every match in them.

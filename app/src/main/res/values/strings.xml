@@ -4,6 +4,7 @@
 
     <!-- The sidebar -->
     <string name="new_chat">New chat</string>
+    <string name="sidebar_instructions">Instructions</string>
     <string name="settings">Settings</string>
     <string name="sidebar_open">Open the sidebar</string>
     <string name="sidebar_search">Search chats</string>

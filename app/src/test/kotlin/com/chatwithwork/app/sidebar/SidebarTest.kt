@@ -18,7 +18,7 @@ class SidebarTest {
           "lists": [{"key": "recent", "name": "Private chats", "kind": "recent", "hq": false, "pinned": false, "current": false},
                     {"key": "3", "name": "Website relaunch", "kind": "project", "current": true}],
           "links": {"new_chat": "/482139075/chats/new?project_id=3", "bots": "/482139075/bots", "settings": "/482139075/settings",
-                    "projects": "/482139075/projects", "new_project": null, "organizations": "/accounts", "new_organization": "/accounts/new"},
+                    "projects": "/482139075/projects", "new_project": null, "organizations": "/accounts", "new_organization": "/accounts/new", "instructions": "/482139075/projects/3/instructions"},
           "waiting": {"count": 1, "items": [{"title": "Launch date in #launch", "url": "/482139075/chats/42", "kind": "approval", "project": "Website relaunch"}]},
           "bots": {"count": 0, "attention": false, "next_run": "08:30"},
           "pins": [{"number": 7, "title": "Q3 launch plan", "url": "/482139075/chats/7", "state": "idle", "waiting": false, "project": null, "asked_at": "2026-10-20T08:00:00Z", "group": "Previous 7 days"}],
@@ -39,6 +39,7 @@ class SidebarTest {
         assertThat(sidebar.person?.initials).isEqualTo("MH")
         assertThat(sidebar.list?.isProject).isTrue()
         assertThat(sidebar.links.newChat).isEqualTo("/482139075/chats/new?project_id=3")
+        assertThat(sidebar.links.instructions).isEqualTo("/482139075/projects/3/instructions")
         assertThat(sidebar.links.newProject).isNull()
         assertThat(sidebar.waiting.items.single().kind).isEqualTo("approval")
         assertThat(sidebar.bots?.nextRun).isEqualTo("08:30")
@@ -63,13 +64,16 @@ class SidebarTest {
     }
 
     @Test
-    fun `rows run Decisions, switcher, search, actions, pins, then chats by day`() {
+    fun `rows follow the web with actions and pins before search then chats by day`() {
         val rows = SidebarRow.build(sidebar, "", "$base/482139075/chats/41?x=1", "Pinned", botsKnown = true)
         assertThat(rows[0]).isEqualTo(SidebarRow.Decisions(1, selected = false))
         assertThat(rows[1]).isEqualTo(SidebarRow.Switcher(sidebar.list!!))
-        assertThat(rows[2]).isEqualTo(SidebarRow.Search)
-        assertThat(rows[3]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.NEW_CHAT))
+        assertThat(rows[2]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.NEW_CHAT))
+        assertThat(
+            rows[3]
+        ).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.INSTRUCTIONS, url = sidebar.links.instructions))
         assertThat(rows[4]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.BOTS, meta = "08:30", attention = false))
+        assertThat(rows[7]).isEqualTo(SidebarRow.Search)
         assertThat(rows.filterIsInstance<SidebarRow.Section>().map { it.title })
             .containsExactly("Pinned", "Today", "Yesterday")
             .inOrder()
@@ -205,7 +209,9 @@ class SidebarTest {
                     else -> row.toString()
                 }
             }
-        ).containsExactly("Pinned", "7", "[Customers]", "37", "[Hiring]", "Other chats", "42", "41", "40").inOrder()
+        ).containsExactly(
+            "Pinned", "7", "Search", "[Customers]", "37", "[Hiring]", "Other chats", "42", "41", "40"
+        ).inOrder()
 
         // A search finds chats in sections too, closed ones included.
         val found = SidebarRow.build(withSections, "shortlist", null, "Pinned", botsKnown = true)
@@ -267,7 +273,7 @@ class SidebarTest {
         assertThat(chats[1]).isEqualTo(SidebarRow.Views(SidebarRow.View.CHATS, botsAttention = true))
         assertThat(chats[2]).isEqualTo(SidebarRow.Switcher(withBots.list!!))
         assertThat(chats.filterIsInstance<SidebarRow.Nav>().map { it.kind })
-            .containsExactly(SidebarRow.Nav.Kind.NEW_CHAT)
+            .containsExactly(SidebarRow.Nav.Kind.NEW_CHAT, SidebarRow.Nav.Kind.INSTRUCTIONS)
         assertThat(chats.filterIsInstance<SidebarRow.ChatRow>()).isNotEmpty()
 
         // Both stay at the top while searching, above the field.

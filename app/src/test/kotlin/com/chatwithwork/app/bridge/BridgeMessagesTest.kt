@@ -12,6 +12,14 @@ import org.junit.Test
  * controller that follows the contract always reaches the component.
  */
 class BridgeMessagesTest {
+    @Test
+    fun `composer overlay replies with dimensions in the same coordinate space`() {
+        val payload = ComposerComponent.layoutReply(height = 366, width = 1206)
+        assertThat(payload["action"]?.jsonPrimitive?.content).isEqualTo("layout")
+        assertThat(payload["height"]?.jsonPrimitive?.content).isEqualTo("366")
+        assertThat(payload["width"]?.jsonPrimitive?.content).isEqualTo("1206")
+    }
+
     private val json =
         Json {
             ignoreUnknownKeys = true

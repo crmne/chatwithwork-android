@@ -8,6 +8,7 @@ import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -63,6 +64,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         fun chooseModel()
 
         fun remove(id: String)
+
+        /** Overlay height and web viewport width in the same native units. */
+        fun layout(height: Int, width: Int)
     }
 
     var actions: Actions? = null
@@ -214,6 +218,22 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         renderBar()
         renderFiles()
         renderButtons()
+        post { reportLayout() }
+    }
+
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        super.onLayout(changed, left, top, right, bottom)
+        if (changed) reportLayout()
+    }
+
+    private fun reportLayout() {
+        val container = parent as? View ?: return
+        val page = container.findViewById<View>(R.id.composer_page) ?: return
+        // Servers without overlay support cannot reserve scroll space themselves.
+        val inset = if (state.overlay) 0 else height
+        val params = page.layoutParams as FrameLayout.LayoutParams
+        if (params.bottomMargin != inset) page.updateLayoutParams<FrameLayout.LayoutParams> { bottomMargin = inset }
+        if (state.overlay && height > 0 && container.width > 0) actions?.layout(height, container.width)
     }
 
     private fun muted() = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant)
@@ -230,7 +250,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         val on = dictating
 
         plus.isVisible = !on && !sheet.empty
-        plus.setImageDrawable(SymbolDrawable(context, if (sheet.attachOnly) "attach_file" else "add", color = ink))
+        plus.setImageDrawable(SymbolDrawable(context, "add", color = ink))
         plus.contentDescription =
             context.getString(if (sheet.attachOnly) R.string.composer_attach else R.string.composer_add)
 

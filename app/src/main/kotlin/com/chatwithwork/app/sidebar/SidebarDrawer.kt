@@ -537,6 +537,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             val (icon, label) =
                 when (row.kind) {
                     SidebarRow.Nav.Kind.NEW_CHAT -> "edit_square" to R.string.new_chat
+                    SidebarRow.Nav.Kind.INSTRUCTIONS -> "menu_book" to R.string.sidebar_instructions
                     SidebarRow.Nav.Kind.BOTS -> BOT_MARK to R.string.sidebar_bots
                     SidebarRow.Nav.Kind.NEW_BOT -> "add" to R.string.new_bot
                 }
@@ -553,6 +554,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             view.setOnClickListener {
                 when (row.kind) {
                     SidebarRow.Nav.Kind.NEW_CHAT -> actions.startNewChat()
+                    SidebarRow.Nav.Kind.INSTRUCTIONS -> row.url?.let(actions::openPath)
                     SidebarRow.Nav.Kind.BOTS -> actions.openBots()
                     SidebarRow.Nav.Kind.NEW_BOT -> row.url?.let(actions::openPath) ?: actions.openBots()
                 }

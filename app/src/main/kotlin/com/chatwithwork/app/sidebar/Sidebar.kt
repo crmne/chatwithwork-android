@@ -66,7 +66,8 @@ data class Sidebar(
         @SerialName("new_project") val newProject: String? = null,
         val organizations: String? = null,
         @SerialName("new_organization") val newOrganization: String? = null,
-        val decisions: String? = null
+        val decisions: String? = null,
+        val instructions: String? = null
     )
 
     @Serializable

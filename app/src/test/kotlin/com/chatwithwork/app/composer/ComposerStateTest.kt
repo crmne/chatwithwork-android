@@ -15,7 +15,7 @@ class ComposerStateTest {
 
     private val sample =
         """
-        {"placeholder":"Ask anything…","locked":false,"lockReason":null,"working":false,"stopping":false,
+        {"overlay":true,"placeholder":"Ask anything…","locked":false,"lockReason":null,"working":false,"stopping":false,
          "models":[{"name":"GPT-6 Luna","rate":"About 2 credits per answer","selected":true,"searchesWeb":true},
                    {"name":"Qwen3.8-27B","rate":null,"selected":false,"searchesWeb":false}],
          "webSearch":{"on":false,"disabled":false,"note":"Searches leave the EU."},
@@ -32,6 +32,8 @@ class ComposerStateTest {
         assertThat(state.dictation?.url).isEqualTo("/482139075/dictations")
         assertThat(state.attachments.single().progress).isEqualTo(40.0)
         assertThat(state.uploading).isTrue()
+        assertThat(state.overlay).isTrue()
+        assertThat(json.decodeFromString<ComposerState>("{}").overlay).isFalse()
     }
 
     @Test

@@ -619,6 +619,12 @@ On Android:
 
 ## 11. The sidebar
 
+**Instructions and order (2026-10-29).** Optional `links.instructions`
+opens the same notes as the chosen web chat list, including its project
+when applicable. The Chats view follows the web: list chooser, New chat,
+Instructions, pins, search, sections and chats. Decisions and the Chats |
+Bots switch stay above both views. Older servers can omit the link.
+
 Builds that draw the sidebar themselves register the `sidebar` bridge
 component, so the user agent's `bridge-components` lists `sidebar`
 (`native_app.supports?(:sidebar)`). The server shows those builds Connect,
@@ -753,11 +759,12 @@ a modal). A search lists the matches in sections too. Without `sections`
 
 What the app draws from it, top to bottom: Decisions (below), the Chats |
 Bots switch (above, from servers that send `bots.items`), the list switcher (`list`; a
-chooser of `lists`, then "All projects..." and "New project"), a search
-that filters titles on the phone, New chat (`links.new_chat`, also where
+chooser of `lists`, then "All projects..." and "New project"), New chat
+(`links.new_chat`, also where
 the bar's New chat and a cold start go), from a server without
 `bots.items` the Bots row (`bots`' count with an attention dot, else the
-next run), Pinned, the person's own sections (`sections`, below), then
+next run), Instructions (`links.instructions`), Pinned, search (titles
+filtered on the phone), the person's own sections (`sections`, below), then
 the chats by `group` (under one "Other chats" heading instead when there
 are sections, as on the web), a live dot on those
 answering and an attention dot on those waiting, loading `next` near the
@@ -799,21 +806,35 @@ No replies.
 
 ## 12. The composer
 
+**Overlay layout (2026-10-29).** The server advertises `overlay: true` in
+composer state when it supports scroll clearance. Only then does the app
+float the composer over the page and reply `layout {height, width}` after
+every `connect` and whenever its size changes. If the flag is absent or
+false, the app keeps the page above the composer for older servers. `height` is the
+whole native composer, including its own padding and lock or notice line,
+but excluding the keyboard and system safe area. `width` is the full web
+viewport width, not the narrower composer column on a tablet. Both use
+the same native units (points on iOS, pixels on Android). The bridge
+converts the height to CSS pixels with `height * innerWidth / width`,
+sets `--native-composer-height`, and clears it when the composer leaves.
+The conversation has that height plus 1.5rem of bottom padding; older apps
+leave the variable unset and keep their previous clearance.
+
 Builds that register the `composer` component draw the composer
-themselves, docked above the keyboard and the gesture bar, under the page:
+themselves, floating over the page above the keyboard and the gesture bar:
 "+", the microphone and the web search globe, the field, the model, Stop
 while an answer runs, and Send, on the composer's rainbow
 edge. The web composer (`#new_message`, with `bridge--composer`) stays in
 the page out of sight (native.css, once `data-bridge-components` lists
 `composer`), and the app drives it, so every rule it carries holds: locks,
 who may steer, the queue, files waiting for their scan, the model, and web
-search. The conversation then ends 1.5rem above the page's bottom; the app
-lays the web view out above its composer, never under it.
+search. The conversation scrolls behind the composer, showing through its clear
+gutters. The page leaves room to scroll its last answer above the box.
 
 | Event | Direction | Data |
 |---|---|---|
-| `connect`, then `state` | web to app | `{placeholder, text?, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb}], webSearch: {on, disabled, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
-| reply to `connect` | app to web | `{action: "send", text}`, `{action: "stop"}`, `{action: "model", index}`, `{action: "webSearch", on}`, `{action: "attach", files: [{name, type, data}]}` (data base64), `{action: "remove", id}`, `{action: "text", text}` |
+| `connect`, then `state` | web to app | `{overlay?, placeholder, text?, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb}], webSearch: {on, disabled, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
+| reply to `connect` | app to web | `{action: "send", text}`, `{action: "stop"}`, `{action: "model", index}`, `{action: "webSearch", on}`, `{action: "attach", files: [{name, type, data}]}` (data base64), `{action: "remove", id}`, `{action: "text", text}`, `{action: "layout", height, width}` |
 
 A chat draws its composer again as an answer starts and ends; each new one
 connects again, and the app always replies to the latest `connect`. A page
@@ -845,7 +866,7 @@ What the app does with it:
 - **"+"** opens a sheet: Camera, Photos (Android's photo picker, no
   permission needed), Files, Scan (ML Kit's document scanner, one PDF), and
   whatever the bar had no room for: Dictate, and Web search as a switch with
-  its `note`. When it holds only attaching it shows as the paperclip; when it
+  its `note`. It always uses "+", matching iOS and the web; when it
   holds nothing it goes. Files go to the page
   as `attach`, base64, at most 25 MB each (larger ones are named in a
   snackbar and left out). Each attachment shows as a chip with its name, its

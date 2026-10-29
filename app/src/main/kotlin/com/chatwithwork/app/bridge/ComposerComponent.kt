@@ -68,6 +68,10 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
 
     override fun remove(id: String) = reply("remove") { put("id", id) }
 
+    override fun layout(height: Int, width: Int) {
+        replyTo("connect", layoutReply(height, width).toString())
+    }
+
     override fun chooseModel() {
         val context = fragment.context ?: return
         val models = view?.state?.models.orEmpty()
@@ -193,6 +197,12 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
 
     companion object {
         val factory = BridgeComponentFactory("composer", ::ComposerComponent)
+
+        internal fun layoutReply(height: Int, width: Int): JsonObject = buildJsonObject {
+            put("action", "layout")
+            put("height", height)
+            put("width", width)
+        }
     }
 }
 
