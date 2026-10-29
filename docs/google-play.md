@@ -65,30 +65,41 @@ needs no closed test first.
   Stripe). North Korea, Syria and Crimea aren't in Play's list. "Rest of
   World" is off too, so no country Play adds later gets the app before
   someone checks it. Production has no countries yet: leave out the same
-  ones when it gets them. The change was saved on 2026-10-27 but not sent,
-  since sending it restarts the first review (in progress since
-  2026-10-26): send it with the next change, or on its own once that
-  review ends.
+  ones when it gets them. These exclusions were submitted on 2026-10-29
+  with version 1.1.1: the review now covers 173 countries and regions,
+  without Rest of World.
 - **A release.** Internal testing > Promote release > Open testing, or
   create one there. Every change goes through Play's review (Publishing
   overview > Send changes for review; usually hours, at most 7 days), and
   with managed publishing off it goes live once approved.
 - **The first review** (sent 2026-10-26, release 10004 / 1.0.4) also
   carried the app's setup: the store listing, App content, and the store
-  settings below. Until Play approves the app, testers see the temporary
-  name "com.chatwithwork.app (unreviewed)".
+  settings below. It was restarted on 2026-10-29 with release 10101 / 1.1.1
+  and the country exclusions. Until Play approves the app, testers see
+  the temporary name "com.chatwithwork.app (unreviewed)".
 - **Version 1.1.0** (10100) went to internal testing on 2026-10-27. It's
-  the first release meant for production: when the launch is approved,
-  promote it (Internal testing > Promote release > Production) and update
+  superseded by 1.1.1 below. When the production launch is approved,
+  promote the latest tested release (Internal testing > Promote release >
+  Production) and update
   App content's App access instructions to the text below, which describe
   the first question's yes and reporting an answer.
 
-## Prepared release 1.1.1
+## Release 1.1.1
 
 Version 1.1.1 (10101) includes the floating native composer and sidebar
 alignment with the web app. `fastlane/metadata/android/en-US/changelogs/10101.txt`
-is its Play release text. Build with `script/bundle-release v1.1.1` and upload
-to Internal testing before promoting the same bundle to Open testing.
+is its Play release text. The signed bundle was built from tag `v1.1.1`
+with `script/bundle-release v1.1.1`, with Firebase configured, and became
+available to Internal testers on 2026-10-29. The same bundle was promoted
+to Open testing and submitted for review that day, after refreshing the
+synthetic App Review account. Publishing overview shows the release and
+country restrictions in review, with no unsent changes; Google's quick
+checks run before its review starts. Production remains unpublished.
+
+Validation: 95 unit tests, lint, formatting, and Debug, Staging and Release
+builds passed. The playground was checked on an Android 16 emulator using
+the Mac mini's Metal GPU in light and dark mode: sidebar search, keyboard,
+inline dictation and cancellation, and scrolling to the last chat item.
 The floating layout is enabled only when the server advertises support;
 older self-hosted servers keep their existing composer placement.
 
