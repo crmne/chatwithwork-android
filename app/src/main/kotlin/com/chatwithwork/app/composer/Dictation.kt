@@ -197,6 +197,8 @@ object Dictation {
             }
         active.set(connection)
         try {
+            // Cancelled before the request was published here, so Cancel couldn't drop it.
+            if (!isActive) return@withContext Result(null, null)
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.connectTimeout = 15_000
