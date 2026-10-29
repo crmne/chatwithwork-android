@@ -83,6 +83,15 @@ needs no closed test first.
   App content's App access instructions to the text below, which describe
   the first question's yes and reporting an answer.
 
+## Prepared release 1.1.1
+
+Version 1.1.1 (10101) includes the floating native composer and sidebar
+alignment with the web app. `fastlane/metadata/android/en-US/changelogs/10101.txt`
+is its Play release text. Build with `script/bundle-release v1.1.1` and upload
+to Internal testing before promoting the same bundle to Open testing.
+The floating layout is enabled only when the server advertises support;
+older self-hosted servers keep their existing composer placement.
+
 ## The listing
 
 | Field | Where |

@@ -1,0 +1,1 @@
+The composer now floats over your chat, with no opaque panel behind it. Dictation stays in the composer while you speak and transcribe. The sidebar follows the web app, with Instructions beside New chat and search below pinned chats. Composer controls now look more consistent across Android, iOS and the web.
