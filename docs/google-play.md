@@ -84,14 +84,17 @@ needs no closed test first.
   App content's App access instructions to the text below, which describe
   the first question's yes and reporting an answer.
 
-## Release 1.1.2
+## Release 1.1.3
 
-Version 1.1.2 (10102) redesigns Live Updates with native status cards,
+Version 1.1.3 (10103) redesigns Live Updates with native status cards,
 elapsed time only while working, and actions that open the chat to read or
 review. It validates delayed failures against the server and preserves the
 last progress timestamp when following the same chat again. The composer
 hides while a web dialog is open and restores the draft when it closes.
-`fastlane/metadata/android/en-US/changelogs/10102.txt` is its Play text.
+Silent recordings and brief microphone taps stay on the phone.
+`fastlane/metadata/android/en-US/changelogs/10103.txt` is its Play text.
+Version 1.1.2 was prepared and tagged before the silence gate was added;
+its bundle was not uploaded to Play.
 
 Validation: unit tests, lint, formatting, and Debug, Staging and Release
 builds passed. Android 17 on the Mac mini's Metal emulator confirmed the

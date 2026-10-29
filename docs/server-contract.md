@@ -910,7 +910,10 @@ What the app does with it:
   application/json`. `200 {text}` puts the words in the field and sends
   `text {text}`; an empty text says nothing was heard; `{error}` (403 for no
   credits, 413, 415, 429, 502) shows the server's words. Earlier versions
-  leave Dictate out.
+  leave Dictate out. Recordings shorter than half a second or without a
+  measured signal above 0.02 for 300 ms are deleted without uploading.
+  The gate uses Android's peak meter, conservatively admitting quieter
+  speech; if metering is unavailable, transcription remains available.
 - Files shared into the app from elsewhere (section 7, "Sharing into the
   app") wait for the next composer that connects and go to it as `attach`.
 - **The yes before the first question (2026-10-27).** Before anything a

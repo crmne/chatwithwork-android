@@ -80,6 +80,7 @@ object Dictation {
         // The transcription's request while it's on its way, so Cancel can drop it.
         private val request = AtomicReference<HttpURLConnection?>()
         private var started = 0L
+        private val speech = SpeechActivity()
         var transcribing = false
             private set
         var finished = false
@@ -103,8 +104,10 @@ object Dictation {
             job =
                 scope.launch {
                     while (isActive) {
-                        val amplitude = runCatching { recorder.maxAmplitude }.getOrDefault(0)
-                        listener.onLevel(loudness(amplitude), SystemClock.elapsedRealtime() - started)
+                        val amplitude = runCatching { recorder.maxAmplitude }.getOrNull()
+                        val elapsed = SystemClock.elapsedRealtime() - started
+                        if (amplitude != null) speech.observe(amplitude / MAX_AMPLITUDE, elapsed)
+                        listener.onLevel(loudness(amplitude ?: 0), elapsed)
                         delay(LEVEL_MS)
                     }
                 }
@@ -117,6 +120,12 @@ object Dictation {
             transcribing = true
             job?.cancel()
             release()
+            if (SystemClock.elapsedRealtime() - started < 500 || !speech.canTranscribe) {
+                finished = true
+                file.delete()
+                listener.onResult(Result(null, null, nothingHeard = true))
+                return
+            }
             listener.onTranscribing()
             job =
                 scope.launch {
@@ -232,6 +241,24 @@ object Dictation {
         } finally {
             active.compareAndSet(connection, null)
             connection.disconnect()
+        }
+    }
+}
+
+/** Measured silence and brief clicks stay on the phone; absent metering fails open. */
+internal class SpeechActivity {
+    private var started: Long? = null
+    private var measured = false
+    private var heard = false
+    val canTranscribe: Boolean get() = !measured || heard
+
+    fun observe(level: Double, elapsedMs: Long) {
+        measured = true
+        if (level > 0.02) {
+            if (started == null) started = elapsedMs
+            if (elapsedMs - (started ?: elapsedMs) >= 300) heard = true
+        } else {
+            started = null
         }
     }
 }
