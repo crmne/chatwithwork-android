@@ -16,8 +16,25 @@ app continues to draw the server’s saved mode and restrictions.
 
 The signed, Firebase-enabled bundle became available to Internal testers
 on 2026-10-30 at 11:32 Europe/Berlin. Play Console confirmed that status;
-updates can take an hour to reach Google Play. Only Internal testing was
-updated. Open testing and Production were left unchanged.
+updates can take an hour to reach Google Play.
+
+Carmine then requested Open testing or Production. Production access was
+available, so the same tested bundle was submitted to Production on
+2026-10-30 at 11:54 Europe/Berlin, with 173 countries and regions, excluding
+Russia, Belarus, Iran, Cuba and Rest of World. The existing Open testing
+10103 submission and its listing/data-safety changes were preserved.
+Google required restarting the October 29 review to add Production; this
+can extend the review wait. The synthetic App Review account was refreshed
+with its existing password immediately before submission.
+
+Automated quick checks passed. Publishing overview confirms "Your changes
+are now in review", with Production 10105 and no unsent changes. This is a
+submission, not public availability. Managed publishing
+remains off, so approval will publish the release automatically. Keep the
+website's public Android install gate off until the listing is actually
+available. Once live, link to
+https://play.google.com/store/apps/details?id=com.chatwithwork.app and use
+production wording rather than calling it a beta.
 
 Validation: 103 unit tests, lint, formatting, and all build variants passed.
 The Metal-backed Android emulator verified the light and dark composer,
@@ -88,7 +105,8 @@ release > Testing > Internal testing first: add yourself as a tester, open
 the opt-in link on your phone, and install from Play. A new personal
 developer account must also run a closed test with at least 12 testers for
 14 days before it can publish to production; an organization account
-doesn't have to.
+doesn't have to. Play Console explicitly offered Production access on
+October 30; no closed-test eligibility step was required for this account.
 
 ## Open testing (the public beta)
 
@@ -96,8 +114,9 @@ Once Google approves the first Open release, anybody can join the beta from
 https://play.google.com/apps/testing/com.chatwithwork.app (on Android, or on
 the web with their Google account), which chatwithwork.com links as
 "Android beta". The app is in Plenty Labs' organization account, so it
-needs no closed test first. As of 2026-10-29 the first Open review is still
-pending: there is no public build to install yet. Internal testing access
+needs no closed test first. As of 2026-10-30 the first Open review is still
+pending, alongside the newer Production 10105 submission: there is no
+public build to install yet. Internal testing access
 does not make the public opt-in link available.
 
 - **The track.** Test and release > Testing > Open testing: unlimited
@@ -108,26 +127,25 @@ does not make the public opt-in link available.
   Cuba under sanctions the services the app runs on follow (AWS, Google,
   Stripe). North Korea, Syria and Crimea aren't in Play's list. "Rest of
   World" is off too, so no country Play adds later gets the app before
-  someone checks it. Production has no countries yet: leave out the same
-  ones when it gets them. These exclusions were submitted on 2026-10-29
+  someone checks it. Production received the same country selection on
+  October 30. These exclusions were first submitted on 2026-10-29
   with version 1.1.1: the review now covers 173 countries and regions,
   without Rest of World.
 - **A release.** Internal testing > Promote release > Open testing, or
   create one there. Every change goes through Play's review (Publishing
-  overview > Send changes for review; usually hours, at most 7 days), and
+  overview > Send changes for review; it can take seven days or longer), and
   with managed publishing off it goes live once approved.
 - **The first review** (sent 2026-10-26, release 10004 / 1.0.4) also
   carried the app's setup: the store listing, App content, and the store
   settings below. It was restarted on 2026-10-29 with release 10101 / 1.1.1
   and the country exclusions, then updated to 10103 / 1.1.3 with the
-  current store description later that day. Until Play approves the app, internal testers see
+  current store description later that day. Production 10105 joined the
+  restarted review on October 30. Until Play approves the app, internal testers see
   the temporary name "com.chatwithwork.app (unreviewed)".
 - **Version 1.1.0** (10100) went to internal testing on 2026-10-27. It's
-  superseded by 1.1.1 below. When the production launch is approved,
-  promote the latest tested release (Internal testing > Promote release >
-  Production) and update
-  App content's App access instructions to the text below, which describe
-  the first question's yes and reporting an answer.
+  superseded by the releases below. The current Production submission uses
+  1.1.5. App access instructions describe the first question's model consent
+  and reporting an answer, as recorded below.
 
 ## Release 1.1.3
 
