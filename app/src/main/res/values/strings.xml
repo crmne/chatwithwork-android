@@ -148,6 +148,14 @@
     <string name="channel_answering">Answering</string>
     <string name="channel_answering_description">A chat you left is still answering. It goes away when the answer is ready or waits for you.</string>
     <string name="live_update_answering">Answering</string>
+    <string name="live_update_searching">Searching</string>
+    <string name="live_update_browsing">Browsing</string>
+    <string name="live_update_reading">Reading</string>
+    <string name="live_update_using_tools">Using a tool</string>
+    <string name="live_update_planning">Planning</string>
+    <string name="live_update_running">Running a task</string>
+    <string name="live_update_asking">Asking you to decide</string>
+    <string name="live_update_writing">Writing the answer</string>
     <string name="live_update_text">Your answer is on its way.</string>
     <string name="live_update_background">Working in the background</string>
     <string name="live_update_ready">Answer ready</string>

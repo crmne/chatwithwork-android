@@ -8,13 +8,33 @@ data class LivePresentation(val phase: String, val step: String? = null) {
 
     val headline: Int get() = when (phase) {
         "answered" -> R.string.live_update_ready
+
         "approval_waiting" -> R.string.live_update_approval
+
         "input_requested" -> R.string.live_update_input
+
         "failed" -> R.string.live_update_failed
+
         "stopped" -> R.string.live_update_stopped
-        "answering" -> R.string.live_update_answering
+
+        "answering" -> when (step) {
+            "search" -> R.string.live_update_searching
+            "list" -> R.string.live_update_browsing
+            "read" -> R.string.live_update_reading
+            "use" -> R.string.live_update_using_tools
+            "plan" -> R.string.live_update_planning
+            "run" -> R.string.live_update_running
+            "ask" -> R.string.live_update_asking
+            "write" -> R.string.live_update_writing
+            else -> R.string.live_update_answering
+        }
+
         else -> R.string.live_update_unknown
     }
+
+    /** Only a working step uses the server's content-free activity label. */
+    fun title(message: String?, string: (Int) -> String): String =
+        if (isWorking) message?.trim()?.takeIf { it.isNotEmpty() } ?: string(headline) else string(headline)
 
     val action: Int get() = when (phase) {
         "approval_waiting" -> R.string.live_update_review
@@ -28,7 +48,8 @@ data class LivePresentation(val phase: String, val step: String? = null) {
         "approval_waiting", "input_requested" -> R.color.lw_attention_ink
         "failed" -> R.color.lw_negative_ink
         "stopped" -> R.color.lw_ink_muted
-        else -> R.color.lw_live_ink
+        "answering" -> R.color.lw_live_ink
+        else -> R.color.lw_ink_muted
     }
 
     val symbol: String get() = when (phase) {
@@ -42,7 +63,7 @@ data class LivePresentation(val phase: String, val step: String? = null) {
 
         "stopped" -> "stop_circle"
 
-        else -> when (step) {
+        "answering" -> when (step) {
             "search" -> "search"
             "list" -> "folder"
             "read" -> "description"
@@ -51,7 +72,10 @@ data class LivePresentation(val phase: String, val step: String? = null) {
             "run" -> "terminal"
             "ask" -> "question_answer"
             "write" -> "edit_note"
+            "answer" -> "more_horiz"
             else -> "more_horiz"
         }
+
+        else -> "sync_problem"
     }
 }

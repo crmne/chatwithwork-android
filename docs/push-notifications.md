@@ -70,10 +70,19 @@ that chat, in Chats, inside the right organization.
   steps) and the end, never the chat's words. The step shows as the Live
   Update's title and as a short word in the status bar chip, and the end
   turns it into a quiet notification until the push for it takes its place.
-  The native card shows a colored state icon, elapsed time, steps so far
-  and a link back to the chat. It uses BigTextStyle, supported by Live
-  Updates, rather than an indeterminate percentage bar. Waiting and ended
+  The native card leads with a bold current action and a colored state icon.
+  Organization and the native elapsed timer use secondary system fields; the only
+  supporting line is the number of steps so far, when known. It uses
+  BigTextStyle, supported by Live Updates, rather than an indeterminate
+  percentage bar. Waiting and ended
   cards use concise headlines and safe navigation actions; the timer stops.
+  They retain the last step count when the end message omits it, without
+  repeating the headline as another sentence. Tapping an active card opens
+  the chat; ended cards offer Read answer, Review change, Reply or Open chat.
+  Missing or blank activity labels fall back to the stable step kind.
+  `answer` means thinking between steps; `write` means streaming the answer.
+  Android controls the final typography and may discard title emphasis on
+  ended notifications; those cards remain quiet, dismissible notifications.
   A server-validated stale failure is dropped, and server timestamps survive
   following the same chat again so an old end cannot overwrite newer work.
 
@@ -141,6 +150,19 @@ test). To see the prompt again, clear the app's data
 (`adb shell pm clear com.chatwithwork.app.debug`).
 Against the iOS repository's playground (`server.py`), `/1000001/chats/42`
 is a chat waiting for an approval.
+
+For visual checks, capture active search/run/write cards and ready, approval,
+input and failure states in both system themes. To check the lifecycle,
+start with `live_preview` and send the end as ordinary `progress` with a
+newer `sent_at` and no `steps`: the same card keeps its last count, stops its
+timer and offers the appropriate navigation action. After swiping away the
+card, a later ordinary progress update must not bring it back. The normal
+30-minute no-update timeout remains; no new timer estimates completion.
+Android publishes notifications asynchronously. Automated captures must wait
+for the initial ongoing card in `dumpsys notification`, send the desired
+ordinary `progress`, then verify its exact title, count and ongoing flag
+before capturing the system UI. The immediate update in `live_preview` alone
+can arrive before Android has published the initial card.
 
 With Firebase configured, allow notifications when the app asks (or turn
 push on in Settings › Notifications), copy

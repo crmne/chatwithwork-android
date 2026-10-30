@@ -9,8 +9,12 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.StyleSpan
 import android.webkit.CookieManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -56,6 +60,7 @@ object LiveUpdates {
 
     /** The organization a Live Update names, kept in its extras for the steps that follow. */
     private const val EXTRA_ORGANIZATION = "com.chatwithwork.app.LIVE_UPDATE_ORGANIZATION"
+    private const val EXTRA_STEPS = "com.chatwithwork.app.LIVE_UPDATE_STEPS"
     private const val PREFERENCES = "live_updates"
 
     /** The push thread for a chat's page ("chat-482139075-42"), as the server names it. */
@@ -78,7 +83,7 @@ object LiveUpdates {
 
         val notification =
             ongoing(context, url, organization ?: context.getString(R.string.app_name), System.currentTimeMillis())
-                .setContentTitle(context.getString(R.string.live_update_answering))
+                .setContentTitle(headline(context.getString(R.string.live_update_answering)))
                 .setShortCriticalText(context.getString(R.string.live_update_chip_think))
                 .addExtras(Bundle().apply { putLong(EXTRA_SENT_AT, lastSentAt(context, thread)) })
                 .build()
@@ -118,12 +123,16 @@ object LiveUpdates {
         val notification =
             if (progress.isWorking) {
                 ongoing(context, progress.url, organization, shown.`when`, progress.step, progress.steps)
-                    .setContentTitle(progress.message ?: context.getString(R.string.live_update_text))
+                    .setContentTitle(
+                        headline(
+                            LivePresentation(progress.phase, progress.step).title(progress.message, context::getString)
+                        )
+                    )
                     .setShortCriticalText(context.getString(chipWord(progress.step)))
                     .addExtras(Bundle().apply { putLong(EXTRA_SENT_AT, progress.sentAt) })
                     .build()
             } else {
-                ended(context, progress, organization)
+                ended(context, progress, organization, shown.extras.getInt(EXTRA_STEPS, 0))
             }
         manager.notify(progress.thread, PushNotifications.NOTIFICATION_ID, notification)
     }
@@ -203,11 +212,17 @@ object LiveUpdates {
         "run" -> R.string.live_update_chip_run
         "ask" -> R.string.live_update_chip_ask
         "write" -> R.string.live_update_chip_write
+        "answer" -> R.string.live_update_chip_think
         else -> R.string.live_update_chip_think
     }
 
     private fun stepsText(context: Context, steps: Int): String? =
         if (steps > 0) context.resources.getQuantityString(R.plurals.live_update_steps, steps, steps) else null
+
+    /** Supported native text emphasis also survives promoted compact layouts. */
+    private fun headline(text: String): CharSequence = SpannableString(text).apply {
+        setSpan(StyleSpan(Typeface.BOLD), 0, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
 
     /** Native BigTextStyle remains eligible for promotion, without implying a known percentage. */
     private fun ongoing(
@@ -221,15 +236,16 @@ object LiveUpdates {
         .Builder(context, PushNotifications.CHANNEL_ANSWERING)
         .setSmallIcon(R.drawable.ic_notification)
         .setSubText(organization)
-        .setContentText(stepsText(context, steps) ?: context.getString(R.string.live_update_background))
-        .setStyle(
-            NotificationCompat.BigTextStyle().bigText(
-                stepsText(context, steps) ?: context.getString(R.string.live_update_background)
-            )
-        )
+        .setContentText(stepsText(context, steps))
+        .setStyle(NotificationCompat.BigTextStyle().bigText(stepsText(context, steps)))
         .setLargeIcon(statusIcon(context, LivePresentation(LiveProgress.ANSWERING, step)))
         .setColor(ContextCompat.getColor(context, R.color.lw_live_ink))
-        .addExtras(Bundle().apply { putString(EXTRA_ORGANIZATION, organization) })
+        .addExtras(
+            Bundle().apply {
+                putString(EXTRA_ORGANIZATION, organization)
+                putInt(EXTRA_STEPS, steps)
+            }
+        )
         .setOngoing(true)
         .setOnlyAlertOnce(true)
         .setRequestPromotedOngoing(true)
@@ -239,17 +255,25 @@ object LiveUpdates {
         .setTimeoutAfter(TIMEOUT_MS)
         .setCategory(NotificationCompat.CATEGORY_PROGRESS)
         .setContentIntent(open(context, url))
-        .addAction(0, context.getString(R.string.live_update_open), open(context, url))
 
     /** How it ended, quietly in the chat's slot until a push takes it or the person opens it. */
-    private fun ended(context: Context, progress: LiveProgress, organization: String): Notification {
+    private fun ended(
+        context: Context,
+        progress: LiveProgress,
+        organization: String,
+        previousSteps: Int
+    ): Notification {
         val presentation = LivePresentation(progress.phase)
+        // End messages need not repeat the count. Keep the last real count,
+        // without calling work completed or repeating the headline as prose.
+        val details = stepsText(context, maxOf(progress.steps, previousSteps))
+        val title = headline(context.getString(presentation.headline))
         return NotificationCompat.Builder(context, PushNotifications.CHANNEL_ANSWERING)
             .setSmallIcon(R.drawable.ic_notification)
             .setSubText(organization)
-            .setContentTitle(context.getString(presentation.headline))
-            .setContentText(progress.message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(progress.message))
+            .setContentTitle(title)
+            .setContentText(details)
+            .setStyle(NotificationCompat.BigTextStyle().setBigContentTitle(title).bigText(details))
             .setLargeIcon(statusIcon(context, presentation))
             .setColor(ContextCompat.getColor(context, presentation.color))
             .setOnlyAlertOnce(true)

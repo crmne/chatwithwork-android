@@ -578,7 +578,13 @@ old end cannot replace new progress. A failed end can also carry
 ending the card, preserving current progress if the failure is suppressed.
 
 The card uses the step's icon and meaning color, "3 steps so far" (including
-a step still running), and Open chat. Ended states stop the timer and use
+a step still running), and the current action as its bold headline.
+Organization and the native elapsed timer are secondary. A blank or missing
+message uses a localized fallback for `step`; `answer` means generic
+answering/thinking, while `write` means streaming the answer. The active
+card itself opens the chat. Ended states retain the last real step count
+when the end payload omits it, avoid repeating the headline as another
+sentence, stop the timer and use
 Read answer, Review change or Reply as appropriate. Every action opens the
 authenticated chat; none approves a change from the notification. There is
 no percentage or ETA because the amount of work is not known. Android's
