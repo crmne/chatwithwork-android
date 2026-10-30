@@ -826,6 +826,29 @@ No replies.
 
 ## 12. The composer
 
+**Composer parity (2026-10-30).** Each model may also send `iconName`
+(the model maker’s key), `icon` (the web asset’s absolute URL), and
+`invertIcon`. Both apps bundle the exact web maker artwork for `anthropic`,
+`openai`, `gemini`, `qwen`, `deepseek`, `mistral` and `xai`; unknown or absent
+keys simply omit artwork. Only the web’s monochrome logos invert in dark
+mode. An inference host never supplies the displayed brand.
+
+`permissionModes` is absent or null when the viewer cannot choose a mode,
+or while their lazy frame loads. Otherwise it is
+`{selected, options: [{value, label, description, selected, disabled}]}`.
+The native + sheet draws these labels and restrictions unchanged. Its
+`permissionMode` reply `{value}` clicks the existing enabled web radio;
+new chats submit that choice with the first question. A returned choice
+is rechecked against the latest state, so closing access while a sheet is
+open cannot retain the older choice. The page and server remain the policy
+authority for defaults, organization caps, drivers, guests and bot runs.
+The selected Allow everything mode also remains visible in the composer.
+Older servers omit these optional fields and retain the existing controls.
+
+The native composer uses the web’s exact surface/ink tokens and all five
+rainbow stops, with 70% opacity at rest and full opacity while editing.
+
+
 **Overlay layout (2026-10-29).** The server advertises `overlay: true` in
 composer state when it supports scroll clearance. Only then does the app
 float the composer over the page and reply `layout {height, width}` after
@@ -859,8 +882,8 @@ gutters. The page leaves room to scroll its last answer above the box.
 
 | Event | Direction | Data |
 |---|---|---|
-| `connect`, then `state` | web to app | `{overlay?, visible?, placeholder, text?, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb}], webSearch: {on, disabled, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
-| reply to `connect` | app to web | `{action: "send", text}`, `{action: "stop"}`, `{action: "model", index}`, `{action: "webSearch", on}`, `{action: "attach", files: [{name, type, data}]}` (data base64), `{action: "remove", id}`, `{action: "text", text}`, `{action: "layout", height, width}` |
+| `connect`, then `state` | web to app | `{overlay?, visible?, placeholder, text?, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb, iconName?, icon?, invertIcon?}], permissionModes?, webSearch: {on, disabled, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
+| reply to `connect` | app to web | `{action: "send", text}`, `{action: "stop"}`, `{action: "model", index}`, `{action: "permissionMode", value}`, `{action: "webSearch", on}`, `{action: "attach", files: [{name, type, data}]}` (data base64), `{action: "remove", id}`, `{action: "text", text}`, `{action: "layout", height, width}` |
 
 A chat draws its composer again as an answer starts and ends; each new one
 connects again, and the app always replies to the latest `connect`. A page

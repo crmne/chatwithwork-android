@@ -6,6 +6,13 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Next internal build
+
+Version 1.1.4 (10104) prepares composer palette parity, model-maker logos
+and the web’s Changes menu. The signed bundle must pass native light/dark
+review before upload. This source entry is not confirmation of a Play
+upload or rollout; 1.1.3 (10103) remains the last confirmed Internal build.
+
 ## Before the first upload
 
 1. **The server.** Release builds talk to `https://chatwithwork.com`, which

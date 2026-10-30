@@ -53,6 +53,22 @@ class ComposerBarTest {
     }
 
     @Test
+    fun `permissions keep the plus menu available without file attachments`() {
+        val state = ComposerState(
+            acceptsFiles = false,
+            permissionModes = ComposerState.PermissionModes(
+                "ask",
+                listOf(ComposerState.PermissionOption("ask", "Ask for changes"))
+            )
+        )
+        val sheet = ComposerBar.inSheet(state, emptySet())
+        assertThat(sheet.empty).isFalse()
+        assertThat(sheet.attachOnly).isFalse()
+        assertThat(sheet.permissions).isTrue()
+        assertThat(ComposerBar.inSheet(state.copy(acceptsFiles = true), emptySet()).attachOnly).isFalse()
+    }
+
+    @Test
     fun `the model chip never takes Send's room`() {
         // A 360dp phone's 320dp bar with "+", the microphone and the globe: 320 - 3 * 44 - 8 - 44.
         assertThat(ComposerBar.modelMaxWidthDp(320, buttons = 3)).isEqualTo(136)

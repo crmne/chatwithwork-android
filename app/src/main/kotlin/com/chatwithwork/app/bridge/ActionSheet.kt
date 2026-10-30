@@ -3,6 +3,7 @@ package com.chatwithwork.app.bridge
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ImageView
@@ -26,7 +27,9 @@ object ActionSheet {
         val image: String? = null,
         val destructive: Boolean = false,
         val disabled: Boolean = false,
-        val checked: Boolean = false
+        val checked: Boolean = false,
+        val subtitle: String? = null,
+        val icon: Drawable? = null
     )
 
     @SuppressLint("InflateParams") // A dialog's content has no parent until it's set.
@@ -54,12 +57,21 @@ object ActionSheet {
             val check = row.findViewById<ImageView>(R.id.action_sheet_item_check)
 
             label.text = action.title
+            row.findViewById<TextView>(R.id.action_sheet_item_subtitle).apply {
+                text = action.subtitle
+                isVisible = !action.subtitle.isNullOrBlank()
+            }
             val symbol = SymbolDrawable.from(context, action.image)
             when {
+                action.icon != null -> {
+                    icon.imageTintList = null
+                    icon.setImageDrawable(action.icon)
+                }
+
                 symbol != null -> icon.setImageDrawable(symbol)
 
                 // No icons in the sheet at all: the labels line up with the title.
-                actions.none { it.image != null } -> icon.visibility = View.GONE
+                actions.none { it.image != null || it.icon != null } -> icon.visibility = View.GONE
 
                 // Some icons: this label lines up with the others.
                 else -> icon.visibility = View.INVISIBLE

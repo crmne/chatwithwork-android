@@ -39,7 +39,6 @@
         android:id="@+id/composer_box"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/composer_background"
         android:orientation="vertical"
         android:padding="8dp">
 
@@ -125,7 +124,17 @@
             android:paddingVertical="8dp"
             android:textAppearance="?attr/textAppearanceBodyLarge"
             android:textColor="?attr/colorOnSurface"
-            android:textColorHint="?attr/colorOnSurfaceVariant" />
+            android:textColorHint="@color/lw_ink_faint" />
+
+        <TextView
+            android:id="@+id/composer_permission_note"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="8dp"
+            android:drawablePadding="5dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="@color/lw_negative_ink"
+            android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="match_parent"

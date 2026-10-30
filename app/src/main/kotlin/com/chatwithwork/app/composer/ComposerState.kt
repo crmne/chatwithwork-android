@@ -20,6 +20,7 @@ data class ComposerState(
     val working: Boolean = false,
     val stopping: Boolean = false,
     val models: List<Model> = emptyList(),
+    val permissionModes: PermissionModes? = null,
     val webSearch: WebSearch? = null,
     val dictation: Dictation? = null,
     val csrfToken: String? = null,
@@ -31,7 +32,21 @@ data class ComposerState(
         val name: String = "",
         val rate: String? = null,
         val selected: Boolean = false,
-        val searchesWeb: Boolean = false
+        val searchesWeb: Boolean = false,
+        val iconName: String? = null,
+        val invertIcon: Boolean = false
+    )
+
+    @Serializable
+    data class PermissionModes(val selected: String? = null, val options: List<PermissionOption> = emptyList())
+
+    @Serializable
+    data class PermissionOption(
+        val value: String,
+        val label: String,
+        val description: String? = null,
+        val selected: Boolean = false,
+        val disabled: Boolean = false
     )
 
     @Serializable
@@ -49,6 +64,10 @@ data class ComposerState(
         val uploading: Boolean = false,
         val progress: Double = 100.0
     )
+
+    /** Recheck the current page after a sheet opened with an earlier state. */
+    fun canSelectPermissionMode(value: String): Boolean =
+        !locked && permissionModes?.options?.any { it.value == value && !it.disabled } == true
 
     val selectedModel: Model? get() = models.firstOrNull { it.selected }
 

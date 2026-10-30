@@ -47,13 +47,14 @@ object ComposerBar {
     fun inSheet(state: ComposerState, bar: Set<Control>, dictationSupported: Boolean = Dictation.supported): Sheet =
         Sheet(
             attach = state.acceptsFiles,
-            folded = offered(state, dictationSupported).filterNot { it in bar }.toSet()
+            folded = offered(state, dictationSupported).filterNot { it in bar }.toSet(),
+            permissions = state.permissionModes != null
         )
 
-    data class Sheet(val attach: Boolean, val folded: Set<Control>) {
-        val empty: Boolean get() = !attach && folded.isEmpty()
+    data class Sheet(val attach: Boolean, val folded: Set<Control>, val permissions: Boolean = false) {
+        val empty: Boolean get() = !attach && folded.isEmpty() && !permissions
 
         /** It holds only attaching: "+" is the paperclip. */
-        val attachOnly: Boolean get() = attach && folded.isEmpty()
+        val attachOnly: Boolean get() = attach && folded.isEmpty() && !permissions
     }
 }

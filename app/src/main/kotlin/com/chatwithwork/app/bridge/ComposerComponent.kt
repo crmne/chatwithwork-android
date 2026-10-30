@@ -9,6 +9,7 @@ import com.chatwithwork.app.composer.ComposerFile
 import com.chatwithwork.app.composer.ComposerFiles
 import com.chatwithwork.app.composer.ComposerState
 import com.chatwithwork.app.composer.ComposerView
+import com.chatwithwork.app.composer.ModelLogo
 import com.chatwithwork.app.composer.PendingShares
 import dev.hotwire.core.bridge.BridgeComponent
 import dev.hotwire.core.bridge.BridgeComponentFactory
@@ -81,7 +82,9 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
             context.getString(R.string.composer_models_title),
             models.map { model ->
                 ActionSheet.Action(
-                    title = listOfNotNull(model.name, model.rate).joinToString(" · "),
+                    title = model.name,
+                    subtitle = model.rate,
+                    icon = ModelLogo.drawable(context, model),
                     checked = model.selected
                 )
             }
@@ -108,6 +111,12 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
                 override fun dictate() = this@ComposerComponent.dictate()
 
                 override fun webSearch(on: Boolean) = this@ComposerComponent.webSearch(on)
+
+                override fun permissionMode(value: String) {
+                    if (this@ComposerComponent.view?.state?.canSelectPermissionMode(value) == true) {
+                        reply("permissionMode") { put("value", value) }
+                    }
+                }
             }
         )
     }

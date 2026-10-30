@@ -8,8 +8,8 @@
     <color name="lw_surface_hover">#161B27</color>
     <color name="lw_surface_selected">#1A2030</color>
     <color name="lw_ink">#E9ECF4</color>
-    <color name="lw_ink_muted">#8D96AA</color>
-    <color name="lw_ink_faint">#636B80</color>
+    <color name="lw_ink_muted">#AAB2C3</color>
+    <color name="lw_ink_faint">#979FB2</color>
     <color name="lw_ink_inverted">#06070B</color>
     <color name="lw_line">#1C2130</color>
     <color name="lw_line_strong">#2A3144</color>

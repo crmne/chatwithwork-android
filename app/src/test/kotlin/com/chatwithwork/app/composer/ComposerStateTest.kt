@@ -39,6 +39,32 @@ class ComposerStateTest {
     }
 
     @Test
+    fun `permission choices are rechecked against the current page without local policy`() {
+        val state = json.decodeFromString<ComposerState>(
+            """{"permissionModes":{"selected":"ask","options":[
+                {"value":"ask","label":"Ask for changes","selected":true,"disabled":false},
+                {"value":"edits","label":"Allow edits","selected":false,"disabled":false},
+                {"value":"everything","label":"Allow everything","selected":false,"disabled":true}]}}"""
+        )
+        assertThat(state.canSelectPermissionMode("edits")).isTrue()
+        assertThat(state.canSelectPermissionMode("everything")).isFalse()
+        assertThat(state.canSelectPermissionMode("unknown")).isFalse()
+        assertThat(state.copy(locked = true).canSelectPermissionMode("edits")).isFalse()
+        assertThat(state.copy(permissionModes = null).canSelectPermissionMode("edits")).isFalse()
+        assertThat(json.decodeFromString<ComposerState>("{}").permissionModes).isNull()
+    }
+
+    @Test
+    fun `model maker artwork is optional for older servers`() {
+        val state = json.decodeFromString<ComposerState>(
+            """{"models":[{"name":"GPT","selected":true,"iconName":"openai","invertIcon":true,"icon":"https://example.com/openai.svg"}]}"""
+        )
+        assertThat(state.selectedModel?.iconName).isEqualTo("openai")
+        assertThat(state.selectedModel?.invertIcon).isTrue()
+        assertThat(json.decodeFromString<ComposerState>(sample).selectedModel?.iconName).isNull()
+    }
+
+    @Test
     fun `sends words or files, never while a file uploads or the composer is locked`() {
         val state = ComposerState()
         assertThat(state.canSend("")).isFalse()

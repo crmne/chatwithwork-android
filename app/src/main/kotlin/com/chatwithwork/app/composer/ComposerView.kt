@@ -79,6 +79,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private val plus by lazy { findViewById<ImageButton>(R.id.composer_plus) }
     private val dictateButton by lazy { findViewById<ImageButton>(R.id.composer_dictate) }
     private val webSearchButton by lazy { findViewById<ImageButton>(R.id.composer_web_search) }
+    private val permissionNote by lazy { findViewById<TextView>(R.id.composer_permission_note) }
+    private val composerBackground = ComposerBackground(context)
     private val model by lazy { findViewById<TextView>(R.id.composer_model) }
     private val stop by lazy { findViewById<ImageButton>(R.id.composer_stop) }
     private val send by lazy { findViewById<ImageButton>(R.id.composer_send) }
@@ -140,6 +142,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     override fun onFinishInflate() {
         super.onFinishInflate()
+        findViewById<View>(R.id.composer_box).background = composerBackground
+        input.setOnFocusChangeListener { _, _ -> updateEdge() }
         val ink = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface)
         plus.setOnClickListener { actions?.openSheet() }
         dictateButton.setImageDrawable(SymbolDrawable(context, "mic", color = muted()))
@@ -178,6 +182,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     fun show(state: ComposerState, connecting: Boolean = false) {
         this.state = state
+        updateEdge()
         // A new composer may already hold words (shared in, or a draft): the field starts with them.
         if (connecting && text.isBlank() && !state.text.isNullOrBlank()) {
             input.setText(state.text)
@@ -207,8 +212,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         model.isVisible = selected != null && !state.locked && !state.working && !dictating
         model.text = selected?.name
         model.contentDescription = selected?.let { context.getString(R.string.composer_model_description, it.name) }
-        model.setCompoundDrawablesRelativeWithIntrinsicBounds(
-            null,
+        model.setCompoundDrawablesRelative(
+            selected?.let { ModelLogo.drawable(context, it, 16) },
             null,
             SymbolDrawable(context, "unfold_more", sizeDp = 16f, color = model.currentTextColor).apply {
                 setBounds(0, 0, intrinsicWidth, intrinsicHeight)
@@ -216,6 +221,18 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             null
         )
 
+        val unrestricted = state.permissionModes?.options?.firstOrNull {
+            it.value == "everything" && it.selected &&
+                !it.disabled
+        }
+        permissionNote.text = unrestricted?.label
+        permissionNote.isVisible = unrestricted != null
+        permissionNote.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            SymbolDrawable(context, "report", sizeDp = 16f, color = permissionNote.currentTextColor),
+            null,
+            null,
+            null
+        )
         renderBar()
         renderFiles()
         renderButtons()
@@ -235,6 +252,16 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         val params = page.layoutParams as FrameLayout.LayoutParams
         if (params.bottomMargin != inset) page.updateLayoutParams<FrameLayout.LayoutParams> { bottomMargin = inset }
         if (state.overlay && container.width > 0) actions?.layout(if (state.visible) height else 0, container.width)
+    }
+
+    private fun updateEdge() {
+        composerBackground.edgeOpacity = if (state.locked) {
+            0.3f
+        } else if (input.hasFocus()) {
+            1f
+        } else {
+            0.7f
+        }
     }
 
     private fun muted() = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant)

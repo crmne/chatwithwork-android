@@ -37,6 +37,8 @@ object AttachSheet {
         fun dictate()
 
         fun webSearch(on: Boolean)
+
+        fun permissionMode(value: String)
     }
 
     @SuppressLint("InflateParams") // A dialog's content has no parent until it's set.
@@ -86,6 +88,34 @@ object AttachSheet {
                 isEnabled = !search.disabled
                 setOnCheckedChangeListener { _, on -> choices.webSearch(on) }
             }
+        }
+
+        val permissions = content.findViewById<LinearLayout>(R.id.attach_permissions)
+        permissions.isVisible = state.permissionModes != null
+        state.permissionModes?.options?.forEach { option ->
+            val item = inflater.inflate(R.layout.action_sheet_item, permissions, false)
+            item.findViewById<TextView>(R.id.action_sheet_item_label).text = option.label
+            item.findViewById<TextView>(R.id.action_sheet_item_subtitle).apply {
+                text = option.description
+                isVisible = !option.description.isNullOrBlank()
+            }
+            item.findViewById<ImageView>(R.id.action_sheet_item_icon).apply {
+                val symbol = when (option.value) {
+                    "everything" -> "report"
+                    "edits" -> "edit"
+                    else -> "back_hand"
+                }
+                setImageDrawable(SymbolDrawable(context, symbol, color = ink))
+            }
+            item.findViewById<ImageView>(R.id.action_sheet_item_check).isVisible = option.selected
+            item.isSelected = option.selected
+            item.isEnabled = !option.disabled
+            item.alpha = if (option.disabled) 0.5f else 1f
+            item.setOnClickListener {
+                dialog.dismiss()
+                choices.permissionMode(option.value)
+            }
+            permissions.addView(item)
         }
 
         dialog.setContentView(content)

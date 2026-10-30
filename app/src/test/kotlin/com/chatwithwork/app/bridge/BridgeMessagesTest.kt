@@ -1,5 +1,6 @@
 package com.chatwithwork.app.bridge
 
+import com.chatwithwork.app.composer.ComposerState
 import com.google.common.truth.Truth.assertThat
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -26,6 +27,17 @@ class BridgeMessagesTest {
             encodeDefaults = true
             explicitNulls = false
         }
+
+    @Test
+    fun `composer accepts optional maker and viewer permission fields`() {
+        val state = json.decodeFromString<ComposerState>(
+            """{"models":[{"name":"Qwen","selected":true,"iconName":"qwen","invertIcon":true}],
+                "permissionModes":{"selected":null,"options":[]},"metadata":{"url":"https://x"}}"""
+        )
+        assertThat(state.selectedModel?.iconName).isEqualTo("qwen")
+        assertThat(state.permissionModes?.selected).isNull()
+        assertThat(state.canSelectPermissionMode("everything")).isFalse()
+    }
 
     @Test
     fun `button reads Joe Masilotti's payload and the stable action name`() {
