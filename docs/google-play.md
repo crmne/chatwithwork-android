@@ -14,7 +14,17 @@ light and dark playground checks select Allow everything, verify the
 composer height stays unchanged, and restore Ask for changes. The native
 app continues to draw the server’s saved mode and restrictions.
 
-The Internal release is being prepared; it has not been uploaded yet.
+The signed, Firebase-enabled bundle became available to Internal testers
+on 2026-10-30 at 11:32 Europe/Berlin. Play Console confirmed that status;
+updates can take an hour to reach Google Play. Only Internal testing was
+updated. Open testing and Production were left unchanged.
+
+Validation: 103 unit tests, lint, formatting, and all build variants passed.
+The Metal-backed Android emulator verified the light and dark composer,
+selected Allow everything, and restored Ask for changes. The upload
+signature was verified. Play reported no loss of supported devices and
+only the existing non-blocking native dependency debug-symbol warning;
+the ReTrace mapping file is included.
 
 ## Release 1.1.4
 
