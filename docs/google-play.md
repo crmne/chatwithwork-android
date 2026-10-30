@@ -6,12 +6,27 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
-## Next internal build
+## Release 1.1.4
 
-Version 1.1.4 (10104) prepares composer palette parity, model-maker logos
-and the web’s Changes menu. The signed bundle must pass native light/dark
-review before upload. This source entry is not confirmation of a Play
-upload or rollout; 1.1.3 (10103) remains the last confirmed Internal build.
+Version 1.1.4 (10104) matches the web composer’s light and dark colors,
+shows model-maker logos, and adds the web’s Changes menu. Its signed,
+Firebase-enabled bundle became available to Internal testers on
+2026-10-30 at 10:21 Europe/Berlin. Play Console confirmed that status;
+updates can take an hour to reach Google Play. Open testing remains on
+1.1.3 (10103), awaiting Google’s review, and Production remains unpublished.
+
+The Internal tester link is
+https://play.google.com/apps/internaltest/4700795205724875813. It requires
+an account on the selected tester email list; it is separate from the
+public beta’s opt-in link below.
+
+Validation: 103 unit tests, lint, formatting, and Debug, Staging and
+Release builds passed. The Android emulator playground was reviewed in
+light and dark mode, including model logos, the Changes menu and enlarged
+text. The release bundle was signed with the existing upload key and its
+signature verified before upload. Play reported no changes to supported
+devices and only a non-blocking warning about native dependency debug
+symbols; the ReTrace mapping file is included.
 
 ## Before the first upload
 
