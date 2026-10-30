@@ -529,7 +529,7 @@ naming the token, for a token that's gone: destroy the registration. Retry
 
 When the person leaves the app while the chat on screen is answering (its
 composer says `working`), the app posts an ongoing notification for that
-chat: a native BigTextStyle status card, promoted where the system allows (the
+chat: a native status card, promoted where the system allows (the
 status bar chip, and OEM surfaces built on it such as OnePlus's and OPPO's
 Live Alerts), the current step, the organization's name and an elapsed
 timer, never the chat's title or content. It uses the chat's notification
@@ -555,6 +555,7 @@ chat (`collapse_key` `progress-<thread>`) and kept two minutes:
 ```json
 { "kind": "progress", "path": "/482139075/chats/42", "thread": "chat-482139075-42",
   "phase": "answering", "message": "Searching Todoist", "step": "search", "steps": "3",
+  "recent_steps": "[\"read\",\"search\"]",
   "sent_at": "1793039262987" }
 ```
 
@@ -577,14 +578,34 @@ old end cannot replace new progress. A failed end can also carry
 `notification_id`: the app validates it using the same endpoint before
 ending the card, preserving current progress if the failure is suppressed.
 
-The card uses the step's icon and meaning color, "3 steps so far" (including
-a step still running), and the current action as its bold headline.
-Organization and the native elapsed timer are secondary. A blank or missing
+Optional `recent_steps` is a JSON-encoded string array in FCM data, containing
+at most three observed kinds from that same allowlist. The server takes recent
+returned tool kinds in result order, appends the current kind, removes adjacent
+duplicates and keeps the last three. Returned work may have failed or been
+declined: this is recent activity, never a completed checklist or a future plan.
+The app accepts only known kinds and falls back to the current kind when an old
+server omits the field or its value is malformed. APNs uses the same key as a
+native JSON array, not the FCM string encoding.
+
+On Android 17, a working card with a known positive count uses native
+MetricStyle: Steps so far (including a step still running), Previous when
+known, and Now. This shows only the most recent observed transition, not a
+fixed pipeline. MetricStyle hides the large illustration and supporting text.
+Earlier Android versions use BigTextStyle with a wide native Canvas
+illustration of the count and observed kinds, plus a Recent activity line
+with up to three kinds. Earlier nodes are muted, never marked successful;
+only the current kind is highlighted. With no count yet, the card illustrates
+the current action without making up a metric. Both remain eligible for
+promotion, subject to Android and the person's settings.
+
+The current action is the headline. Organization and the native timer remain
+secondary; this timer follows time in the background, not total answer time.
+A blank or missing
 message uses a localized fallback for `step`; `answer` means generic
 answering/thinking, while `write` means streaming the answer. The active
 card itself opens the chat. Ended states retain the last real step count
 when the end payload omits it, avoid repeating the headline as another
-sentence, stop the timer and use
+sentence, use distinct attention/result/stop illustrations, stop the timer and use
 Read answer, Review change or Reply as appropriate. Every action opens the
 authenticated chat; none approves a change from the notification. There is
 no percentage or ETA because the amount of work is not known. Android's

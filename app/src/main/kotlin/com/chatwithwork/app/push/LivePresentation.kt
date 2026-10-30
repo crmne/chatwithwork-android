@@ -6,6 +6,10 @@ import com.chatwithwork.app.R
 data class LivePresentation(val phase: String, val step: String? = null) {
     val isWorking: Boolean get() = phase == LiveProgress.ANSWERING
 
+    /** A returned kind immediately before this current kind, without implying success. */
+    fun previousStep(recent: List<String>): String? =
+        recent.takeIf { it.lastOrNull() == step }?.dropLast(1)?.lastOrNull()
+
     val headline: Int get() = when (phase) {
         "answered" -> R.string.live_update_ready
 

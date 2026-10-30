@@ -92,6 +92,34 @@ class PushTest {
     }
 
     @Test
+    fun `recent activity reads the encoded array and keeps only actual known kinds`() {
+        val data = mapOf(
+            "kind" to "progress",
+            "path" to path,
+            "thread" to "chat-482139075-42",
+            "phase" to "answering",
+            "step" to "write",
+            "recent_steps" to """["search","search","read","write"]"""
+        )
+        assertThat(LiveProgress.from(data)?.recentSteps).containsExactly("search", "read", "write").inOrder()
+        assertThat(
+            LiveProgress.from(data + ("recent_steps" to """["search","private filename",4,"read"]"""))?.recentSteps
+        )
+            .containsExactly("search", "read", "write").inOrder()
+        assertThat(LiveProgress.from(data + ("recent_steps" to """["search","read","search"]"""))?.recentSteps)
+            .containsExactly("read", "search", "write").inOrder()
+    }
+
+    @Test
+    fun `missing or invalid history falls back to the current known kind`() {
+        for (encoded in listOf(null, "not json", "{}", "[]", "x".repeat(257))) {
+            assertThat(LiveProgress.recentSteps(encoded, "read")).containsExactly("read")
+        }
+        assertThat(LiveProgress.recentSteps(null, "unknown private text")).isEmpty()
+        assertThat(LiveProgress.recentSteps("""[null,3,"filename"]""", null)).isEmpty()
+    }
+
+    @Test
     fun `asks this server for a notification's words, only by an id shaped like the server's`() {
         assertThat(NotificationWords.url("c2VjcmV0--aXY--dGFn_x-y"))
             .isEqualTo("${AppConfig.baseUrl}/native/notifications/c2VjcmV0--aXY--dGFn_x-y")

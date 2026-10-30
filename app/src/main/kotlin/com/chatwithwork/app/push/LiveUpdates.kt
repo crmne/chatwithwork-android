@@ -6,9 +6,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
@@ -20,10 +17,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
-import androidx.core.graphics.ColorUtils
 import androidx.core.net.toUri
 import com.chatwithwork.app.R
-import com.chatwithwork.app.bridge.SymbolDrawable
 import com.chatwithwork.app.main.MainActivity
 import com.chatwithwork.app.routing.AppUrls
 import java.io.IOException
@@ -60,6 +55,7 @@ object LiveUpdates {
 
     /** The organization a Live Update names, kept in its extras for the steps that follow. */
     private const val EXTRA_ORGANIZATION = "com.chatwithwork.app.LIVE_UPDATE_ORGANIZATION"
+    private const val EXTRA_RECENT_STEPS = "com.chatwithwork.app.LIVE_UPDATE_RECENT_STEPS"
     private const val EXTRA_STEPS = "com.chatwithwork.app.LIVE_UPDATE_STEPS"
     private const val PREFERENCES = "live_updates"
 
@@ -122,7 +118,15 @@ object LiveUpdates {
         val organization = shown.extras.getString(EXTRA_ORGANIZATION) ?: context.getString(R.string.app_name)
         val notification =
             if (progress.isWorking) {
-                ongoing(context, progress.url, organization, shown.`when`, progress.step, progress.steps)
+                ongoing(
+                    context,
+                    progress.url,
+                    organization,
+                    shown.`when`,
+                    progress.step,
+                    progress.steps,
+                    progress.recentSteps
+                )
                     .setContentTitle(
                         headline(
                             LivePresentation(progress.phase, progress.step).title(progress.message, context::getString)
@@ -132,7 +136,13 @@ object LiveUpdates {
                     .addExtras(Bundle().apply { putLong(EXTRA_SENT_AT, progress.sentAt) })
                     .build()
             } else {
-                ended(context, progress, organization, shown.extras.getInt(EXTRA_STEPS, 0))
+                ended(
+                    context,
+                    progress,
+                    organization,
+                    shown.extras.getInt(EXTRA_STEPS, 0),
+                    shown.extras.getStringArrayList(EXTRA_RECENT_STEPS).orEmpty()
+                )
             }
         manager.notify(progress.thread, PushNotifications.NOTIFICATION_ID, notification)
     }
@@ -231,37 +241,82 @@ object LiveUpdates {
         organization: String,
         startedAt: Long,
         step: String? = null,
-        steps: Int = 0
-    ): NotificationCompat.Builder = NotificationCompat
-        .Builder(context, PushNotifications.CHANNEL_ANSWERING)
-        .setSmallIcon(R.drawable.ic_notification)
-        .setSubText(organization)
-        .setContentText(stepsText(context, steps))
-        .setStyle(NotificationCompat.BigTextStyle().bigText(stepsText(context, steps)))
-        .setLargeIcon(statusIcon(context, LivePresentation(LiveProgress.ANSWERING, step)))
-        .setColor(ContextCompat.getColor(context, R.color.lw_live_ink))
-        .addExtras(
-            Bundle().apply {
-                putString(EXTRA_ORGANIZATION, organization)
-                putInt(EXTRA_STEPS, steps)
+        steps: Int = 0,
+        recentSteps: List<String> = emptyList()
+    ): NotificationCompat.Builder {
+        val recent = recentSteps.ifEmpty { listOfNotNull(step?.takeIf { it in LiveProgress.STEP_KINDS }) }
+        val trail = recentText(context, recent)
+        val details = listOfNotNull(stepsText(context, steps), trail).joinToString("\n").ifEmpty { null }
+        val builder = NotificationCompat
+            .Builder(context, PushNotifications.CHANNEL_ANSWERING)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setSubText(organization)
+            .setContentText(details)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(details))
+            .setLargeIcon(LiveArtwork.draw(context, LivePresentation(LiveProgress.ANSWERING, step), steps, recent))
+            .setColor(ContextCompat.getColor(context, R.color.lw_live_ink))
+            .addExtras(
+                Bundle().apply {
+                    putString(EXTRA_ORGANIZATION, organization)
+                    putInt(EXTRA_STEPS, steps)
+                    putStringArrayList(EXTRA_RECENT_STEPS, ArrayList(recent))
+                }
+            )
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setRequestPromotedOngoing(true)
+            .setUsesChronometer(true)
+            .setWhen(startedAt)
+            .setShowWhen(true)
+            .setTimeoutAfter(TIMEOUT_MS)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setContentIntent(open(context, url))
+        if (Build.VERSION.SDK_INT >= 37 && steps > 0) {
+            val metrics = NotificationCompat.MetricStyle()
+                .addMetric(
+                    NotificationCompat.Metric(
+                        NotificationCompat.Metric.FixedInt(steps),
+                        context.getString(R.string.live_update_metric_steps)
+                    )
+                )
+                .setCriticalMetric(NotificationCompat.MetricStyle.METRIC_INDEX_NONE)
+            LivePresentation(LiveProgress.ANSWERING, step).previousStep(recent)?.let { previous ->
+                metrics.addMetric(
+                    NotificationCompat.Metric(
+                        NotificationCompat.Metric.FixedText(context.getString(chipWord(previous))),
+                        context.getString(R.string.live_update_metric_previous)
+                    )
+                )
+            }
+            metrics.addMetric(
+                NotificationCompat.Metric(
+                    NotificationCompat.Metric.FixedText(context.getString(chipWord(step))),
+                    context.getString(R.string.live_update_metric_now),
+                    NotificationCompat.SEMANTIC_STYLE_INFO
+                )
+            )
+            // MetricStyle omits contentText. Previous and Now convey the most recent real transition.
+            builder.setContentText(trail).setStyle(metrics)
+        }
+        return builder
+    }
+
+    private fun recentText(context: Context, recent: List<String>): String? = recent.takeIf { it.size > 1 }?.let {
+        context.getString(
+            R.string.live_update_recent_activity,
+            it.joinToString(" · ") { kind ->
+                context.getString(chipWord(kind))
             }
         )
-        .setOngoing(true)
-        .setOnlyAlertOnce(true)
-        .setRequestPromotedOngoing(true)
-        .setUsesChronometer(true)
-        .setWhen(startedAt)
-        .setShowWhen(true)
-        .setTimeoutAfter(TIMEOUT_MS)
-        .setCategory(NotificationCompat.CATEGORY_PROGRESS)
-        .setContentIntent(open(context, url))
+    }
 
     /** How it ended, quietly in the chat's slot until a push takes it or the person opens it. */
     private fun ended(
         context: Context,
         progress: LiveProgress,
         organization: String,
-        previousSteps: Int
+        previousSteps: Int,
+        recentSteps: List<String>
     ): Notification {
         val presentation = LivePresentation(progress.phase)
         // End messages need not repeat the count. Keep the last real count,
@@ -274,7 +329,7 @@ object LiveUpdates {
             .setContentTitle(title)
             .setContentText(details)
             .setStyle(NotificationCompat.BigTextStyle().setBigContentTitle(title).bigText(details))
-            .setLargeIcon(statusIcon(context, presentation))
+            .setLargeIcon(LiveArtwork.draw(context, presentation, maxOf(progress.steps, previousSteps), recentSteps))
             .setColor(ContextCompat.getColor(context, presentation.color))
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
@@ -283,31 +338,6 @@ object LiveUpdates {
             .addAction(0, context.getString(presentation.action), open(context, progress.url))
             .addExtras(Bundle().apply { putLong(EXTRA_SENT_AT, progress.sentAt) })
             .build()
-    }
-
-    /** A real state icon, never a decorative progress gauge with a made-up total. */
-    private fun statusIcon(context: Context, presentation: LivePresentation): Bitmap {
-        val size = (48 * context.resources.displayMetrics.density).toInt()
-        val color = ContextCompat.getColor(context, presentation.color)
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val radius = size / 3f
-        canvas.drawRoundRect(
-            0f,
-            0f,
-            size.toFloat(),
-            size.toFloat(),
-            radius,
-            radius,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                this.color = ColorUtils.setAlphaComponent(color, 32)
-            }
-        )
-        SymbolDrawable(context, presentation.symbol, sizeDp = 26f, color = color).apply {
-            setBounds(0, 0, size, size)
-            draw(canvas)
-        }
-        return bitmap
     }
 
     private fun open(context: Context, url: String): PendingIntent = PendingIntent.getActivity(

@@ -193,4 +193,8 @@
     <string name="notifications_offer_continue">Continue</string>
     <string name="notifications_offer_not_now">Not now</string>
     <string name="composer_permissions">Changes</string>
+    <string name="live_update_recent_activity">Recent activity: %1$s</string>
+    <string name="live_update_metric_steps">Steps so far</string>
+    <string name="live_update_metric_now">Now</string>
+    <string name="live_update_metric_previous">Previous</string>
 </resources>

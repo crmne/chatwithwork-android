@@ -70,17 +70,24 @@ that chat, in Chats, inside the right organization.
   steps) and the end, never the chat's words. The step shows as the Live
   Update's title and as a short word in the status bar chip, and the end
   turns it into a quiet notification until the push for it takes its place.
-  The native card leads with a bold current action and a colored state icon.
-  Organization and the native elapsed timer use secondary system fields; the only
-  supporting line is the number of steps so far, when known. It uses
-  BigTextStyle, supported by Live Updates, rather than an indeterminate
-  percentage bar. Waiting and ended
+  The native card leads with the current action. Android 17 uses a MetricStyle
+  dashboard for a known count: Steps so far, Previous (if known), and Now.
+  These are the real count and latest observed transition, not progress toward
+  an invented total. Earlier Android uses BigTextStyle with an illustrated
+  count and a Recent activity line. The illustration shows only supplied,
+  observed kinds; past kinds are not marked as successful. Both are standard
+  native layouts eligible for promotion. The organization and tracking timer
+  remain secondary. Waiting and ended
   cards use concise headlines and safe navigation actions; the timer stops.
   They retain the last step count when the end message omits it, without
   repeating the headline as another sentence. Tapping an active card opens
   the chat; ended cards offer Read answer, Review change, Reply or Open chat.
   Missing or blank activity labels fall back to the stable step kind.
   `answer` means thinking between steps; `write` means streaming the answer.
+  Optional FCM `recent_steps` is a JSON string array of at most three known
+  kinds; old servers still work using the current kind. No names or content
+  are drawn into the native illustrations. MetricStyle only displays the
+  latest Previous/Now pair, because Android suppresses supporting text there.
   Android controls the final typography and may discard title emphasis on
   ended notifications; those cards remain quiet, dismissible notifications.
   A server-validated stale failure is dropped, and server timestamps survive
@@ -90,7 +97,8 @@ The code: `push/PushNotifications.kt` (permission, opt-in, token, the
 notification key, showing notifications), `push/PushMessagingService.kt`
 (Firebase's callbacks), `push/Push.kt` (the payload), `push/NotificationWords.kt`
 (fetching a notification's words), `push/LiveUpdates.kt` and
-`push/LiveProgress.kt` (Live Updates and their steps), and
+`push/LiveProgress.kt` (Live Updates and their steps), `push/LiveArtwork.kt`
+(content-free native illustrations), and
 `bridge/NotificationTokenComponent.kt`.
 
 ## Setting up Firebase

@@ -6,6 +6,15 @@ import org.junit.Test
 
 class LivePresentationTest {
     @Test
+    fun `the metric dashboard shows only the actual previous kind before the current one`() {
+        val state = LivePresentation("answering", "read")
+        assertThat(state.previousStep(listOf("run", "search", "read"))).isEqualTo("search")
+        assertThat(state.previousStep(listOf("read"))).isNull()
+        assertThat(state.previousStep(emptyList())).isNull()
+        assertThat(state.previousStep(listOf("search", "write"))).isNull()
+    }
+
+    @Test
     fun `the current action survives a missing or blank activity label`() {
         val running = LivePresentation("answering", "run")
         val words: (Int) -> String = { id ->
