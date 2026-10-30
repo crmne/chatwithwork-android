@@ -79,7 +79,6 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private val plus by lazy { findViewById<ImageButton>(R.id.composer_plus) }
     private val dictateButton by lazy { findViewById<ImageButton>(R.id.composer_dictate) }
     private val webSearchButton by lazy { findViewById<ImageButton>(R.id.composer_web_search) }
-    private val permissionNote by lazy { findViewById<TextView>(R.id.composer_permission_note) }
     private val composerBackground = ComposerBackground(context)
     private val model by lazy { findViewById<TextView>(R.id.composer_model) }
     private val stop by lazy { findViewById<ImageButton>(R.id.composer_stop) }
@@ -221,18 +220,6 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             null
         )
 
-        val unrestricted = state.permissionModes?.options?.firstOrNull {
-            it.value == "everything" && it.selected &&
-                !it.disabled
-        }
-        permissionNote.text = unrestricted?.label
-        permissionNote.isVisible = unrestricted != null
-        permissionNote.setCompoundDrawablesRelativeWithIntrinsicBounds(
-            SymbolDrawable(context, "report", sizeDp = 16f, color = permissionNote.currentTextColor),
-            null,
-            null,
-            null
-        )
         renderBar()
         renderFiles()
         renderButtons()
@@ -278,7 +265,14 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         val on = dictating
 
         plus.isVisible = !on && !sheet.empty
-        plus.setImageDrawable(SymbolDrawable(context, "add", color = ink))
+        val permission = state.permissionModes?.options?.firstOrNull { it.selected }
+        val symbol = when (permission?.value) {
+            "edits" -> "edit"
+            "everything" -> "report"
+            else -> "add"
+        }
+        plus.setImageDrawable(SymbolDrawable(context, symbol, color = ink))
+        ViewCompat.setStateDescription(plus, permission?.label)
         plus.contentDescription =
             context.getString(if (sheet.attachOnly) R.string.composer_attach else R.string.composer_add)
 

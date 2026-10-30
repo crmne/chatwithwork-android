@@ -6,6 +6,16 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.1.5
+
+Version 1.1.5 (10105) keeps the selected approval mode in the existing
+composer control, without an extra warning row or color treatment. Its
+light and dark playground checks select Allow everything, verify the
+composer height stays unchanged, and restore Ask for changes. The native
+app continues to draw the server’s saved mode and restrictions.
+
+The Internal release is being prepared; it has not been uploaded yet.
+
 ## Release 1.1.4
 
 Version 1.1.4 (10104) matches the web composer’s light and dark colors,

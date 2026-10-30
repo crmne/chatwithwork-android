@@ -1,0 +1,1 @@
+Approval choices now stay in the composer’s existing control. Allow everything uses the same normal styling as the other choices, with no extra warning row or change in composer height.
