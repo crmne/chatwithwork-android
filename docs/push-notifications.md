@@ -74,26 +74,21 @@ that chat, in Chats, inside the right organization.
   revision and whether the person dismissed it (`LiveUpdateDismissed`), so
   a late message for another answer is dropped, the timer doesn't restart,
   and a dismissed run stays gone while a later one shows.
-  The native card leads with the current action. Android 17 uses a MetricStyle
-  dashboard for a known count: Steps so far, Previous (if known), and Now.
-  These are the real count and latest observed transition, not progress toward
-  an invented total. Earlier Android uses BigTextStyle with an illustrated
-  count and a Recent activity line. The illustration shows only supplied,
-  observed kinds; past kinds are not marked as successful. Both are standard
-  native layouts eligible for promotion. The organization and tracking timer
-  remain secondary. Waiting and ended
-  cards use concise headlines and safe navigation actions; the timer stops.
-  They retain the last step count when the end message omits it, without
-  repeating the headline as another sentence. Tapping an active card opens
-  the chat; ended cards offer Read answer, Review change, Reply or Open chat.
+  The card is **Open Road**: a bot stands on a road it lays as it works, and
+  only a finished answer has an end. On Android 16 and later that's native
+  `ProgressStyle` (`LiveRoad`): the bot as the tracker, one face per step and
+  state, the rainbow as segments up to it, the services touched as points, the
+  service at work as the large icon and the bot's face in the status bar chip.
+  The bot moves only as the trail grows, then stays: no percentage, no estimate,
+  no planned stages. Amber road means it waits for the person, green that it
+  finished, orange that it failed, grey that it stopped. Earlier Android keeps
+  BigTextStyle with the same road drawn as a picture (`LiveArtwork`). An end
+  message carries no steps, trail or services, so the card keeps them in its
+  extras and draws its end from them. Finished and stopped cards show how long
+  it took, from `heard_at` minus `started_at`, fixed.
   Missing or blank activity labels fall back to the stable step kind.
   `answer` means thinking between steps; `write` means streaming the answer.
-  Optional FCM `recent_steps` is a JSON string array of at most three known
-  kinds; old servers still work using the current kind. No names or content
-  are drawn into the native illustrations. MetricStyle only displays the
-  latest Previous/Now pair, because Android suppresses supporting text there.
-  Android controls the final typography and may discard title emphasis on
-  ended notifications; those cards remain quiet, dismissible notifications.
+  Only the logos in `LiveServices` show; any other `service` shows none.
   A server-validated stale failure is dropped, and server timestamps survive
   following the same chat again so an old end cannot overwrite newer work.
 
@@ -101,8 +96,9 @@ The code: `push/PushNotifications.kt` (permission, opt-in, token, the
 notification key, showing notifications), `push/PushMessagingService.kt`
 (Firebase's callbacks), `push/Push.kt` (the payload), `push/NotificationWords.kt`
 (fetching a notification's words), `push/LiveUpdates.kt` and
-`push/LiveProgress.kt`, `push/LiveRuns.kt`, `push/LiveUpdateDismissed.kt` (Live Updates, their steps and runs), `push/LiveArtwork.kt`
-(content-free native illustrations), and
+`push/LiveProgress.kt`, `push/LiveRuns.kt`, `push/LiveUpdateDismissed.kt` (Live Updates, their steps and runs), `push/LivePresentation.kt`
+(state, face, words), `push/LiveRoad.kt` (the bar), `push/LiveServices.kt` (logos),
+`push/LiveArtwork.kt` (the road as a picture below Android 16), and
 `bridge/NotificationTokenComponent.kt`.
 
 ## Setting up Firebase
@@ -146,6 +142,10 @@ adb shell am broadcast -n com.chatwithwork.app.debug/com.chatwithwork.app.push.D
   --es phase answered --es message "'Your answer is ready.'" --es sent_at $(date +%s%3N)
 ```
 
+The road's fields go the same way: `--es trail srrss --es service google_drive
+--es services "'[\"slack\",\"google_drive\"]'"`, with `--es agents 3`, `--es
+waiting_since <s>` or `--es heard_at <s>` where they apply.
+
 For a synthetic card without a server, use the same broadcast with
 `--es kind live_preview`. Debug builds create a Northwind Studio Live
 Update before applying that progress; production has no such receiver.
@@ -163,11 +163,12 @@ test). To see the prompt again, clear the app's data
 Against the iOS repository's playground (`server.py`), `/1000001/chats/42`
 is a chat waiting for an approval.
 
-For visual checks, capture active search/run/write cards and ready, approval,
-input and failure states in both system themes. To check the lifecycle,
+For visual checks, capture Starting, a few steps, a deep trail, agents, writing,
+a decision, a question, finished, failed, stopped and an old server's card in
+both system themes. To check the lifecycle,
 start with `live_preview` and send the end as ordinary `progress` with a
 newer `sent_at` and no `steps`: the same card keeps its last count, stops its
-timer and offers the appropriate navigation action. After swiping away the
+timer and draws its end from the road it kept. After swiping away the
 card, a later ordinary progress update must not bring it back. The normal
 30-minute no-update timeout remains; no new timer estimates completion.
 Android publishes notifications asynchronously. Automated captures must wait

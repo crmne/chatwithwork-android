@@ -6,15 +6,6 @@ import org.junit.Test
 
 class LivePresentationTest {
     @Test
-    fun `the metric dashboard shows only the actual previous kind before the current one`() {
-        val state = LivePresentation("answering", "read")
-        assertThat(state.previousStep(listOf("run", "search", "read"))).isEqualTo("search")
-        assertThat(state.previousStep(listOf("read"))).isNull()
-        assertThat(state.previousStep(emptyList())).isNull()
-        assertThat(state.previousStep(listOf("search", "write"))).isNull()
-    }
-
-    @Test
     fun `the current action survives a missing or blank activity label`() {
         val running = LivePresentation("answering", "run")
         val words: (Int) -> String = { id ->
@@ -33,10 +24,8 @@ class LivePresentationTest {
         val thinking = LivePresentation("answering", "answer")
         val writing = LivePresentation("answering", "write")
         assertThat(thinking.headline).isEqualTo(R.string.live_update_answering)
-        assertThat(thinking.symbol).isEqualTo("more_horiz")
         assertThat(LiveUpdates.chipWord("answer")).isEqualTo(R.string.live_update_chip_think)
         assertThat(writing.headline).isEqualTo(R.string.live_update_writing)
-        assertThat(writing.symbol).isEqualTo("edit_note")
     }
 
     @Test
@@ -45,7 +34,6 @@ class LivePresentationTest {
         assertThat(ready.title("Running an agent") { "Answer ready" }).isEqualTo("Answer ready")
         val unknown = LivePresentation("future_state", "run")
         assertThat(unknown.color).isEqualTo(R.color.lw_ink_muted)
-        assertThat(unknown.symbol).isEqualTo("sync_problem")
         assertThat(unknown.headline).isEqualTo(R.string.live_update_unknown)
     }
 
@@ -61,8 +49,106 @@ class LivePresentationTest {
     fun `decisions open the chat to review and never approve from a notification`() {
         assertThat(LivePresentation("approval_waiting").action).isEqualTo(R.string.live_update_review)
         assertThat(LivePresentation("input_requested").action).isEqualTo(R.string.live_update_reply)
-        assertThat(LivePresentation("answered").action).isEqualTo(R.string.live_update_read)
+        assertThat(LivePresentation("answered").action).isNull()
+        assertThat(LivePresentation("failed").action).isEqualTo(R.string.live_update_open)
+        assertThat(LivePresentation("future_state").action).isEqualTo(R.string.live_update_open)
         assertThat(LivePresentation("future_state").headline).isEqualTo(R.string.live_update_unknown)
+    }
+
+    @Test
+    fun `every state comes only from what the server said`() {
+        val working = LivePresentation("answering", "search", steps = 5)
+        assertThat(LivePresentation("answering", "answer").state).isEqualTo(LivePresentation.State.STARTING)
+        assertThat(LivePresentation("answering").state).isEqualTo(LivePresentation.State.WORKING)
+        assertThat(LivePresentation("answering", "answer", steps = 1).state).isEqualTo(LivePresentation.State.WORKING)
+        assertThat(working.state).isEqualTo(LivePresentation.State.WORKING)
+        assertThat(working.copy(agents = 1).state).isEqualTo(LivePresentation.State.WORKING)
+        assertThat(working.copy(agents = 2).state).isEqualTo(LivePresentation.State.AGENTS)
+        assertThat(LivePresentation("approval_waiting").state).isEqualTo(LivePresentation.State.DECISION)
+        assertThat(LivePresentation("input_requested").state).isEqualTo(LivePresentation.State.INPUT)
+        assertThat(LivePresentation("answered").state).isEqualTo(LivePresentation.State.FINISHED)
+        assertThat(LivePresentation("failed").state).isEqualTo(LivePresentation.State.FAILED)
+        assertThat(LivePresentation("stopped").state).isEqualTo(LivePresentation.State.STOPPED)
+        assertThat(LivePresentation("future_state").state).isEqualTo(LivePresentation.State.STOPPED)
+    }
+
+    @Test
+    fun `the bot's face follows the step, and failing closes its eyes`() {
+        val faces = mapOf(
+            "answer" to LivePresentation.Face.UP,
+            "search" to LivePresentation.Face.RIGHT,
+            "list" to LivePresentation.Face.LEFT,
+            "read" to LivePresentation.Face.DOWN,
+            "use" to LivePresentation.Face.FOCUS,
+            "plan" to LivePresentation.Face.UP,
+            "run" to LivePresentation.Face.FOCUS,
+            "write" to LivePresentation.Face.DOWN,
+            "ask" to LivePresentation.Face.BROW
+        )
+        faces.forEach { (step, face) ->
+            assertThat(LivePresentation("answering", step, steps = 1).face).isEqualTo(face)
+        }
+        assertThat(LivePresentation("answering", "answer").face).isEqualTo(LivePresentation.Face.OPEN)
+        assertThat(LivePresentation("approval_waiting").face).isEqualTo(LivePresentation.Face.WIDE)
+        assertThat(LivePresentation("input_requested").face).isEqualTo(LivePresentation.Face.BROW)
+        assertThat(LivePresentation("answered").face).isEqualTo(LivePresentation.Face.HAPPY)
+        assertThat(LivePresentation("failed").face).isEqualTo(LivePresentation.Face.CLOSED)
+        assertThat(LivePresentation("stopped").face).isEqualTo(LivePresentation.Face.FLAT)
+    }
+
+    @Test
+    fun `the chip says a service whose name fits, else the step's word`() {
+        val word: (Int) -> String = { id ->
+            when (id) {
+                R.string.live_update_chip_search -> "Search"
+                R.string.live_update_chip_read -> "Read"
+                R.string.live_update_chip_start -> "Start"
+                R.string.live_update_chip_agents -> "%1\$d run"
+                R.string.live_update_review -> "Review"
+                R.string.live_update_reply -> "Reply"
+                R.string.live_update_chip_ready -> "Ready"
+                else -> error("Unexpected word")
+            }
+        }
+        assertThat(LivePresentation("answering", "search", 1, service = "google_drive").chip(word)).isEqualTo("Drive")
+        assertThat(LivePresentation("answering", "read", 1, service = "hubspot").chip(word)).isEqualTo("Read")
+        assertThat(
+            LivePresentation("answering", "search", 1, service = "someones_server").chip(word)
+        ).isEqualTo("Search")
+        assertThat(LivePresentation("answering", "read", 1, service = "mcp").chip(word)).isEqualTo("Read")
+        assertThat(LivePresentation("answering", "answer").chip(word)).isEqualTo("Start")
+        assertThat(LivePresentation("answering", "use", 9, agents = 3).chip(word)).isEqualTo("3 run")
+        assertThat(LivePresentation("approval_waiting", service = "slack").chip(word)).isEqualTo("Review")
+        assertThat(LivePresentation("input_requested").chip(word)).isEqualTo("Reply")
+        assertThat(LivePresentation("answered").chip(word)).isEqualTo("Ready")
+    }
+
+    @Test
+    fun `a decision names its service only when it is a known name`() {
+        val words: (Int) -> String = { id ->
+            when (id) {
+                R.string.live_update_approval_in -> "Approve a change in %1\$s"
+                R.string.live_update_approval -> "Approve a change"
+                R.string.live_update_starting -> "Starting"
+                else -> error("Unexpected word")
+            }
+        }
+        val waiting = LivePresentation("approval_waiting")
+        assertThat(
+            waiting.copy(service = "slack").title("A change is waiting.", words)
+        ).isEqualTo("Approve a change in Slack")
+        assertThat(waiting.copy(service = "mcp").title(null, words)).isEqualTo("Approve a change")
+        assertThat(waiting.copy(service = "someones_server").title(null, words)).isEqualTo("Approve a change")
+        assertThat(LivePresentation("answering", "answer").title("Answering", words)).isEqualTo("Starting")
+    }
+
+    @Test
+    fun `a progress message's trail lets only its letters through`() {
+        assertThat(LiveProgress.trail("srAw")).isEqualTo("srAw")
+        assertThat(LiveProgress.trail("s<b>r")).isEqualTo("sr")
+        assertThat(LiveProgress.trail("z9")).isNull()
+        assertThat(LiveProgress.trail(null)).isNull()
+        assertThat(LiveProgress.trail("s".repeat(60))).hasLength(48)
     }
 
     @Test

@@ -50,6 +50,8 @@ data class LiveProgress(
     companion object {
         const val ANSWERING = "answering"
         val WAITING = setOf("approval_waiting", "input_requested")
+        private const val TRAIL_LETTERS = "slrupxaw"
+        private const val TRAIL_LENGTH = 48
         val STEP_KINDS = setOf("search", "list", "read", "use", "plan", "run", "ask", "write", "answer")
 
         private fun stringList(encoded: String?): List<String> = if (encoded != null && encoded.length <= 256) {
@@ -76,6 +78,10 @@ data class LiveProgress(
                 .takeLast(3)
         }
 
+        /** The steps so far, one letter each, upper case where one failed or was denied: nothing else passes. */
+        fun trail(encoded: String?): String? =
+            encoded?.filter { it.lowercaseChar() in TRAIL_LETTERS }?.takeLast(TRAIL_LENGTH)?.takeIf { it.isNotEmpty() }
+
         fun from(data: Map<String, String>): LiveProgress? {
             if (data["kind"] != "progress") return null
             val path = data["path"]?.takeIf { it.startsWith("/") && !it.startsWith("//") } ?: return null
@@ -97,7 +103,7 @@ data class LiveProgress(
                 waitingSince = data["waiting_since"]?.toLongOrNull()?.let { it * 1000 },
                 service = data["service"]?.takeIf { it.isNotBlank() },
                 services = stringList(data["services"]),
-                trail = data["trail"]?.takeIf { it.isNotBlank() },
+                trail = trail(data["trail"]),
                 agents = data["agents"]?.toIntOrNull(),
                 heardAt = data["heard_at"]?.toLongOrNull()?.let { it * 1000 }
             )

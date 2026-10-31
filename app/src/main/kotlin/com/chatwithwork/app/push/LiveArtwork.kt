@@ -3,98 +3,77 @@ package com.chatwithwork.app.push
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Typeface
 import androidx.core.content.ContextCompat
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withTranslation
 import com.chatwithwork.app.R
-import com.chatwithwork.app.bridge.SymbolDrawable
 
-/** A native illustration of known state, with no percentage, future stages or private text. */
+/**
+ * The road below Android 16, which has no ProgressStyle: a picture for the
+ * large icon, with the same parts as [LiveRoad]. Ticks are the steps seen,
+ * the bot stands where they end, and the dots ahead fade out, never reaching
+ * an end until there is one. It draws no text, count or percentage.
+ */
 object LiveArtwork {
-    fun draw(context: Context, state: LivePresentation, steps: Int, recent: List<String>): Bitmap {
+    private const val WIDTH = 160
+    private const val HEIGHT = 90
+    private const val BASE = 76f
+    private const val BOT = 34
+    private const val TRAIL_END = WIDTH * 0.56f
+    private const val LOGO = 16
+    private const val MAX_TICKS = 48
+    private val TICK_HEIGHT =
+        mapOf('x' to 27f, 'r' to 22f, 'u' to 17f, 's' to 14f, 'a' to 12f, 'l' to 10f, 'p' to 8f, 'w' to 7f)
+
+    fun draw(context: Context, shown: LivePresentation, road: LiveRoad): Bitmap {
         val density = context.resources.displayMetrics.density
-        val bitmap = Bitmap.createBitmap((160 * density).toInt(), (90 * density).toInt(), Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap((WIDTH * density).toInt(), (HEIGHT * density).toInt())
         val canvas = Canvas(bitmap).apply { scale(density, density) }
-        val ink = ContextCompat.getColor(context, state.color)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        fun fill(alpha: Int) {
-            paint.color = ColorUtils.setAlphaComponent(ink, alpha)
-        }
-        fun symbol(name: String, x: Int, y: Int, size: Int, alpha: Int = 255) {
-            canvas.save()
-            canvas.scale(1 / density, 1 / density)
-            SymbolDrawable(context, name, sizeDp = size.toFloat(), color = ColorUtils.setAlphaComponent(ink, alpha))
-                .apply {
-                    setBounds(
-                        (x * density).toInt(),
-                        (y * density).toInt(),
-                        ((x + size) * density).toInt(),
-                        (
-                            (y + size) *
-                                density
-                            ).toInt()
-                    )
-                    draw(canvas)
-                }
-            canvas.restore()
+        paint.color = ColorUtils.setAlphaComponent(Color.GRAY, 30)
+        canvas.drawRoundRect(0f, 0f, WIDTH.toFloat(), HEIGHT.toFloat(), 16f, 16f, paint)
+
+        val ticks = shown.trail?.lowercase()?.toList() ?: List(minOf(shown.walked, MAX_TICKS)) { 's' }
+        val rainbow = road.segments.size > 2 && road.segments[0].color != road.segments[1].color
+        val pitch = if (ticks.isEmpty()) 0f else minOf((TRAIL_END - 8f) / ticks.size, 7f)
+        val start = TRAIL_END - pitch * ticks.size
+        ticks.forEachIndexed { index, kind ->
+            paint.color =
+                if (rainbow) LiveRoad.rainbow(index / maxOf(ticks.lastIndex, 1).toFloat()) else road.segments[0].color
+            val x = start + pitch * index + pitch / 2
+            paint.strokeWidth = (pitch * 0.58f).coerceIn(2f, 3.5f)
+            paint.strokeCap = Paint.Cap.ROUND
+            canvas.drawLine(x, BASE, x, BASE - (TICK_HEIGHT[kind] ?: 14f), paint)
         }
 
-        fill(24)
-        canvas.drawRoundRect(0f, 0f, 160f, 90f, 16f, 16f, paint)
-        when {
-            state.isWorking && steps > 0 -> {
-                fill(255)
-                paint.typeface = ResourcesCompat.getFont(context, R.font.geist_semibold) ?: Typeface.DEFAULT_BOLD
-                val number = steps.toString()
-                paint.textSize = 59f
-                if (paint.measureText(number) > 88f) paint.textSize *= 88f / paint.measureText(number)
-                canvas.drawText(number, 14f, 66f, paint)
-                // These are actual recent kinds, not a route or completion gauge.
-                val trail = recent.takeLast(3).ifEmpty { listOfNotNull(state.step) }
-                trail.forEachIndexed { index, kind ->
-                    val current = index == trail.lastIndex && kind == state.step
-                    val y = 45 - trail.size * 12 + index * 24
-                    symbol(LivePresentation("answering", kind).symbol, 119, y, 24, if (current) 255 else 115)
-                }
-            }
+        val ahead = road.segments.last().color
+        var x = TRAIL_END + BOT + 6f
+        val dots = ((WIDTH - x) / 9).toInt()
+        for (index in 0 until dots) {
+            val fade = 1 - index / dots.toFloat()
+            paint.color = ColorUtils.setAlphaComponent(ahead, (255 * (0.15f + 0.85f * fade)).toInt())
+            canvas.drawCircle(x, BASE - 2, 1.75f, paint)
+            x += 9
+        }
 
-            state.isWorking -> {
-                fill(28)
-                canvas.drawCircle(80f, 45f, 34f, paint)
-                symbol(state.symbol, 55, 20, 50)
-            }
-
-            state.phase == "answered" -> {
-                fill(50)
-                canvas.drawRoundRect(29f, 13f, 94f, 78f, 7f, 7f, paint)
-                fill(130)
-                for (y in listOf(29f, 40f, 51f)) canvas.drawRoundRect(40f, y, 79f, y + 4, 2f, 2f, paint)
-                fill(255)
-                canvas.drawCircle(112f, 56f, 23f, paint)
-                paint.color = ContextCompat.getColor(context, R.color.lw_surface)
-                paint.style = Paint.Style.STROKE
-                paint.strokeWidth = 4f
-                paint.strokeCap = Paint.Cap.ROUND
-                canvas.drawLine(101f, 56f, 109f, 64f, paint)
-                canvas.drawLine(109f, 64f, 124f, 48f, paint)
-                paint.style = Paint.Style.FILL
-            }
-
-            state.phase == "approval_waiting" || state.phase == "input_requested" -> {
-                fill(50)
-                canvas.drawRoundRect(88f, 18f, 145f, 69f, 10f, 10f, paint)
-                symbol(if (state.phase == "approval_waiting") "front_hand" else "question_mark", 19, 18, 55)
-                symbol("chat_bubble", 97, 29, 35, 165)
-            }
-
-            else -> {
-                fill(45)
-                canvas.drawCircle(80f, 45f, 35f, paint)
-                symbol(state.symbol, 52, 17, 56)
-            }
+        shown.services.mapNotNull { LiveServices.of(it)?.logo }.takeLast(3).forEachIndexed { index, logo ->
+            drawable(context, logo, canvas, 10f + index * (LOGO + 4), 12f, LOGO)
+        }
+        drawable(context, shown.face.tracker, canvas, TRAIL_END + 2, BASE - BOT + 3, BOT)
+        if (shown.state == LivePresentation.State.FINISHED) {
+            drawable(context, R.drawable.ic_mark, canvas, WIDTH - 32f, BASE - 26, 24)
         }
         return bitmap
+    }
+
+    private fun drawable(context: Context, id: Int, canvas: Canvas, x: Float, y: Float, size: Int) {
+        val drawable = ContextCompat.getDrawable(context, id) ?: return
+        canvas.withTranslation(x, y) {
+            drawable.setBounds(0, 0, size, size)
+            drawable.draw(this)
+        }
     }
 }

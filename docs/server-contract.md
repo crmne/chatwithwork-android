@@ -576,8 +576,8 @@ Only `answered`, `failed` and `stopped` end a run. `approval_waiting` and
 (tag `<thread>-wait`, which `resolved` clears), and the next step takes over.
 The server repeats the state every 4 minutes with `heard_at`, also while
 waiting, which renews the card's 30-minute timeout. Also optional, and
-content-free: `service`, `services` (JSON string), `trail`, `agents`,
-carried in `LiveProgress` for the card's design to use.
+content-free, for the card's road (below): `service`, `services` (JSON string),
+`trail`, `agents`, and `heard_at`.
 
 The app keeps one record per thread (`LiveRuns`, kept apart from the card):
 the run, its start, the newest revision heard and whether it was dismissed.
@@ -597,8 +597,9 @@ Todoist", "Reading 3 files in Drive", "Running code", "Writing the answer",
 "Answering" between steps), `step` its kind (`search`, `list`, `read`, `use`,
 `plan`, `run`, `ask`, `write`, `answer`), `steps` how many it took, never a
 query, file name, title or text. The app shows `message` as the Live
-Update's title, the organization and the steps under it, and a short word
-for the step in the status bar chip ("Search", "Read", "Run"). When the
+Update's title, the organization and the steps under it, and in the status bar
+chip the service if its name is under 7 characters, else a short word for the
+step ("Search", "Read", "Run"). When the
 answer ends, the same kind comes with `phase` `answered`,
 `failed` or `stopped` and generic
 words for it, never collapsed and kept a day, and the Live Update becomes a
@@ -620,16 +621,22 @@ The app accepts only known kinds and falls back to the current kind when an old
 server omits the field or its value is malformed. APNs uses the same key as a
 native JSON array, not the FCM string encoding.
 
-On Android 17, a working card with a known positive count uses native
-MetricStyle: Steps so far (including a step still running), Previous when
-known, and Now. This shows only the most recent observed transition, not a
-fixed pipeline. MetricStyle hides the large illustration and supporting text.
-Earlier Android versions use BigTextStyle with a wide native Canvas
-illustration of the count and observed kinds, plus a Recent activity line
-with up to three kinds. Earlier nodes are muted, never marked successful;
-only the current kind is highlighted. With no count yet, the card illustrates
-the current action without making up a metric. Both remain eligible for
-promotion, subject to Android and the person's settings.
+The card is Open Road. `service` is the built-in key of the step now, `mcp` or
+`computer`, and shows as a logo only if the app bundles it (`LiveServices`);
+it's never a name a person gave. `services` is the same keys, oldest first,
+and the newest four are the road's stops. `trail` is the last 48 steps, one
+letter each (`s l r u p x a w`, in the order of `step`'s kinds with `x` for
+`run`), upper case when one failed or was denied; the app drops anything else.
+`agents`, from 2, shows the agents' picture and "3 run" in the chip. Android 16
+and later draw it with `ProgressStyle` (at most 10 segments and 4 points, or
+Android joins them), earlier Android as a BigTextStyle picture. Upper-case
+letters colour nothing on Android, whose bar has no tick per step.
+
+An `end` message carries only `phase`, `message`, `run`, `revision`,
+`started_at` and `heard_at`: the card keeps its last steps, trail and services
+in its extras, so its road stays. `heard_at` minus `started_at` is the fixed
+time a finished or stopped card shows. Without `service`, `trail` or `services`
+(an older server), the road is counted from `steps`, with no stops.
 
 The current action is the headline. Organization and the native timer remain
 secondary. The timer counts from the run's `started_at`, the same across
@@ -639,13 +646,13 @@ A blank or missing
 message uses a localized fallback for `step`; `answer` means generic
 answering/thinking, while `write` means streaming the answer. The active
 card itself opens the chat. Ended states retain the last real step count
-when the end payload omits it, avoid repeating the headline as another
-sentence, use distinct attention/result/stop illustrations, stop the timer and use
-Read answer, Review change or Reply as appropriate. Every action opens the
+when the end payload omits it, stop the timer, and use Review or Reply when
+waiting and Open when failed; finished and stopped cards have no button.
+Every action opens the
 authenticated chat; none approves a change from the notification. There is
 no percentage or ETA because the amount of work is not known. Android's
 [Live Updates API](https://developer.android.com/develop/ui/views/notifications/live-update)
-supports BigTextStyle; the app requests promoted ongoing display, while
+supports ProgressStyle and BigTextStyle; the app requests promoted ongoing display, while
 older Android versions and phones that disable promotion keep a standard
 native notification. Custom RemoteViews are not used.
 
