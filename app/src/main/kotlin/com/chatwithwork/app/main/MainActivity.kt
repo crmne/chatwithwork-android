@@ -329,9 +329,11 @@ class MainActivity :
         if (isChangingConfigurations || viewModel.signedOut) return
         val (chat, composer) = answeringChat() ?: return
         val organization = viewModel.sidebar?.takeIf { it.organization.id == AppUrls.account(chat) }?.organization?.name
-        LiveUpdates.show(this, chat, organization)
-        LiveUpdates.follow(applicationContext, chat, composer.state.csrfToken)
-        liveUpdate = LiveUpdates.threadFor(chat)
+        val run = composer.state.liveRun
+        if (LiveUpdates.show(this, chat, organization, run)) {
+            LiveUpdates.follow(applicationContext, chat, composer.state.csrfToken, run?.id)
+            liveUpdate = LiveUpdates.threadFor(chat)
+        }
     }
 
     override fun navigatorConfigurations(): List<NavigatorConfiguration> = listOf(

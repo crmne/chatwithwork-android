@@ -1,5 +1,6 @@
 package com.chatwithwork.app.composer
 
+import com.chatwithwork.app.push.LiveRunRef
 import kotlinx.serialization.Serializable
 
 /**
@@ -19,6 +20,13 @@ data class ComposerState(
     val lockReason: String? = null,
     val working: Boolean = false,
     val stopping: Boolean = false,
+    /** Stopped for the person: not [working], and the answer's run goes on. */
+    val waiting: Boolean = false,
+
+    /** Which answer is working or waiting, as the server names it; absent from older servers. */
+    val run: String? = null,
+    val revision: Long? = null,
+    val startedAt: Long? = null,
     val models: List<Model> = emptyList(),
     val permissionModes: PermissionModes? = null,
     val webSearch: WebSearch? = null,
@@ -77,6 +85,8 @@ data class ComposerState(
     fun canSend(text: String): Boolean = !locked && !uploading && (text.isNotBlank() || attachments.isNotEmpty())
 
     /** Stop shows for as long as an answer runs, beside Send once there's something to steer with. */
+    val liveRun: LiveRunRef? get() = run?.takeIf { it.isNotBlank() }?.let { LiveRunRef(it, startedAt?.let { seconds -> seconds * 1000 }, revision ?: 0) }
+
     fun showsStop(): Boolean = working
 
     /** Send shows unless an answer runs with nothing typed or attached, when Stop stands alone. */

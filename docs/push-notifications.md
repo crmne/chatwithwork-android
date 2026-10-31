@@ -70,6 +70,10 @@ that chat, in Chats, inside the right organization.
   steps) and the end, never the chat's words. The step shows as the Live
   Update's title and as a short word in the status bar chip, and the end
   turns it into a quiet notification until the push for it takes its place.
+  `LiveRuns` keeps each chat's run apart from its card: its start, newest
+  revision and whether the person dismissed it (`LiveUpdateDismissed`), so
+  a late message for another answer is dropped, the timer doesn't restart,
+  and a dismissed run stays gone while a later one shows.
   The native card leads with the current action. Android 17 uses a MetricStyle
   dashboard for a known count: Steps so far, Previous (if known), and Now.
   These are the real count and latest observed transition, not progress toward
@@ -97,7 +101,7 @@ The code: `push/PushNotifications.kt` (permission, opt-in, token, the
 notification key, showing notifications), `push/PushMessagingService.kt`
 (Firebase's callbacks), `push/Push.kt` (the payload), `push/NotificationWords.kt`
 (fetching a notification's words), `push/LiveUpdates.kt` and
-`push/LiveProgress.kt` (Live Updates and their steps), `push/LiveArtwork.kt`
+`push/LiveProgress.kt`, `push/LiveRuns.kt`, `push/LiveUpdateDismissed.kt` (Live Updates, their steps and runs), `push/LiveArtwork.kt`
 (content-free native illustrations), and
 `bridge/NotificationTokenComponent.kt`.
 

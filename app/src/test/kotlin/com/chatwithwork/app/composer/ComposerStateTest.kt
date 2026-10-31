@@ -1,5 +1,6 @@
 package com.chatwithwork.app.composer
 
+import com.chatwithwork.app.push.LiveRunRef
 import com.google.common.truth.Truth.assertThat
 import kotlinx.serialization.json.Json
 import org.junit.Test
@@ -23,6 +24,18 @@ class ComposerStateTest {
          "attachments":[{"id":"5","name":"Q3.pdf","size":"2.4 MB","contentType":"application/pdf","uploading":true,"progress":40}],
          "acceptsFiles":true,"somethingNew":1}
         """.trimIndent()
+
+    @Test
+    fun `reads which run is working, and an older server's state says none`() {
+        val working = json.decodeFromString<ComposerState>(
+            """{"working":true,"run":"a1b2","revision":7,"startedAt":1793039262}"""
+        )
+        assertThat(working.liveRun).isEqualTo(LiveRunRef("a1b2", 1793039262000, 7))
+
+        assertThat(json.decodeFromString<ComposerState>(sample).liveRun).isNull()
+        assertThat(json.decodeFromString<ComposerState>("""{"run":null,"revision":null}""").liveRun).isNull()
+        assertThat(json.decodeFromString<ComposerState>("""{"run":""}""").liveRun).isNull()
+    }
 
     @Test
     fun `reads the web composer's state`() {

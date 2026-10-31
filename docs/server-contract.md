@@ -534,8 +534,7 @@ status bar chip, and OEM surfaces built on it such as OnePlus's and OPPO's
 Live Alerts), the current step, the organization's name and an elapsed
 timer, never the chat's title or content. It uses the chat's notification
 slot (tag `chat-<organization>-<number>`, the `thread` the server sends), so
-the push that ends the wait (`answered`, `approval_waiting`,
-`input_requested`, `failed`) takes its place and `resolved` clears it.
+the push for its end (`answered`, `failed`) takes its place.
 It's taken away when the person comes back, and after 30 minutes if
 nothing ends it. It only shows for someone who turned push on.
 
@@ -556,8 +555,42 @@ chat (`collapse_key` `progress-<thread>`) and kept two minutes:
 { "kind": "progress", "path": "/482139075/chats/42", "thread": "chat-482139075-42",
   "phase": "answering", "message": "Searching Todoist", "step": "search", "steps": "3",
   "recent_steps": "[\"read\",\"search\"]",
-  "sent_at": "1793039262987" }
+  "sent_at": "1793039262987",
+  "run": "6f1c0a4e9d2b4c7183a0e5d9b7c21f46", "revision": "12", "started_at": "1793039201000" }
 ```
+
+**Runs (2026-10-31).** `run`, `revision` and `started_at` are optional and
+come on every `progress` message, and the composer's state carries them as
+`run`, `revision` and `startedAt` (numbers) while it says `working` or
+`waiting`, null otherwise. A run is one turn: a question until it's answered, through
+steering and waits for the person. A new question or a retry is a new run.
+`run` is opaque and content-free, `revision` orders everything within it,
+and `started_at` (unix seconds) never changes within it. `follow` sends
+`run` as `live_activity.run`, and a `409` means that run is over: the app
+takes its card away, since nothing would end it. A `201` answers with
+`id`, `run`, `revision` and `started_at`.
+
+Only `answered`, `failed` and `stopped` end a run. `approval_waiting` and
+`input_requested` are `progress` messages at high priority with
+`waiting_since`: the card stays ongoing, with the push for the wait beside it
+(tag `<thread>-wait`, which `resolved` clears), and the next step takes over.
+The server repeats the state every 4 minutes with `heard_at`, also while
+waiting, which renews the card's 30-minute timeout. Also optional, and
+content-free: `service`, `services` (JSON string), `trail`, `agents`,
+carried in `LiveProgress` for the card's design to use.
+
+The app keeps one record per thread (`LiveRuns`, kept apart from the card):
+the run, its start, the newest revision heard and whether it was dismissed.
+A message that names a run is taken only if it's that run's and a newer
+revision, or at the same revision a newer `sent_at` with no end there yet, so
+a late end for answer A can't touch B's card, even before B's first step. A
+person clearing a working card (`setDeleteIntent`) suppresses that run: it
+isn't shown or followed again, and a later run is. The app taking its own card
+away on return sends no delete intent, and a timeout (which does) is told
+apart by the card's age. Sign-out ends every card, clears the records and
+stops requests already under way. A server that sends no `run` gets
+the `sent_at` rules below, and a card from before runs adopts the first run it
+hears.
 
 `message` is the step in the words of the chat's activity line ("Searching
 Todoist", "Reading 3 files in Drive", "Running code", "Writing the answer",
@@ -567,7 +600,7 @@ query, file name, title or text. The app shows `message` as the Live
 Update's title, the organization and the steps under it, and a short word
 for the step in the status bar chip ("Search", "Read", "Run"). When the
 answer ends, the same kind comes with `phase` `answered`,
-`approval_waiting`, `input_requested`, `failed` or `stopped` and generic
+`failed` or `stopped` and generic
 words for it, never collapsed and kept a day, and the Live Update becomes a
 quiet notification saying so, until the push for that end (if the person
 gets one) takes its place. `sent_at` is the server's clock in milliseconds:
@@ -599,7 +632,9 @@ the current action without making up a metric. Both remain eligible for
 promotion, subject to Android and the person's settings.
 
 The current action is the headline. Organization and the native timer remain
-secondary; this timer follows time in the background, not total answer time.
+secondary. The timer counts from the run's `started_at`, the same across
+leaving and returning and across process restarts; an older server sends none,
+and it follows time in the background.
 A blank or missing
 message uses a localized fallback for `step`; `answer` means generic
 answering/thinking, while `write` means streaming the answer. The active

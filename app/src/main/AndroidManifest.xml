@@ -163,6 +163,10 @@
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <receiver
+            android:name=".push.LiveUpdateDismissed"
+            android:exported="false" />
+
+        <receiver
             android:name=".shortcuts.AskWidget"
             android:exported="false"
             android:label="@string/widget_label">

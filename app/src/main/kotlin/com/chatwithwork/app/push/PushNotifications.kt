@@ -223,7 +223,8 @@ object PushNotifications {
         if (words?.suppressed == true) return
         val manager = NotificationManagerCompat.from(context)
         if (push.kind == Push.Kind.RESOLVED) {
-            manager.cancel(push.thread, NOTIFICATION_ID)
+            manager.cancel(waitTag(push.thread), NOTIFICATION_ID)
+            if (!workingCard(manager, push.thread)) manager.cancel(push.thread, NOTIFICATION_ID)
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -241,8 +242,17 @@ object PushNotifications {
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
                 .setPublicVersion(builder(context, push, title, body).build())
                 .build()
-        manager.notify(push.thread, NOTIFICATION_ID, notification)
+        // A wait doesn't end a Live Update: its push goes beside the card.
+        val tag = if (push.waitsForPerson && workingCard(manager, push.thread)) waitTag(push.thread) else push.thread
+        manager.notify(tag, NOTIFICATION_ID, notification)
     }
+
+    private fun waitTag(thread: String) = "$thread-wait"
+
+    private fun workingCard(manager: NotificationManagerCompat, thread: String): Boolean =
+        manager.activeNotifications.any {
+            it.tag == thread && it.isOngoing && it.notification.channelId == CHANNEL_ANSWERING
+        }
 
     private fun builder(context: Context, push: Push, title: String, body: String): NotificationCompat.Builder =
         NotificationCompat
