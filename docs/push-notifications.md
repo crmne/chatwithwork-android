@@ -86,6 +86,18 @@ that chat, in Chats, inside the right organization.
   message carries no steps, trail or services, so the card keeps them in its
   extras and draws its end from them. Finished and stopped cards show how long
   it took, from `heard_at` minus `started_at`, fixed.
+  What Android does with it, tried on emulators (API 35, 36, 36.1, 37):
+  Android 16's first release doesn't promote at all, and shows the card as an
+  ordinary expandable notification, in the shade only; from 36.1 it's promoted
+  and always expanded in the shade and on the lock screen, with no collapsed
+  form. The chip is the system's own colour, never `setColor`'s (which only
+  tints the small icon where it shows in a circle, up to 36.0), and a card that
+  ended isn't promoted, so it has no chip. Past 10 segments Android joins them
+  into one default-coloured bar, past 4 points it drops the newest, and if the
+  parts don't fit it falls back to one bar (`LiveRoad.SLICES_BESIDE_STOPS` keeps
+  a 360dp phone clear of that). Colours are moved to 3:1 against the shade, so
+  the rainbow's lime and green darken on a light one. The tracker keeps its
+  colours and follows the shade's theme, since it's a resource.
   Missing or blank activity labels fall back to the stable step kind.
   `answer` means thinking between steps; `write` means streaming the answer.
   Only the logos in `LiveServices` show; any other `service` shows none.
