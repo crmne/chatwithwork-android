@@ -85,7 +85,16 @@ data class ComposerState(
     fun canSend(text: String): Boolean = !locked && !uploading && (text.isNotBlank() || attachments.isNotEmpty())
 
     /** Stop shows for as long as an answer runs, beside Send once there's something to steer with. */
-    val liveRun: LiveRunRef? get() = run?.takeIf { it.isNotBlank() }?.let { LiveRunRef(it, startedAt?.let { seconds -> seconds * 1000 }, revision ?: 0) }
+    val liveRun: LiveRunRef? get() = run?.takeIf { it.isNotBlank() }?.let {
+        LiveRunRef(
+            it,
+            startedAt?.let { seconds ->
+                seconds *
+                    1000
+            },
+            revision ?: 0
+        )
+    }
 
     fun showsStop(): Boolean = working
 

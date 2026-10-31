@@ -79,7 +79,9 @@ class LiveRunsTest {
         assertThat(runs.starting(thread, ref("a", revision = 6), 900)).isEqualTo(1_000)
         assertThat(admit(message("a", 7))).isEqualTo(LiveRuns.Admission.SHOW)
 
-        assertThat(admit(message("a", 5, sentAt = 9_000, phase = "approval_waiting"))).isEqualTo(LiveRuns.Admission.DROP)
+        assertThat(
+            admit(message("a", 5, sentAt = 9_000, phase = "approval_waiting"))
+        ).isEqualTo(LiveRuns.Admission.DROP)
     }
 
     @Test
