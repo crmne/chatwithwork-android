@@ -42,5 +42,11 @@
     <!-- The mark's own colors, the same in both themes. -->
     <color name="mark_bubble">#FFFFFF</color>
     <color name="mark_scribble">#000000</color>
+    <!-- The bot on a Live Update's road: outlined only where the shade is light. -->
+    <color name="live_bot_body">#FFFFFF</color>
+    <color name="live_bot_eye">#000000</color>
+    <color name="live_bot_outline">#000000</color>
+    <color name="live_road_ahead">#D5D9E2</color>
+    <color name="live_road_walked">#8E93A0</color>
     <color name="icon_background">#06070B</color>
 </resources>
