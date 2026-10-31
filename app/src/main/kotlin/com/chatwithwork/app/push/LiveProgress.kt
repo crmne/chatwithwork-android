@@ -43,13 +43,14 @@ data class LiveProgress(
     val isWaiting: Boolean get() = phase in WAITING
 
     /** Only answered, failed, and stopped end a run. */
-    val isEnd: Boolean get() = !isWorking && !isWaiting
+    val isEnd: Boolean get() = phase in ENDS
 
     val runRef: LiveRunRef? get() = run?.let { LiveRunRef(it, startedAt, revision) }
 
     companion object {
         const val ANSWERING = "answering"
         val WAITING = setOf("approval_waiting", "input_requested")
+        val ENDS = setOf("answered", "failed", "stopped")
         private const val TRAIL_LETTERS = "slrupxaw"
         private const val TRAIL_LENGTH = 48
         private const val PACE_DIGITS = "1234"

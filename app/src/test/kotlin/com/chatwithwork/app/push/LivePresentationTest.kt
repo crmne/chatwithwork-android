@@ -150,6 +150,7 @@ class LivePresentationTest {
         assertThat(waiting?.heardAt).isEqualTo(3_000_000)
         assertThat(LiveProgress.from(base + ("phase" to "answered"))?.isEnd).isTrue()
         assertThat(LiveProgress.from(base)?.isEnd).isFalse()
+        assertThat(LiveProgress.from(base + ("phase" to "something_newer"))?.isEnd).isFalse()
 
         val older = LiveProgress.from(base)
         assertThat(older?.run).isNull()

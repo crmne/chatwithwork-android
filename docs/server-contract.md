@@ -554,7 +554,7 @@ chat (`collapse_key` `progress-<thread>`) and kept two minutes:
   "phase": "answering", "message": "Searching Todoist", "step": "search", "steps": "3",
   "recent_steps": "[\"read\",\"search\"]",
   "sent_at": "1793039262987",
-  "run": "6f1c0a4e9d2b4c7183a0e5d9b7c21f46", "revision": "12", "started_at": "1793039201000" }
+  "run": "6f1c0a4e9d2b4c7183a0e5d9b7c21f46", "revision": "12", "started_at": "1793039201" }
 ```
 
 **Runs (2026-10-31).** `run`, `revision` and `started_at` are optional and
