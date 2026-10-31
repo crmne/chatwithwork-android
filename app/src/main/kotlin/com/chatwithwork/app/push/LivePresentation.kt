@@ -6,7 +6,7 @@ import com.chatwithwork.app.R
 /**
  * What a Live Update shows, from what the server said and nothing else: no
  * percentage, no estimate, no planned stages. The same state drives the
- * native card, its road ([LiveRoad]) and the status bar chip.
+ * card ([LiveCard]), its road ([LiveArtwork]) and the status bar icon.
  */
 data class LivePresentation(
     val phase: String,
@@ -15,23 +15,30 @@ data class LivePresentation(
     val trail: String? = null,
     val service: String? = null,
     val services: List<String> = emptyList(),
-    val agents: Int? = null
+    val agents: Int? = null,
+    val pace: String? = null
 ) {
-    enum class State { STARTING, WORKING, AGENTS, DECISION, INPUT, FINISHED, FAILED, STOPPED }
+    enum class State { STARTING, WORKING, AGENTS, WRITING, DECISION, INPUT, FINISHED, FAILED, STOPPED, QUIET }
 
-    /** The bot's face, as a tracker on the road and as an alpha mask for the status bar. */
-    enum class Face(@param:DrawableRes val tracker: Int, @param:DrawableRes val chip: Int) {
-        OPEN(R.drawable.live_bot_open, R.drawable.live_chip_open),
-        CLOSED(R.drawable.live_bot_closed, R.drawable.live_chip_closed),
-        RIGHT(R.drawable.live_bot_right, R.drawable.live_chip_right),
-        LEFT(R.drawable.live_bot_left, R.drawable.live_chip_left),
-        DOWN(R.drawable.live_bot_down, R.drawable.live_chip_down),
-        UP(R.drawable.live_bot_up, R.drawable.live_chip_up),
-        FOCUS(R.drawable.live_bot_focus, R.drawable.live_chip_focus),
-        WIDE(R.drawable.live_bot_wide, R.drawable.live_chip_wide),
-        BROW(R.drawable.live_bot_brow, R.drawable.live_chip_brow),
-        HAPPY(R.drawable.live_bot_happy, R.drawable.live_chip_happy),
-        FLAT(R.drawable.live_bot_flat, R.drawable.live_chip_flat)
+    /** The small thing the bot holds up beside it for a step. */
+    enum class Tool { SEARCH, READ, LIST, USE, PLAN, RUN, WRITE, ASK }
+
+    /** One step seen, as tall as the time it took where the server says. [refused]: it failed or was turned down. */
+    data class Tick(val height: Float, val refused: Boolean)
+
+    /** The bot's face, and it as an alpha mask for the status bar. */
+    enum class Face(@param:DrawableRes val chip: Int) {
+        OPEN(R.drawable.live_chip_open),
+        CLOSED(R.drawable.live_chip_closed),
+        RIGHT(R.drawable.live_chip_right),
+        LEFT(R.drawable.live_chip_left),
+        DOWN(R.drawable.live_chip_down),
+        UP(R.drawable.live_chip_up),
+        FOCUS(R.drawable.live_chip_focus),
+        WIDE(R.drawable.live_chip_wide),
+        BROW(R.drawable.live_chip_brow),
+        HAPPY(R.drawable.live_chip_happy),
+        FLAT(R.drawable.live_chip_flat)
     }
 
     val isWorking: Boolean get() = phase == LiveProgress.ANSWERING
@@ -43,6 +50,7 @@ data class LivePresentation(
         LiveProgress.ANSWERING -> when {
             walked == 0 && step == "answer" -> State.STARTING
             (agents ?: 0) >= 2 -> State.AGENTS
+            step == "write" -> State.WRITING
             else -> State.WORKING
         }
 
@@ -54,13 +62,15 @@ data class LivePresentation(
 
         "failed" -> State.FAILED
 
-        else -> State.STOPPED
+        "stopped" -> State.STOPPED
+
+        else -> State.QUIET
     }
 
     val face: Face get() = when (state) {
         State.STARTING -> Face.OPEN
 
-        State.AGENTS, State.WORKING -> when (step) {
+        State.AGENTS, State.WORKING, State.WRITING -> when (step) {
             "search" -> Face.RIGHT
             "list" -> Face.LEFT
             "read", "write" -> Face.DOWN
@@ -75,9 +85,62 @@ data class LivePresentation(
 
         State.FINISHED -> Face.HAPPY
 
-        State.FAILED -> Face.CLOSED
+        // Calm on purpose: a failure may be serious, and x eyes would joke about it.
+        State.FAILED, State.QUIET -> Face.CLOSED
 
         State.STOPPED -> Face.FLAT
+    }
+
+    /** What the bot holds up while it works on a step. */
+    val tool: Tool? get() = when (state) {
+        State.WORKING, State.WRITING -> when (step) {
+            "search" -> Tool.SEARCH
+            "list" -> Tool.LIST
+            "read" -> Tool.READ
+            "use" -> Tool.USE
+            "plan" -> Tool.PLAN
+            "run" -> Tool.RUN
+            "write" -> Tool.WRITE
+            "ask" -> Tool.ASK
+            else -> null
+        }
+
+        else -> null
+    }
+
+    val isWaiting: Boolean get() = state == State.DECISION || state == State.INPUT
+
+    /** The card ends in a band when it needs the person, or has gone wrong. */
+    val hasBand: Boolean get() = isWaiting || state == State.FAILED
+
+    /** The road's ticks: the trail's, or as many even ones as steps where an older server sends no trail. */
+    val ticks: List<Tick> get() {
+        val letters = trail ?: return List(minOf(steps, MAX_TICKS)) { Tick(EVEN_HEIGHT, false) }
+        val heights =
+            pace?.takeIf { it.length == letters.length }?.map { PACE_HEIGHTS[it] }?.takeIf { null !in it }
+        return letters.mapIndexed { index, letter ->
+            Tick(heights?.get(index) ?: EVEN_HEIGHT, letter.isUpperCase())
+        }.takeLast(MAX_TICKS)
+    }
+
+    /** The trail is drawn compressed, with its origin scrolled off, from here. */
+    val isDeep: Boolean get() = ticks.size >= DEEP_AFTER
+
+    /** Services behind the bot, oldest first. The one it's in now is the words' or the held card's. */
+    val stops: List<String> get() =
+        services.distinct().filter { it != service && LiveServices.of(it) != null }.takeLast(MAX_STOPS)
+
+    /** Bots drawn side by side on a fork, and the rest, which read as `+n`. */
+    val agentBots: Int get() = minOf(agents ?: 0, MAX_AGENT_BOTS)
+    val moreAgents: Int get() = maxOf((agents ?: 0) - MAX_AGENT_BOTS, 0)
+
+    /** The words before and after [service]'s logo: "Searching" and "Drive", or null when they don't name it. */
+    fun split(message: String): Pair<String, String>? {
+        val name = LiveServices.of(service)?.name?.takeIf { it.isNotEmpty() } ?: return null
+        return listOf(" in $name", " $name").firstNotNullOfOrNull { suffix ->
+            message.takeIf { it.endsWith(suffix) && it.length > suffix.length }
+                ?.let { it.removeSuffix(suffix) to name }
+        }
     }
 
     val headline: Int get() = when (phase) {
@@ -117,27 +180,6 @@ data class LivePresentation(
         }
     }
 
-    /** The status bar chip: a service whose name fits, else the step's word. */
-    fun chip(string: (Int) -> String): String = when (state) {
-        State.STARTING -> string(R.string.live_update_chip_start)
-
-        State.AGENTS -> string(R.string.live_update_chip_agents).format(agents)
-
-        State.DECISION -> string(R.string.live_update_review)
-
-        State.INPUT -> string(R.string.live_update_reply)
-
-        State.FINISHED -> string(R.string.live_update_chip_ready)
-
-        State.FAILED -> string(R.string.live_update_chip_failed)
-
-        State.STOPPED -> string(R.string.live_update_chip_stopped)
-
-        State.WORKING ->
-            LiveServices.of(service)?.name?.takeIf { it.isNotEmpty() && it.length < CHIP_NAME_LENGTH }
-                ?: string(LiveUpdates.chipWord(step))
-    }
-
     /** The one button a card carries, when it needs the person. It only ever opens the chat. */
     val action: Int? get() = when (state) {
         State.DECISION -> R.string.live_update_review
@@ -155,15 +197,13 @@ data class LivePresentation(
         else -> R.color.lw_ink_muted
     }
 
-    /** The big picture beside the words: the service at work or asking, or the agents. */
-    val largeIcon: Int? get() = when (state) {
-        State.AGENTS -> R.drawable.live_bot_agents
-        State.WORKING, State.DECISION, State.INPUT -> LiveServices.of(service)?.logo
-        else -> null
-    }
-
     private companion object {
-        const val CHIP_NAME_LENGTH = 7
+        const val MAX_TICKS = 48
+        const val DEEP_AFTER = 24
+        const val MAX_STOPS = 5
+        const val MAX_AGENT_BOTS = 3
+        const val EVEN_HEIGHT = 14f
+        val PACE_HEIGHTS = mapOf('1' to 6f, '2' to 13f, '3' to 21f, '4' to 29f)
         val KNOWN_PHASES = setOf("answering", "approval_waiting", "input_requested", "answered", "stopped")
     }
 }

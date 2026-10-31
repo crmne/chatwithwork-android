@@ -41,7 +41,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 object PushNotifications {
     const val CHANNEL_APPROVALS = "approvals"
     const val CHANNEL_ANSWERS = "answers"
-    const val CHANNEL_ANSWERING = "answering"
+    const val CHANNEL_ANSWERING = "live_update"
+
+    private const val OLD_CHANNEL_ANSWERING = "answering"
 
     private const val PREFERENCES = "push"
     private const val KEY_ASKED = "asked_for_permission"
@@ -298,9 +300,17 @@ object PushNotifications {
             NotificationChannel(
                 CHANNEL_ANSWERING,
                 context.getString(R.string.channel_answering),
-                NotificationManager.IMPORTANCE_LOW
-            ).apply { description = context.getString(R.string.channel_answering_description) }
+                // Not silent-section low: the card has no promotion to lift it, and sits with
+                // what's current, expanded when it's first, its bot in the status bar. It never sounds.
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = context.getString(R.string.channel_answering_description)
+                setSound(null, null)
+                enableVibration(false)
+                setShowBadge(false)
+            }
         )
+        manager.deleteNotificationChannel(OLD_CHANNEL_ANSWERING)
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ANSWERS,

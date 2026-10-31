@@ -24,7 +24,6 @@ class LivePresentationTest {
         val thinking = LivePresentation("answering", "answer")
         val writing = LivePresentation("answering", "write")
         assertThat(thinking.headline).isEqualTo(R.string.live_update_answering)
-        assertThat(LiveUpdates.chipWord("answer")).isEqualTo(R.string.live_update_chip_think)
         assertThat(writing.headline).isEqualTo(R.string.live_update_writing)
     }
 
@@ -69,7 +68,7 @@ class LivePresentationTest {
         assertThat(LivePresentation("answered").state).isEqualTo(LivePresentation.State.FINISHED)
         assertThat(LivePresentation("failed").state).isEqualTo(LivePresentation.State.FAILED)
         assertThat(LivePresentation("stopped").state).isEqualTo(LivePresentation.State.STOPPED)
-        assertThat(LivePresentation("future_state").state).isEqualTo(LivePresentation.State.STOPPED)
+        assertThat(LivePresentation("future_state").state).isEqualTo(LivePresentation.State.QUIET)
     }
 
     @Test
@@ -94,33 +93,6 @@ class LivePresentationTest {
         assertThat(LivePresentation("answered").face).isEqualTo(LivePresentation.Face.HAPPY)
         assertThat(LivePresentation("failed").face).isEqualTo(LivePresentation.Face.CLOSED)
         assertThat(LivePresentation("stopped").face).isEqualTo(LivePresentation.Face.FLAT)
-    }
-
-    @Test
-    fun `the chip says a service whose name fits, else the step's word`() {
-        val word: (Int) -> String = { id ->
-            when (id) {
-                R.string.live_update_chip_search -> "Search"
-                R.string.live_update_chip_read -> "Read"
-                R.string.live_update_chip_start -> "Start"
-                R.string.live_update_chip_agents -> "%1\$d run"
-                R.string.live_update_review -> "Review"
-                R.string.live_update_reply -> "Reply"
-                R.string.live_update_chip_ready -> "Ready"
-                else -> error("Unexpected word")
-            }
-        }
-        assertThat(LivePresentation("answering", "search", 1, service = "google_drive").chip(word)).isEqualTo("Drive")
-        assertThat(LivePresentation("answering", "read", 1, service = "hubspot").chip(word)).isEqualTo("Read")
-        assertThat(
-            LivePresentation("answering", "search", 1, service = "someones_server").chip(word)
-        ).isEqualTo("Search")
-        assertThat(LivePresentation("answering", "read", 1, service = "mcp").chip(word)).isEqualTo("Read")
-        assertThat(LivePresentation("answering", "answer").chip(word)).isEqualTo("Start")
-        assertThat(LivePresentation("answering", "use", 9, agents = 3).chip(word)).isEqualTo("3 run")
-        assertThat(LivePresentation("approval_waiting", service = "slack").chip(word)).isEqualTo("Review")
-        assertThat(LivePresentation("input_requested").chip(word)).isEqualTo("Reply")
-        assertThat(LivePresentation("answered").chip(word)).isEqualTo("Ready")
     }
 
     @Test
@@ -185,5 +157,88 @@ class LivePresentationTest {
         assertThat(older?.revision).isEqualTo(0)
         assertThat(older?.startedAt).isNull()
         assertThat(LiveProgress.from(base + ("run" to " "))?.run).isNull()
+    }
+
+    @Test
+    fun `each step is as tall as the time pace says it took`() {
+        val shown = LivePresentation("answering", "read", trail = "srlu", pace = "1234")
+        assertThat(shown.ticks.map { it.height }).containsExactly(6f, 13f, 21f, 29f).inOrder()
+    }
+
+    @Test
+    fun `without a whole pace every step is the same height`() {
+        for (pace in listOf(null, "12", "12345", "1x34", "0123")) {
+            val shown = LivePresentation("answering", "read", trail = "srlu", pace = pace)
+            assertThat(shown.ticks.map { it.height }.toSet()).containsExactly(14f)
+        }
+    }
+
+    @Test
+    fun `a step that failed or was denied is marked, and an older server's count stays even`() {
+        val shown = LivePresentation("answering", "read", trail = "sRl")
+        assertThat(shown.ticks.map { it.refused }).containsExactly(false, true, false).inOrder()
+        val counted = LivePresentation("answering", "read", steps = 300).ticks
+        assertThat(counted).hasSize(48)
+        assertThat(counted.map { it.height }.toSet()).containsExactly(14f)
+    }
+
+    @Test
+    fun `three bots then a count for agents`() {
+        val two = LivePresentation("answering", "use", agents = 2)
+        assertThat(two.agentBots).isEqualTo(2)
+        assertThat(two.moreAgents).isEqualTo(0)
+        val seven = LivePresentation("answering", "use", agents = 7)
+        assertThat(seven.agentBots).isEqualTo(3)
+        assertThat(seven.moreAgents).isEqualTo(4)
+    }
+
+    @Test
+    fun `failed is closed eyes, never a joke`() {
+        assertThat(LivePresentation("failed").face).isEqualTo(LivePresentation.Face.CLOSED)
+    }
+
+    @Test
+    fun `a band shows only when the person is needed or it failed`() {
+        for (phase in listOf("approval_waiting", "input_requested", "failed")) {
+            assertThat(LivePresentation(phase).hasBand).isTrue()
+        }
+        for (phase in listOf("answering", "answered", "stopped", "future_state")) {
+            assertThat(LivePresentation(phase).hasBand).isFalse()
+        }
+    }
+
+    @Test
+    fun `writing has its own road, and agents outrank it`() {
+        assertThat(LivePresentation("answering", "write", 3).state).isEqualTo(LivePresentation.State.WRITING)
+        assertThat(LivePresentation("answering", "write", 3, agents = 2).state)
+            .isEqualTo(LivePresentation.State.AGENTS)
+    }
+
+    @Test
+    fun `the bot holds up its tool only while it works`() {
+        assertThat(LivePresentation("answering", "search", 1).tool).isEqualTo(LivePresentation.Tool.SEARCH)
+        assertThat(LivePresentation("answering", "use", 1, agents = 3).tool).isNull()
+        assertThat(LivePresentation("approval_waiting", "use", 1).tool).isNull()
+    }
+
+    @Test
+    fun `stops are the services behind the bot, newest kept`() {
+        val shown = LivePresentation(
+            "answering",
+            "read",
+            service = "hubspot",
+            services = listOf("slack", "unknown", "todoist", "gmail", "dropbox", "asana", "linear", "slack", "hubspot")
+        )
+        assertThat(shown.stops).containsExactly("todoist", "gmail", "dropbox", "asana", "linear").inOrder()
+    }
+
+    @Test
+    fun `the headline splits around the service it names`() {
+        val shown = LivePresentation("answering", "search", 1, service = "google_drive")
+        assertThat(shown.split("Searching Drive")).isEqualTo("Searching" to "Drive")
+        val files = LivePresentation("answering", "read", 1, service = "hubspot")
+        assertThat(files.split("Reading 12 files in HubSpot")).isEqualTo("Reading 12 files" to "HubSpot")
+        assertThat(shown.split("Thinking")).isNull()
+        assertThat(LivePresentation("answering", "use", 1, service = "mcp").split("Using a tool")).isNull()
     }
 }

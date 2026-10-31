@@ -29,7 +29,4 @@
     <color name="scrim">#99000000</color>
     <color name="ripple">#1FE9ECF4</color>
     <color name="lw_negative_ink">#FF7F61</color>
-    <color name="live_bot_outline">#00000000</color>
-    <color name="live_road_ahead">#3B3F4A</color>
-    <color name="live_road_walked">#8A8F9C</color>
 </resources>

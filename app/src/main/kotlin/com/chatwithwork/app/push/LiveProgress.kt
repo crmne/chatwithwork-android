@@ -25,7 +25,6 @@ data class LiveProgress(
     val steps: Int,
     val sentAt: Long,
     val notificationId: String? = null,
-    val recentSteps: List<String> = emptyList(),
     val run: String? = null,
     val revision: Long = 0,
     val startedAt: Long? = null,
@@ -33,6 +32,7 @@ data class LiveProgress(
     val service: String? = null,
     val services: List<String> = emptyList(),
     val trail: String? = null,
+    val pace: String? = null,
     val agents: Int? = null,
     val heardAt: Long? = null
 ) {
@@ -52,7 +52,7 @@ data class LiveProgress(
         val WAITING = setOf("approval_waiting", "input_requested")
         private const val TRAIL_LETTERS = "slrupxaw"
         private const val TRAIL_LENGTH = 48
-        val STEP_KINDS = setOf("search", "list", "read", "use", "plan", "run", "ask", "write", "answer")
+        private const val PACE_DIGITS = "1234"
 
         private fun stringList(encoded: String?): List<String> = if (encoded != null && encoded.length <= 256) {
             runCatching { Json.parseToJsonElement(encoded) as? JsonArray }.getOrNull()
@@ -62,25 +62,21 @@ data class LiveProgress(
             emptyList()
         }
 
-        /** Only fixed kinds may become visible history, never arbitrary payload text. */
-        fun recentSteps(encoded: String?, current: String?): List<String> {
-            val parsed = stringList(encoded).filter { it in STEP_KINDS }
-            return (parsed + listOfNotNull(current?.takeIf { it in STEP_KINDS }))
-                .fold(emptyList<String>()) { result, kind ->
-                    if (result.lastOrNull() ==
-                        kind
-                    ) {
-                        result
-                    } else {
-                        result + kind
-                    }
-                }
-                .takeLast(3)
-        }
-
         /** The steps so far, one letter each, upper case where one failed or was denied: nothing else passes. */
         fun trail(encoded: String?): String? =
             encoded?.filter { it.lowercaseChar() in TRAIL_LETTERS }?.takeLast(TRAIL_LENGTH)?.takeIf { it.isNotEmpty() }
+
+        /**
+         * How long each of the trail's steps took, one digit each (1: under 2
+         * seconds, 2: under 10, 3: under 60, 4: a minute or more). Only whole:
+         * a [pace] that doesn't say it of every step of [encoded] says nothing.
+         */
+        fun pace(pace: String?, encoded: String?): String? {
+            if (pace == null || encoded == null || pace.length != encoded.length) return null
+            if (pace.any { it !in PACE_DIGITS }) return null
+            return encoded.zip(pace).filter { (letter, _) -> letter.lowercaseChar() in TRAIL_LETTERS }
+                .takeLast(TRAIL_LENGTH).map { it.second }.joinToString("").takeIf { it.isNotEmpty() }
+        }
 
         fun from(data: Map<String, String>): LiveProgress? {
             if (data["kind"] != "progress") return null
@@ -96,7 +92,6 @@ data class LiveProgress(
                 steps = data["steps"]?.toIntOrNull() ?: 0,
                 sentAt = data["sent_at"]?.toLongOrNull() ?: 0,
                 notificationId = data["notification_id"]?.takeIf { it.isNotBlank() },
-                recentSteps = recentSteps(data["recent_steps"], data["step"]),
                 run = data["run"]?.takeIf { it.isNotBlank() },
                 revision = data["revision"]?.toLongOrNull() ?: 0,
                 startedAt = data["started_at"]?.toLongOrNull()?.let { it * 1000 },
@@ -104,6 +99,7 @@ data class LiveProgress(
                 service = data["service"]?.takeIf { it.isNotBlank() },
                 services = stringList(data["services"]),
                 trail = trail(data["trail"]),
+                pace = pace(data["pace"], data["trail"]),
                 agents = data["agents"]?.toIntOrNull(),
                 heardAt = data["heard_at"]?.toLongOrNull()?.let { it * 1000 }
             )

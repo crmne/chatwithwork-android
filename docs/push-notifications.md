@@ -68,36 +68,50 @@ that chat, in Chats, inside the right organization.
   Update (`LiveUpdates`) and asks the server to follow the chat; the server
   then sends `progress` data with each step ("Searching Todoist", how many
   steps) and the end, never the chat's words. The step shows as the Live
-  Update's title and as a short word in the status bar chip, and the end
+  Update's headline, and the end
   turns it into a quiet notification until the push for it takes its place.
   `LiveRuns` keeps each chat's run apart from its card: its start, newest
   revision and whether the person dismissed it (`LiveUpdateDismissed`), so
   a late message for another answer is dropped, the timer doesn't restart,
   and a dismissed run stays gone while a later one shows.
-  The card is **Open Road**: a bot stands on a road it lays as it works, and
-  only a finished answer has an end. On Android 16 and later that's native
-  `ProgressStyle` (`LiveRoad`): the bot as the tracker, one face per step and
-  state, the rainbow as segments up to it, the services touched as points, the
-  service at work as the large icon and the bot's face in the status bar chip.
-  The bot moves only as the trail grows, then stays: no percentage, no estimate,
-  no planned stages. Amber road means it waits for the person, green that it
-  finished, orange that it failed, grey that it stopped. Earlier Android keeps
-  BigTextStyle with the same road drawn as a picture (`LiveArtwork`). An end
-  message carries no steps, trail or services, so the card keeps them in its
-  extras and draws its end from them. Finished and stopped cards show how long
-  it took, from `heard_at` minus `started_at`, fixed.
-  What Android does with it, tried on emulators (API 35, 36, 36.1, 37):
-  Android 16's first release doesn't promote at all, and shows the card as an
-  ordinary expandable notification, in the shade only; from 36.1 it's promoted
-  and always expanded in the shade and on the lock screen, with no collapsed
-  form. The chip is the system's own colour, never `setColor`'s (which only
-  tints the small icon where it shows in a circle, up to 36.0), and a card that
-  ended isn't promoted, so it has no chip. Past 10 segments Android joins them
-  into one default-coloured bar, past 4 points it drops the newest, and if the
-  parts don't fit it falls back to one bar (`LiveRoad.SLICES_BESIDE_STOPS` keeps
-  a 360dp phone clear of that). Colours are moved to 3:1 against the shade, so
-  the rainbow's lime and green darken on a light one. The tracker keeps its
-  colours and follows the shade's theme, since it's a resource.
+  The card is **Open Road**, the iOS Lock Screen card on every version:
+  organization, steps, the words and the clock, the road, and a band when the
+  person is needed, dark in both themes on purpose. A bot stands on a road it
+  lays as it works, and only a finished answer has an end: no percentage, no
+  estimate, no planned stages. `LiveArtwork` is a port of iOS's `RoadView.swift`
+  in the same points, `LivePresentation` of what `OpenRoad.swift` works out, and
+  `LiveCard` lays it out in RemoteViews under `DecoratedCustomViewStyle`.
+  A tick per step, its height from `pace` (one digit, 1 to 4, per `trail`
+  letter; even heights if it's absent or the wrong length), a tool beside the
+  bot, three bots then `+n` for agents. For a decision or a question the bot
+  faces you and holds up an amber card with the service's logo, and the amber
+  band has Review or Reply, which only open the chat. Failed is closed eyes
+  beside a cracked road, stopped a flat look at a wall, and a phase this build
+  doesn't know a quiet dashed road. An end message carries no steps, trail or
+  services, so the card keeps them in its extras and draws its end from them.
+  Finished and stopped cards show how long it took, from `heard_at` minus
+  `started_at`, fixed.
+  **Not promoted, on purpose.** Android promotes only standard templates: a
+  custom view rules out the status bar chip and the lock screen's top spot. We
+  tried both on emulators (API 36.1, 37): a promoted ProgressStyle notification
+  beside the card reads as the same thing twice. The promoted one has no
+  collapsed form, so it was never small; the card sat below it, and a group
+  summary loses promotion. So there's one card, and ProgressStyle is gone.
+  To keep it visible the channel is `live_update` at default importance with no
+  sound or vibration (it replaced `answering`, low, whose cards sat collapsed
+  under Silent): it sits with current notifications, expands when it's first,
+  and shows the bot's face in the status bar. Lower down the shade it's
+  collapsed, to its words and clock, until tapped.
+  Views in a notification can't load the app's fonts (`@font` is ignored), so
+  the words are small pictures in Geist with content descriptions, which shrink
+  to fit rather than cut off. The running clock is a real `Chronometer`, so it
+  counts by itself: system font, and `05:16`, not iOS's Unbounded `5:16`.
+  Every picture goes as PNG data (`Icon.createWithData`), not a bitmap: a
+  notification is a few tens of kilobytes where the road alone would be half a
+  megabyte as a bitmap. Updates only come with steps, and Android drops what
+  passes 5 a second, so a burst loses frames, never the last state's truth for
+  long. The road's width is worked out from the screen (the indent differs on
+  Android 16); a shade that's narrower scales it down.
   Missing or blank activity labels fall back to the stable step kind.
   `answer` means thinking between steps; `write` means streaming the answer.
   Only the logos in `LiveServices` show; any other `service` shows none.
@@ -109,7 +123,7 @@ notification key, showing notifications), `push/PushMessagingService.kt`
 (Firebase's callbacks), `push/Push.kt` (the payload), `push/NotificationWords.kt`
 (fetching a notification's words), `push/LiveUpdates.kt` and
 `push/LiveProgress.kt`, `push/LiveRuns.kt`, `push/LiveUpdateDismissed.kt` (Live Updates, their steps and runs), `push/LivePresentation.kt`
-(state, face, words), `push/LiveRoad.kt` (the bar), `push/LiveServices.kt` (logos),
+(state, face, ticks), `push/LiveCard.kt` (the views), `push/LiveArtwork.kt` and `push/LiveBotPixels.kt` (the road and the words as pictures), `push/LiveServices.kt` (logos),
 `push/LiveArtwork.kt` (the road as a picture below Android 16), and
 `bridge/NotificationTokenComponent.kt`.
 
@@ -154,8 +168,8 @@ adb shell am broadcast -n com.chatwithwork.app.debug/com.chatwithwork.app.push.D
   --es phase answered --es message "'Your answer is ready.'" --es sent_at $(date +%s%3N)
 ```
 
-The road's fields go the same way: `--es trail srrss --es service google_drive
---es services "'[\"slack\",\"google_drive\"]'"`, with `--es agents 3`, `--es
+The road's fields go the same way: `--es trail srrss --es pace 12341 --es
+service google_drive --es services "'[\"slack\",\"google_drive\"]'"`, with `--es agents 3`, `--es
 waiting_since <s>` or `--es heard_at <s>` where they apply.
 
 For a synthetic card without a server, use the same broadcast with
@@ -203,9 +217,7 @@ Firebase console's messaging test with the same data keys.
   Notifications first, as the server contract says, a kind in `Push.Kind`
   (unknown kinds are dropped), and a channel in
   `PushNotifications.createChannels` where people should silence it apart.
-- **ColorOS and OxygenOS.** OnePlus's OxygenOS 16 shows Android 16's Live
-  Updates from any app in Live Alerts (Fluid Cloud's successor) once the
-  person turns on "Show Live Updates on Live Alerts" for that app; it's off
-  by default. Google names OPPO's Live Alerts among the surfaces it built
-  Live Updates with, and ColorOS 16 shares OxygenOS 16's base, so the same
-  should hold there. Nothing here has been tried on either.
+- **OEM skins.** Live Alerts on OxygenOS and ColorOS, and the like, take only
+  promoted notifications, so the card doesn't reach them. Custom notifications
+  aren't tried on any skin, and some may clip or reshape them; try Samsung,
+  Xiaomi, OPPO and OnePlus phones before relying on the look there.

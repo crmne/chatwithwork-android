@@ -6,20 +6,13 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Typeface
-import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.format.DateUtils
-import android.text.style.StyleSpan
 import android.webkit.CookieManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
-import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
 import com.chatwithwork.app.R
 import com.chatwithwork.app.main.MainActivity
@@ -34,10 +27,9 @@ import kotlinx.serialization.json.putJsonObject
 
 /**
  * A Live Update for a chat the person left while it was answering: an
- * ongoing native status card (promoted on Android 16 where the system allows,
- * as OEM skins like ColorOS's and
- * OxygenOS's Live Alerts do for apps that use it), saying the organization's
- * name and what the answer is doing, never the chat's title or anything in it.
+ * ongoing card ([LiveCard], the iOS app's own, on every Android version),
+ * saying the organization's name and what the answer is doing, never the
+ * chat's title or anything in it.
  *
  * The app asks the server to follow the chat ([follow]), which then sends
  * each step as FCM data of kind `progress` ([progress]): "Searching Todoist",
@@ -64,10 +56,10 @@ object LiveUpdates {
 
     /** The organization a Live Update names, kept in its extras for the steps that follow. */
     private const val EXTRA_ORGANIZATION = "com.chatwithwork.app.LIVE_UPDATE_ORGANIZATION"
-    private const val EXTRA_RECENT_STEPS = "com.chatwithwork.app.LIVE_UPDATE_RECENT_STEPS"
     private const val EXTRA_STEPS = "com.chatwithwork.app.LIVE_UPDATE_STEPS"
     private const val EXTRA_RUN = "com.chatwithwork.app.LIVE_UPDATE_RUN"
     private const val EXTRA_TRAIL = "com.chatwithwork.app.LIVE_UPDATE_TRAIL"
+    private const val EXTRA_PACE = "com.chatwithwork.app.LIVE_UPDATE_PACE"
     private const val EXTRA_SERVICES = "com.chatwithwork.app.LIVE_UPDATE_SERVICES"
     private const val EXTRA_STARTED_AT = "com.chatwithwork.app.LIVE_UPDATE_STARTED_AT"
     private const val PREFERENCES = "live_updates"
@@ -168,7 +160,8 @@ object LiveUpdates {
                 progress.trail ?: shown.extras.getString(EXTRA_TRAIL),
                 progress.service,
                 progress.services.ifEmpty { shown.extras.getStringArrayList(EXTRA_SERVICES).orEmpty() },
-                progress.agents
+                progress.agents,
+                if (progress.trail != null) progress.pace else shown.extras.getString(EXTRA_PACE)
             )
         val notification =
             if (!progress.isEnd) {
@@ -179,8 +172,7 @@ object LiveUpdates {
                     state,
                     progress.message,
                     startedAt,
-                    progress.waitingSince?.takeIf { progress.isWaiting } ?: startedAt,
-                    progress.recentSteps
+                    progress.waitingSince?.takeIf { progress.isWaiting } ?: startedAt
                 )
                     .addExtras(Bundle().apply { putLong(EXTRA_SENT_AT, progress.sentAt) })
                     .tracking(context, progress.thread, run, System.currentTimeMillis())
@@ -191,8 +183,7 @@ object LiveUpdates {
                     progress,
                     state,
                     organization,
-                    progress.heardAt?.let { it - (progress.startedAt ?: startedAt) },
-                    shown.extras.getStringArrayList(EXTRA_RECENT_STEPS).orEmpty()
+                    progress.heardAt?.let { it - (progress.startedAt ?: startedAt) }
                 )
             }
         manager.notify(progress.thread, PushNotifications.NOTIFICATION_ID, notification)
@@ -330,29 +321,10 @@ object LiveUpdates {
             .forEach { manager.cancel(it.tag, it.id) }
     }
 
-    /** The status bar chip's word for a step: short, so it shows whole. */
-    fun chipWord(step: String?): Int = when (step) {
-        "search" -> R.string.live_update_chip_search
-        "list" -> R.string.live_update_chip_list
-        "read" -> R.string.live_update_chip_read
-        "use" -> R.string.live_update_chip_use
-        "plan" -> R.string.live_update_chip_plan
-        "run" -> R.string.live_update_chip_run
-        "ask" -> R.string.live_update_chip_ask
-        "write" -> R.string.live_update_chip_write
-        "answer" -> R.string.live_update_chip_think
-        else -> R.string.live_update_chip_think
-    }
-
     private fun stepsText(context: Context, steps: Int): String? =
         if (steps > 0) context.resources.getQuantityString(R.plurals.live_update_steps, steps, steps) else null
 
-    /** Supported native text emphasis also survives promoted compact layouts. */
-    private fun headline(text: String): CharSequence = SpannableString(text).apply {
-        setSpan(StyleSpan(Typeface.BOLD), 0, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-    }
-
-    /** An ongoing card, promoted where the system allows, its clock running from [clock]. */
+    /** An ongoing card, its clock running from [clock]. */
     private fun ongoing(
         context: Context,
         url: String,
@@ -360,8 +332,7 @@ object LiveUpdates {
         shown: LivePresentation,
         message: String?,
         startedAt: Long,
-        clock: Long,
-        recentSteps: List<String> = emptyList()
+        clock: Long
     ): NotificationCompat.Builder {
         val starting = shown.state == LivePresentation.State.STARTING
         val waiting = shown.state == LivePresentation.State.DECISION || shown.state == LivePresentation.State.INPUT
@@ -370,23 +341,19 @@ object LiveUpdates {
             waiting -> context.getString(R.string.live_update_waiting)
             else -> stepsText(context, shown.walked)
         }
-        return card(context, shown, message, text, organization.takeUnless { starting }, recentSteps)
+        return card(context, url, shown, message, text, organization, LiveCard.Clock.Running(clock))
             .addExtras(
                 Bundle().apply {
                     putString(EXTRA_ORGANIZATION, organization)
                     putLong(EXTRA_STARTED_AT, startedAt)
                 }
             )
-            .setShortCriticalText(shown.chip(context::getString))
             .setOngoing(true)
-            .setRequestPromotedOngoing(true)
-            .setUsesChronometer(true)
             .setWhen(clock)
-            .setShowWhen(true)
+            .setShowWhen(false)
             .setTimeoutAfter(TIMEOUT_MS)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setContentIntent(open(context, url))
-            .apply { shown.action?.let { addAction(0, context.getString(it), open(context, url)) } }
     }
 
     /**
@@ -399,115 +366,53 @@ object LiveUpdates {
         progress: LiveProgress,
         shown: LivePresentation,
         organization: String,
-        took: Long?,
-        recentSteps: List<String>
+        took: Long?
     ): Notification {
-        val time =
-            took?.takeIf { it >= 0 && shown.state != LivePresentation.State.FAILED }
-                ?.let { DateUtils.formatElapsedTime(it / 1000) }
-        return card(
-            context,
-            shown,
-            null,
-            stepsText(context, shown.walked),
-            listOfNotNull(organization, time).joinToString(" · "),
-            recentSteps
-        )
+        val timed = shown.state == LivePresentation.State.FINISHED || shown.state == LivePresentation.State.STOPPED
+        val total = took?.takeIf { it >= 0 && timed }
+        val clock = total?.let { LiveCard.Clock.Fixed(it) } ?: LiveCard.Clock.Hidden
+        return card(context, progress.url, shown, null, stepsText(context, shown.walked), organization, clock)
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .setShowWhen(false)
             .setTimeoutAfter(ENDED_SHOWN_MS)
             .setContentIntent(open(context, progress.url))
-            .apply { shown.action?.let { addAction(0, context.getString(it), open(context, progress.url)) } }
             .addExtras(Bundle().apply { putLong(EXTRA_SENT_AT, progress.sentAt) })
             .build()
     }
 
-    /** What every state of a card shares: its words, its colour, its picture and its road. */
+    /** What every state of a card shares: its words for the system, its colour and its drawn views. */
     private fun card(
         context: Context,
+        url: String,
         shown: LivePresentation,
         message: String?,
         text: String?,
-        subText: String?,
-        recentSteps: List<String>
+        organization: String,
+        clock: LiveCard.Clock
     ): NotificationCompat.Builder {
-        val recent = recentSteps.ifEmpty { listOfNotNull(shown.step?.takeIf { it in LiveProgress.STEP_KINDS }) }
-        val road = LiveRoad.of(shown, colors(context))
-        val title = headline(shown.title(message, context::getString))
-        val builder =
-            NotificationCompat
-                .Builder(context, PushNotifications.CHANNEL_ANSWERING)
-                .setSmallIcon(shown.face.chip)
-                .setSubText(subText)
-                .setContentTitle(title)
-                .setContentText(text)
-                .setColor(ContextCompat.getColor(context, shown.color))
-                .setOnlyAlertOnce(true)
-                .addExtras(
-                    Bundle().apply {
-                        putInt(EXTRA_STEPS, shown.steps)
-                        putString(EXTRA_TRAIL, shown.trail)
-                        putStringArrayList(EXTRA_SERVICES, ArrayList(shown.services))
-                        putStringArrayList(EXTRA_RECENT_STEPS, ArrayList(recent))
-                    }
-                )
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
-            shown.largeIcon?.let { builder.setLargeIcon(Icon.createWithResource(context, it)) }
-            builder.setStyle(progressStyle(context, shown, road))
-        } else {
-            val details = listOfNotNull(text, recentText(context, recent)).joinToString("\n").ifEmpty { null }
-            builder
-                .setLargeIcon(LiveArtwork.draw(context, shown, road))
-                .setContentText(details)
-                .setStyle(NotificationCompat.BigTextStyle().setBigContentTitle(title).bigText(details))
-        }
-    }
-
-    private fun progressStyle(
-        context: Context,
-        shown: LivePresentation,
-        road: LiveRoad
-    ): NotificationCompat.ProgressStyle {
-        val style =
-            NotificationCompat.ProgressStyle()
-                .setStyledByProgress(false)
-                .setProgress(road.progress)
-                .setProgressIndeterminate(road.indeterminate)
-                .setProgressStartIcon(IconCompat.createWithResource(context, R.drawable.ic_mark))
-                .setProgressTrackerIcon(IconCompat.createWithResource(context, shown.face.tracker))
-                .setProgressSegments(
-                    road.segments.mapIndexed { index, segment ->
-                        NotificationCompat.ProgressStyle.Segment(segment.length).setId(index).setColor(segment.color)
-                    }
-                )
-                .setProgressPoints(
-                    road.stops.mapIndexed { index, stop ->
-                        NotificationCompat.ProgressStyle.Point(stop.position).setId(index).setColor(stop.color)
-                    }
-                )
-        if (shown.state == LivePresentation.State.FINISHED) {
-            style.setProgressEndIcon(IconCompat.createWithResource(context, R.drawable.ic_mark))
-        }
-        return style
-    }
-
-    private fun colors(context: Context) = LiveRoad.Colors(
-        live = ContextCompat.getColor(context, R.color.lw_live),
-        ahead = ContextCompat.getColor(context, R.color.live_road_ahead),
-        walked = ContextCompat.getColor(context, R.color.live_road_walked),
-        attention = ContextCompat.getColor(context, R.color.lw_attention),
-        positive = ContextCompat.getColor(context, R.color.lw_positive_ink),
-        negative = ContextCompat.getColor(context, R.color.lw_negative_ink)
-    )
-
-    private fun recentText(context: Context, recent: List<String>): String? = recent.takeIf { it.size > 1 }?.let {
-        context.getString(
-            R.string.live_update_recent_activity,
-            it.joinToString(" · ") { kind ->
-                context.getString(chipWord(kind))
-            }
-        )
+        val title = shown.title(message, context::getString)
+        val view =
+            LiveCard(context, shown, title, organization, stepsText(context, shown.walked), clock, open(context, url))
+        return NotificationCompat
+            .Builder(context, PushNotifications.CHANNEL_ANSWERING)
+            .setSmallIcon(shown.face.chip)
+            .setSubText(organization)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setColor(ContextCompat.getColor(context, shown.color))
+            .setOnlyAlertOnce(true)
+            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+            .setCustomContentView(view.collapsed())
+            .setCustomBigContentView(view.expanded())
+            .addExtras(
+                Bundle().apply {
+                    putInt(EXTRA_STEPS, shown.steps)
+                    putString(EXTRA_TRAIL, shown.trail)
+                    putString(EXTRA_PACE, shown.pace)
+                    putStringArrayList(EXTRA_SERVICES, ArrayList(shown.services))
+                }
+            )
     }
 
     private fun open(context: Context, url: String): PendingIntent = PendingIntent.getActivity(
