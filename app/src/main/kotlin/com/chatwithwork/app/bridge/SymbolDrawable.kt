@@ -41,7 +41,7 @@ class SymbolDrawable(
         textSize = sizePx.toFloat()
         textAlign = Paint.Align.CENTER
         fontFeatureSettings = "'liga'"
-        fontVariationSettings = "'FILL' ${if (filled) 1 else 0}, 'wght' 400, 'GRAD' 0, 'opsz' $sizeDp"
+        fontVariationSettings = "'FILL' ${if (filled) 1 else 0}, 'wght' 300, 'GRAD' 0, 'opsz' $sizeDp"
         this.color = color
     }
 

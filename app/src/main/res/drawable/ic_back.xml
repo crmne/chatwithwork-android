@@ -1,16 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Overrides Hotwire Native's own, which is black in dark mode. Material Symbols Outlined "arrow_back", Apache License 2.0. -->
+<!-- Material Symbols Rounded "arrow_back", weight 300, Apache License 2.0. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:ignore="UnusedResources"
-    android:width="24dp"
-    android:height="24dp"
-    android:tint="?attr/colorControlNormal"
+    android:width="22dp"
+    android:height="22dp"
+    android:tint="?attr/colorOnSurface"
     android:viewportWidth="960"
     android:viewportHeight="960">
     <group android:translateY="960">
         <path
             android:fillColor="@android:color/white"
-            android:pathData="m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z" />
+            android:pathData="M266.31-457.31 496-228q6.31 6.76 6.69 15.84.39 9.08-6.69 15.99-7.08 7.25-16 7.25T464-196L200.15-459.85q-4.53-4.53-6.53-9.39t-2-10.81q0-5.95 2-10.76t6.53-9.34L464-764q6.69-6.69 15.73-6.88 9.04-.2 16.27 6.88 7.08 7.23 7.08 16.08 0 8.84-7.08 15.54L266.31-502.69h491q9.91 0 16.3 6.39 6.39 6.39 6.39 16.31 0 9.91-6.39 16.3-6.39 6.38-16.3 6.38h-491Z" />
     </group>
 </vector>

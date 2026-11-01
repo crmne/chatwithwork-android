@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  A web screen: the native top app bar, a hairline, and the page with the
+  A web screen: the native top app bar, a hairline once the page has scrolled, and the page with the
   native composer floating over chat pages (hidden elsewhere). The ids
   are Hotwire Native's: it finds the toolbar (titles from the page's <title>)
   and the hotwire_view (the shared web view, progress, and error states).
@@ -22,7 +22,7 @@
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize" />
+            android:layout_height="64dp" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -30,9 +30,10 @@
         android:id="@+id/toolbar_divider"
         android:layout_width="match_parent"
         android:layout_height="1dp"
+        android:alpha="0"
         android:background="?attr/colorOutlineVariant" />
 
-    <FrameLayout
+    <com.chatwithwork.app.composer.KeyboardSwipeLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
@@ -51,6 +52,6 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom" />
 
-    </FrameLayout>
+    </com.chatwithwork.app.composer.KeyboardSwipeLayout>
 
 </LinearLayout>

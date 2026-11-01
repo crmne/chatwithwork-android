@@ -10,9 +10,7 @@ import androidx.appcompat.R as AppCompatR
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import com.chatwithwork.app.R
-import com.chatwithwork.app.bridge.SymbolDrawable
 import com.chatwithwork.app.routing.AppUrls
-import com.google.android.material.color.MaterialColors
 import dev.hotwire.core.config.Hotwire
 import dev.hotwire.core.turbo.config.context
 import dev.hotwire.core.turbo.config.title
@@ -23,6 +21,7 @@ import dev.hotwire.core.turbo.webview.HotwireWebChromeClient
 import dev.hotwire.navigation.destinations.HotwireDestination
 import dev.hotwire.navigation.destinations.HotwireDestinationDeepLink
 import dev.hotwire.navigation.fragments.HotwireWebFragment
+import java.lang.ref.WeakReference
 
 /**
  * A page: the native top app bar over the shared web view. The root (a chat)
@@ -66,9 +65,8 @@ open class WebFragment : HotwireWebFragment() {
 
     /** The sidebar's button on the root, and New chat on every screen but a modal. */
     private fun addShellActions(toolbar: Toolbar) {
-        val ink = MaterialColors.getColor(toolbar, com.google.android.material.R.attr.colorOnSurface)
         if (navigator.isAtStartDestination()) {
-            toolbar.navigationIcon = SymbolDrawable(toolbar.context, "menu", color = ink)
+            toolbar.setNavigationIcon(R.drawable.ic_menu)
             toolbar.navigationContentDescription = getString(R.string.sidebar_open)
             toolbar.setNavigationOnClickListener { host?.openSidebar() }
         }
@@ -81,6 +79,16 @@ open class WebFragment : HotwireWebFragment() {
                 true
             }
         }
+    }
+
+    /** Flat at the top of a page, as Material 3's bar is; the hairline comes in as the page goes under it. */
+    private fun showBarEdgeOnceScrolled() {
+        val edge = view?.findViewById<View>(R.id.toolbar_divider) ?: return
+        val webView = navigator.session.webView
+        edge.alpha = if (webView.scrollY > 0) 1f else 0f
+        // The web view outlives this screen, which it mustn't hold on to.
+        val weakEdge = WeakReference(edge)
+        webView.setOnScrollChangeListener { _, _, y, _, _ -> weakEdge.get()?.alpha = if (y > 0) 1f else 0f }
     }
 
     private fun isModalLocation(location: String): Boolean =
@@ -112,6 +120,7 @@ open class WebFragment : HotwireWebFragment() {
     }
 
     override fun onVisitCompleted(location: String, completedOffline: Boolean) {
+        showBarEdgeOnceScrolled()
         super.onVisitCompleted(location, completedOffline)
         allowZoom(AppUrls.isFileViewer(location))
         host?.onVisitCompleted(this, location)
