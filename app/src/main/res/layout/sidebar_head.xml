@@ -2,15 +2,19 @@
 <!--
   A view's head, the same row in Chats and Bots, so switching moves nothing, as
   the web's (.sidebar__head): the list selector, and a square plus beside it,
-  New chat or New bot, raised on that page.
+  New chat or New bot, raised on that page. It's 44dp to the eye (SidebarDrawer's
+  gaps take back 2dp each way), and reaches the sidebar's edge, for the plus's
+  48dp target.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="44dp"
+    android:layout_height="48dp"
+    android:layout_marginEnd="-8dp"
     android:gravity="center_vertical"
-    android:orientation="horizontal">
+    android:orientation="horizontal"
+    android:paddingEnd="8dp">
 
     <com.chatwithwork.app.sidebar.SidebarFitRow
         android:id="@+id/sidebar_head_list"

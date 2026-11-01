@@ -219,6 +219,11 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             val previous = rows.getOrNull(position - 1)
             val unit = context.resources.displayMetrics.density
             when {
+                row is SidebarRow.Head -> {
+                    outRect.top = (-HEAD_REACH_DP * unit).toInt()
+                    outRect.bottom = (-HEAD_REACH_DP * unit).toInt()
+                }
+
                 row is SidebarRow.BotRow && previous is SidebarRow.Search -> outRect.top = (GAP_DP * unit).toInt()
 
                 row is SidebarRow.Section && previous is SidebarRow.Search -> outRect.top = (-GAP_DP * unit).toInt()
@@ -560,9 +565,8 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             view.post {
                 val target = Rect()
                 add.getHitRect(target)
-                target.inset(-dp(ADD_TOUCH_SLOP_DP), -dp(ADD_TOUCH_SLOP_DP))
-                target.left += dp(ADD_TOUCH_SLOP_DP) / 2
-                view.touchDelegate = TouchDelegate(target, add)
+                target.set(target.left - dp(ADD_REACH_START_DP), 0, view.width, view.height)
+                view.touchDelegate = TouchDelegate(target, add).takeIf { add.isVisible }
             }
         }
 
@@ -787,7 +791,8 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         private const val CHAT_ICON = "chat_bubble"
         private const val SYMBOL_WEIGHT = 400
         private const val GAP_DP = 8
-        private const val ADD_TOUCH_SLOP_DP = 6
+        private const val ADD_REACH_START_DP = 4
+        private const val HEAD_REACH_DP = 2
         private const val PIN_GAP_DP = 2
 
         /** A bot's state's tone (`attention`, `negative`, `live`, `positive`, or none) as a dot's colour. */
