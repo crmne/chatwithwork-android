@@ -5,7 +5,7 @@
   bot's project icon, and at its end its one state: a dot and how many
   decisions wait in it, Failed, Paused, or when a time next starts it.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.chatwithwork.app.sidebar.SidebarFitRow xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="35dp"
@@ -86,4 +86,4 @@
         android:textSize="12sp"
         tools:text="08:30" />
 
-</LinearLayout>
+</com.chatwithwork.app.sidebar.SidebarFitRow>

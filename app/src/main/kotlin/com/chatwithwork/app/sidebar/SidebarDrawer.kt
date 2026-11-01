@@ -81,6 +81,11 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
     private var botsKnown = false
     private var view = SidebarRow.View.CHATS
     private var botList: String? = null
+
+    /** Whether the bots show, which a remembered Bots doesn't mean where the server sends none. */
+    private val showsBots: Boolean
+        get() = adapter.currentList.any { it is SidebarRow.Views && it.view == SidebarRow.View.BOTS }
+
     var query = ""
         private set
 
@@ -94,7 +99,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     val manager = recyclerView.layoutManager as LinearLayoutManager
                     if (dy > 0 &&
-                        view == SidebarRow.View.CHATS &&
+                        !showsBots &&
                         manager.findLastVisibleItemPosition() >= adapter.itemCount - LOAD_MORE_AHEAD
                     ) {
                         actions.loadMore()
@@ -621,7 +626,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                     override fun afterTextChanged(s: Editable?) {
                         val text = s?.toString().orEmpty()
                         if (text == query) return
-                        if (query.isEmpty() && text.isNotEmpty() && view == SidebarRow.View.CHATS) actions.loadAll()
+                        if (query.isEmpty() && text.isNotEmpty() && !showsBots) actions.loadAll()
                         query = text
                         render()
                     }
