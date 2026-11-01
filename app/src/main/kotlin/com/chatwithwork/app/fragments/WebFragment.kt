@@ -21,6 +21,7 @@ import dev.hotwire.core.turbo.webview.HotwireWebChromeClient
 import dev.hotwire.navigation.destinations.HotwireDestination
 import dev.hotwire.navigation.destinations.HotwireDestinationDeepLink
 import dev.hotwire.navigation.fragments.HotwireWebFragment
+import java.lang.ref.WeakReference
 
 /**
  * A page: the native top app bar over the shared web view. The root (a chat)
@@ -85,7 +86,9 @@ open class WebFragment : HotwireWebFragment() {
         val edge = view?.findViewById<View>(R.id.toolbar_divider) ?: return
         val webView = navigator.session.webView
         edge.alpha = if (webView.scrollY > 0) 1f else 0f
-        webView.setOnScrollChangeListener { _, _, y, _, _ -> edge.alpha = if (y > 0) 1f else 0f }
+        // The web view outlives this screen, which it mustn't hold on to.
+        val weakEdge = WeakReference(edge)
+        webView.setOnScrollChangeListener { _, _, y, _, _ -> weakEdge.get()?.alpha = if (y > 0) 1f else 0f }
     }
 
     private fun isModalLocation(location: String): Boolean =
