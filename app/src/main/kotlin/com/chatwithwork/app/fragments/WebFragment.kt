@@ -63,9 +63,9 @@ open class WebFragment : HotwireWebFragment() {
         }
     }
 
-    /** The sidebar's button on the root, and New chat on every screen but a modal. */
+    /** The sidebar's button on the root and on what the sidebar opened, and New chat on every screen but a modal. */
     private fun addShellActions(toolbar: Toolbar) {
-        if (navigator.isAtStartDestination()) {
+        if (navigator.isAtStartDestination() || host?.openedFromSidebar(location) == true) {
             toolbar.setNavigationIcon(R.drawable.ic_menu)
             toolbar.navigationContentDescription = getString(R.string.sidebar_open)
             toolbar.setNavigationOnClickListener { host?.openSidebar() }
@@ -176,6 +176,9 @@ interface WebScreenHost {
     fun presentSignIn()
 
     fun openSidebar()
+
+    /** Whether the sidebar opened [location], so its bar offers the sidebar rather than back. */
+    fun openedFromSidebar(location: String): Boolean
 
     fun startNewChat()
 }
