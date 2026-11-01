@@ -6,6 +6,25 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.1.7
+
+Version 1.1.7 (10107) keeps the menu button on the screen the sidebar opened,
+through a theme change too; the same page reached by a link or from another
+page keeps back. Tag `v1.1.7`, from
+[#30](https://github.com/crmne/chatwithwork-android/pull/30).
+
+The signed, Firebase-enabled bundle became available to Internal testers on
+2026-11-01 at 19:21 Europe/Berlin. Only Internal testing was updated. Open
+testing and Production were left unchanged: Production still has 1.1.5 in
+review.
+
+Validation: unit tests, lint, formatting, and all build variants passed. On an
+Android 16 emulator against the playground, a bot opened from the sidebar kept
+the menu button, which opened the sidebar, across light and dark; system back
+returned to the chat; and the same bot opened by a link showed back. The
+upload signature was verified. Play reported no loss of supported devices and
+only the existing non-blocking native dependency debug-symbol warning.
+
 ## Release 1.1.5
 
 Version 1.1.5 (10105) keeps the selected approval mode in the existing
