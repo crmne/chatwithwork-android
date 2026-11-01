@@ -129,8 +129,10 @@ data class Sidebar(
         val items: List<Bot>? = null
     ) {
         /** The list [key] names, or what's chosen on the web while it names none. */
-        fun chosenList(key: String?): ChatList? =
-            lists.firstOrNull { it.key == key } ?: lists.firstOrNull { it.current } ?: list
+        fun chosenList(key: String?): ChatList? = lists.firstOrNull { it.key == key }
+            ?: lists.firstOrNull { it.current }
+            ?: lists.firstOrNull { it.key == list?.key }
+            ?: list
     }
 
     /** One bot in the sidebar's Bots view (the web's `bots/_sidebar_bot`). */

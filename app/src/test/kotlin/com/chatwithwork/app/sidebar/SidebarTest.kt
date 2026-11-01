@@ -515,6 +515,13 @@ class SidebarTest {
     }
 
     @Test
+    fun `the web's list resolves to its choice, for its links, when no choice is marked current`() {
+        val bots = listed.bots!!
+        val unmarked = bots.copy(lists = bots.lists.map { it.copy(current = false) })
+        assertThat(unmarked.chosenList(null)?.newUrl).isEqualTo("/482139075/bots/new")
+    }
+
+    @Test
     fun `reads the new keys, which older servers leave out`() {
         assertThat(listed.bots!!.lists.last().url).isEqualTo("/482139075/projects/3")
         assertThat(withBots.bots!!.lists).isEmpty()

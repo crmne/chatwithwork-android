@@ -9,6 +9,7 @@ import android.text.Spanned
 import android.text.TextWatcher
 import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
+import android.view.TouchDelegate
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -555,6 +556,14 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             add.setOnClickListener {
                 if (bots) row.newUrl?.let(actions::openPath) else actions.startNewChat()
             }
+            // The square is the web's 36dp; a thumb gets 48dp from the row around it.
+            view.post {
+                val target = Rect()
+                add.getHitRect(target)
+                target.inset(-dp(ADD_TOUCH_SLOP_DP), -dp(ADD_TOUCH_SLOP_DP))
+                target.left += dp(ADD_TOUCH_SLOP_DP) / 2
+                view.touchDelegate = TouchDelegate(target, add)
+            }
         }
 
         private fun bindSearch(field: EditText, row: SidebarRow.Search) {
@@ -778,6 +787,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         private const val CHAT_ICON = "chat_bubble"
         private const val SYMBOL_WEIGHT = 400
         private const val GAP_DP = 8
+        private const val ADD_TOUCH_SLOP_DP = 6
         private const val PIN_GAP_DP = 2
 
         /** A bot's state's tone (`attention`, `negative`, `live`, `positive`, or none) as a dot's colour. */
