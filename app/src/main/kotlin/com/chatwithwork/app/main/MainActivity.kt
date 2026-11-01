@@ -127,6 +127,8 @@ class MainActivity :
     private val memory by lazy { SessionMemory(this) }
 
     private lateinit var drawer: DrawerLayout
+
+    private val sidebarOpening = SidebarOpening()
     private lateinit var root: View
     private lateinit var welcome: View
     private lateinit var sidebar: SidebarDrawer
@@ -489,8 +491,11 @@ class MainActivity :
 
     override fun openPath(path: String) {
         closeSidebarNow()
+        sidebarOpening.opening(AppUrls.absolute(path))
         navigator?.route(AppUrls.absolute(path))
     }
+
+    override fun takeSidebarOpening(location: String): Boolean = sidebarOpening.take(location)
 
     /**
      * Starts a new chat in the list the sidebar shows, as the web's New chat

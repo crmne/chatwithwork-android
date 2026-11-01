@@ -76,7 +76,9 @@ flashes as toasts). What differs on Android:
   are pushed over it; Settings and forms are modals. The sidebar, Material
   3's modal navigation drawer, opens from the menu button on the chat or a
   swipe from the edge, and the app draws it from the server's JSON
-  (section 11). Every screen but a modal has New chat in its top app bar.
+  (section 11). A page the sidebar opened keeps the menu button in its top
+  app bar, and what you reach from it gets back. Every screen but a modal
+  has New chat in its top app bar.
   Earlier builds had tabs (Chats, Bots and Settings in a floating
   toolbar) and read `android_v1.json`, the `native-tabs` meta tag and
   `data-native-tab-root`; keep serving those for them.

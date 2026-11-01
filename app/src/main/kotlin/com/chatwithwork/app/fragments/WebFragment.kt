@@ -30,6 +30,20 @@ import java.lang.ref.WeakReference
  */
 @HotwireDestinationDeepLink(uri = "hotwire://fragment/web")
 open class WebFragment : HotwireWebFragment() {
+    /** This screen is where the sidebar went, so its bar offers the sidebar rather than back. */
+    private var openedFromSidebar = false
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        openedFromSidebar = savedInstanceState?.getBoolean(OPENED_FROM_SIDEBAR)
+            ?: (host?.takeSidebarOpening(location) == true)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(OPENED_FROM_SIDEBAR, openedFromSidebar)
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
         inflater.inflate(R.layout.fragment_web, container, false)
 
@@ -63,9 +77,9 @@ open class WebFragment : HotwireWebFragment() {
         }
     }
 
-    /** The sidebar's button on the root, and New chat on every screen but a modal. */
+    /** The sidebar's button on the root and on what the sidebar opened, and New chat on every screen but a modal. */
     private fun addShellActions(toolbar: Toolbar) {
-        if (navigator.isAtStartDestination()) {
+        if (navigator.isAtStartDestination() || openedFromSidebar) {
             toolbar.setNavigationIcon(R.drawable.ic_menu)
             toolbar.navigationContentDescription = getString(R.string.sidebar_open)
             toolbar.setNavigationOnClickListener { host?.openSidebar() }
@@ -177,6 +191,9 @@ interface WebScreenHost {
 
     fun openSidebar()
 
+    /** Asked once by each new screen: whether the sidebar opened it, at [location]. */
+    fun takeSidebarOpening(location: String): Boolean
+
     fun startNewChat()
 }
 
@@ -185,6 +202,8 @@ interface WebScreenHost {
  * which WebView.zoomBy clamps to; it refuses 0.01 and below.
  */
 private const val MIN_ZOOM_FACTOR = 0.02f
+
+private const val OPENED_FROM_SIDEBAR = "opened_from_sidebar"
 
 private const val GROUP_SHELL = 0x0C0
 private const val ITEM_NEW_CHAT = 0x0C001
