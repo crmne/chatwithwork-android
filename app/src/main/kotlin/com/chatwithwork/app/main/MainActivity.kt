@@ -397,14 +397,14 @@ class MainActivity :
                 }
 
                 override fun onDrawerStateChanged(newState: Int) {
-                    // Starting to open: fetch now, so it's fresh as it lands,
-                    // and put the composer's keyboard away.
-                    if (newState != DrawerLayout.STATE_IDLE &&
-                        !drawer.isDrawerOpen(GravityCompat.START)
-                    ) {
-                        refreshSidebar()
-                        WindowCompat.getInsetsController(window, drawer).hide(WindowInsetsCompat.Type.ime())
-                    }
+                    if (newState == DrawerLayout.STATE_IDLE) return
+                    // Starting to open: fetch now, so it's fresh as it lands.
+                    if (!drawer.isDrawerOpen(GravityCompat.START)) refreshSidebar()
+                    // Moving either way, the keyboard goes: opening, the
+                    // composer's, and closing, the search's, or typing would
+                    // carry on in a field nobody can see.
+                    panel.findFocus()?.clearFocus()
+                    WindowCompat.getInsetsController(window, drawer).hide(WindowInsetsCompat.Type.ime())
                 }
             }
         )
