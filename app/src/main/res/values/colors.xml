@@ -42,5 +42,23 @@
     <!-- The mark's own colors, the same in both themes. -->
     <color name="mark_bubble">#FFFFFF</color>
     <color name="mark_scribble">#000000</color>
+    <!-- The bot on a Live Update's road: outlined only where the shade is light. -->
     <color name="icon_background">#06070B</color>
+    <!-- The Open Road card: fixed, with no light variant, as the iOS card is always dark. -->
+    <color name="road_canvas">#06070B</color>
+    <color name="road_ink">#E9ECF4</color>
+    <color name="road_ink_muted">#8D96AA</color>
+    <color name="road_grey">#4A5264</color>
+    <color name="road_line">#39404F</color>
+    <color name="road_plinth">#141824</color>
+    <color name="road_attention">#FFC247</color>
+    <color name="road_positive">#44FF9A</color>
+    <color name="road_negative">#FF7F61</color>
+    <color name="road_quiet">#2A3040</color>
+    <color name="road_dimmed_ahead">#6B7488</color>
+    <color name="road_dim">#AEB6C8</color>
+    <color name="road_attention_wash">#2B2315</color>
+    <color name="road_attention_edge">#6C5322</color>
+    <color name="road_negative_wash">#291714</color>
+    <color name="road_negative_edge">#612A1F</color>
 </resources>

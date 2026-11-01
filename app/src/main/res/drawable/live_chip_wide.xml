@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The bot as a silhouette, face "wide": the status bar allows only an alpha mask. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+    <path
+        android:fillColor="@android:color/white"
+        android:fillType="evenOdd"
+        android:pathData="M3,12L1,12L1,11L0,11L0,3L1,3L1,2L15,2L15,3L16,3L16,11L15,11L15,12L7,12L7,13L6,13L6,14L5,14L5,15L3,15ZM13,4L13,8L10,8L10,4ZM3,4L6,4L6,8L3,8ZM4,6L5,6L5,5L4,5ZM12,5L11,5L11,6L12,6Z" />
+</vector>

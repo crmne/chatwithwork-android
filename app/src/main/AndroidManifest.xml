@@ -5,7 +5,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Android 16's Live Updates: a chat left answering shows as promoted ongoing progress. -->
-    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
     <!--
       Dictation in the composer: the page records with getUserMedia. Android
       asks for the microphone the first time; the web view needs
@@ -161,6 +160,10 @@
             android:noHistory="true"
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <receiver
+            android:name=".push.LiveUpdateDismissed"
+            android:exported="false" />
 
         <receiver
             android:name=".shortcuts.AskWidget"

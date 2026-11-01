@@ -529,13 +529,10 @@ naming the token, for a token that's gone: destroy the registration. Retry
 
 When the person leaves the app while the chat on screen is answering (its
 composer says `working`), the app posts an ongoing notification for that
-chat: a native BigTextStyle status card, promoted where the system allows (the
-status bar chip, and OEM surfaces built on it such as OnePlus's and OPPO's
-Live Alerts), the current step, the organization's name and an elapsed
-timer, never the chat's title or content. It uses the chat's notification
+chat: the Open Road card, as on iOS (`docs/push-notifications.md`), with the
+current step, the organization's name and an elapsed timer, never the chat's title or content. It uses the chat's notification
 slot (tag `chat-<organization>-<number>`, the `thread` the server sends), so
-the push that ends the wait (`answered`, `approval_waiting`,
-`input_requested`, `failed`) takes its place and `resolved` clears it.
+the push for its end (`answered`, `failed`) takes its place.
 It's taken away when the person comes back, and after 30 minutes if
 nothing ends it. It only shows for someone who turned push on.
 
@@ -555,18 +552,52 @@ chat (`collapse_key` `progress-<thread>`) and kept two minutes:
 ```json
 { "kind": "progress", "path": "/482139075/chats/42", "thread": "chat-482139075-42",
   "phase": "answering", "message": "Searching Todoist", "step": "search", "steps": "3",
-  "sent_at": "1793039262987" }
+  "recent_steps": "[\"read\",\"search\"]",
+  "sent_at": "1793039262987",
+  "run": "6f1c0a4e9d2b4c7183a0e5d9b7c21f46", "revision": "12", "started_at": "1793039201" }
 ```
+
+**Runs (2026-10-31).** `run`, `revision` and `started_at` are optional and
+come on every `progress` message, and the composer's state carries them as
+`run`, `revision` and `startedAt` (numbers) while it says `working` or
+`waiting`, null otherwise. A run is one turn: a question until it's answered, through
+steering and waits for the person. A new question or a retry is a new run.
+`run` is opaque and content-free, `revision` orders everything within it,
+and `started_at` (unix seconds) never changes within it. `follow` sends
+`run` as `live_activity.run`, and a `409` means that run is over: the app
+takes its card away, since nothing would end it. A `201` answers with
+`id`, `run`, `revision` and `started_at`.
+
+Only `answered`, `failed` and `stopped` end a run. `approval_waiting` and
+`input_requested` are `progress` messages at high priority with
+`waiting_since`: the card stays ongoing, with the push for the wait beside it
+(tag `<thread>-wait`, which `resolved` clears), and the next step takes over.
+The server repeats the state every 4 minutes with `heard_at`, also while
+waiting, which renews the card's 30-minute timeout. Also optional, and
+content-free, for the card's road (below): `service`, `services` (JSON string),
+`trail`, `pace`, `agents`, and `heard_at`.
+
+The app keeps one record per thread (`LiveRuns`, kept apart from the card):
+the run, its start, the newest revision heard and whether it was dismissed.
+A message that names a run is taken only if it's that run's and a newer
+revision, or at the same revision a newer `sent_at` with no end there yet, so
+a late end for answer A can't touch B's card, even before B's first step. A
+person clearing a working card (`setDeleteIntent`) suppresses that run: it
+isn't shown or followed again, and a later run is. The app taking its own card
+away on return sends no delete intent, and a timeout (which does) is told
+apart by the card's age. Sign-out ends every card, clears the records and
+stops requests already under way. A server that sends no `run` gets
+the `sent_at` rules below, and a card from before runs adopts the first run it
+hears.
 
 `message` is the step in the words of the chat's activity line ("Searching
 Todoist", "Reading 3 files in Drive", "Running code", "Writing the answer",
 "Answering" between steps), `step` its kind (`search`, `list`, `read`, `use`,
 `plan`, `run`, `ask`, `write`, `answer`), `steps` how many it took, never a
 query, file name, title or text. The app shows `message` as the Live
-Update's title, the organization and the steps under it, and a short word
-for the step in the status bar chip ("Search", "Read", "Run"). When the
+Update's headline, with the organization and the steps above it. When the
 answer ends, the same kind comes with `phase` `answered`,
-`approval_waiting`, `input_requested`, `failed` or `stopped` and generic
+`failed` or `stopped` and generic
 words for it, never collapsed and kept a day, and the Live Update becomes a
 quiet notification saying so, until the push for that end (if the person
 gets one) takes its place. `sent_at` is the server's clock in milliseconds:
@@ -577,15 +608,43 @@ old end cannot replace new progress. A failed end can also carry
 `notification_id`: the app validates it using the same endpoint before
 ending the card, preserving current progress if the failure is suppressed.
 
-The card uses the step's icon and meaning color, "3 steps so far" (including
-a step still running), and Open chat. Ended states stop the timer and use
-Read answer, Review change or Reply as appropriate. Every action opens the
+Optional `recent_steps`, which older app versions show, is ignored now: the
+road says the same thing.
+
+The card is Open Road. `service` is the built-in key of the step now, `mcp` or
+`computer`, and shows as a logo only if the app bundles it (`LiveServices`);
+it's never a name a person gave. `services` is the same keys, oldest first,
+and the newest four are the road's stops. `trail` is the last 48 steps, one
+letter each (`s l r u p x a w`, in the order of `step`'s kinds with `x` for
+`run`), upper case when one failed or was denied; the app drops anything else.
+`pace` is one digit per `trail` letter, how long that step took: 1 under 2
+seconds, 2 under 10, 3 under 60, 4 a minute or more; without exactly that, every
+tick is the same height. `agents`, from 2, forks the road into two lanes or three
+bots and a count. Every Android version draws the iOS card as a custom
+notification (`docs/push-notifications.md`), and upper-case letters show faded.
+
+An `end` message carries only `phase`, `message`, `run`, `revision`,
+`started_at` and `heard_at`: the card keeps its last steps, trail and services
+in its extras, so its road stays. `heard_at` minus `started_at` is the fixed
+time a finished or stopped card shows. Without `service`, `trail` or `services`
+(an older server), the road is counted from `steps`, with no stops.
+
+The current action is the headline. Organization and the native timer remain
+secondary. The timer counts from the run's `started_at`, the same across
+leaving and returning and across process restarts; an older server sends none,
+and it follows time in the background.
+A blank or missing
+message uses a localized fallback for `step`; `answer` means generic
+answering/thinking, while `write` means streaming the answer. The active
+card itself opens the chat. Ended states retain the last real step count
+when the end payload omits it, stop the timer, and use Review or Reply when
+waiting and Open when failed; finished and stopped cards have no button.
+Every action opens the
 authenticated chat; none approves a change from the notification. There is
-no percentage or ETA because the amount of work is not known. Android's
+no percentage or ETA because the amount of work is not known. It's a custom
+RemoteViews notification on every version, which Android's
 [Live Updates API](https://developer.android.com/develop/ui/views/notifications/live-update)
-supports BigTextStyle; the app requests promoted ongoing display, while
-older Android versions and phones that disable promotion keep a standard
-native notification. Custom RemoteViews are not used.
+never promotes, so it has no status bar chip.
 
 When to send is the iOS contract's "When", unchanged. The app files
 approvals and questions under the "Approvals and questions" channel, and

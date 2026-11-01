@@ -130,4 +130,16 @@ class PushTest {
         assertThat(Push.from(mapOf("kind" to "approval_waiting"))).isNull()
         assertThat(Push.from(mapOf("kind" to "marketing", "path" to path))).isNull()
     }
+
+    @Test
+    fun `pace counts only when it speaks for every step of the trail`() {
+        assertThat(LiveProgress.pace("1234", "srlu")).isEqualTo("1234")
+        assertThat(LiveProgress.pace("123", "srlu")).isNull()
+        assertThat(LiveProgress.pace("12x4", "srlu")).isNull()
+        assertThat(LiveProgress.pace("1234", null)).isNull()
+        assertThat(LiveProgress.pace(null, "srlu")).isNull()
+        // A letter the app drops takes its digit with it, so they stay in step.
+        assertThat(LiveProgress.pace("1234", "s?lu")).isEqualTo("134")
+        assertThat(LiveProgress.pace("1".repeat(50) + "22", "s".repeat(52))).isEqualTo("1".repeat(46) + "22")
+    }
 }
