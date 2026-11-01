@@ -565,7 +565,11 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             view.post {
                 val target = Rect()
                 add.getHitRect(target)
-                target.set(target.left - dp(ADD_REACH_START_DP), 0, view.width, view.height)
+                if (view.layoutDirection == View.LAYOUT_DIRECTION_RTL) {
+                    target.set(0, 0, target.right + dp(ADD_REACH_START_DP), view.height)
+                } else {
+                    target.set(target.left - dp(ADD_REACH_START_DP), 0, view.width, view.height)
+                }
                 view.touchDelegate = TouchDelegate(target, add).takeIf { add.isVisible }
             }
         }
