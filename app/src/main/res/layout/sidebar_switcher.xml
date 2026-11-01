@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  What the sidebar is about, at its top: Private chats, All chats, or a
-  project, opening the chooser. In the Bots view, the card for the Bots page:
-  "Bots in" the organization, how many, and what's working or waiting.
+  The card an older server's Bots view has for a head: "Bots in" the
+  organization, how many, and what's working or waiting, opening the Bots page.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -23,7 +22,7 @@
         android:background="@drawable/sidebar_mark"
         android:importantForAccessibility="no">
 
-        <!-- A project's initials; Private chats and All chats draw a symbol instead. -->
+        <!-- The bot mark, in sidebar_switcher_symbol. -->
         <TextView
             android:id="@+id/sidebar_switcher_mark"
             android:layout_width="match_parent"

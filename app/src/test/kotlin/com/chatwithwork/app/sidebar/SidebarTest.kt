@@ -55,8 +55,7 @@ class SidebarTest {
         assertThat(guest.bots).isNull()
         assertThat(guest.links.bots).isNull()
         val rows = SidebarRow.build(guest, "", null, "Pinned", botsKnown = true)
-        assertThat(rows.filterIsInstance<SidebarRow.Nav>().map { it.kind })
-            .containsExactly(SidebarRow.Nav.Kind.NEW_CHAT)
+        assertThat(rows.filterIsInstance<SidebarRow.Nav>()).isEmpty()
         assertThat(rows.filterIsInstance<SidebarRow.Views>()).isEmpty()
         // Guests have no switch, but Decisions still leads.
         assertThat(rows.first()).isEqualTo(SidebarRow.Decisions(0, selected = false))
@@ -64,25 +63,62 @@ class SidebarTest {
     }
 
     @Test
-    fun `rows follow the web with actions and pins before search then chats by day`() {
+    fun `rows follow the web with the head, the search, pins, then the chats in one list`() {
         val rows = SidebarRow.build(sidebar, "", "$base/482139075/chats/41?x=1", "Pinned", botsKnown = true)
         assertThat(rows[0]).isEqualTo(SidebarRow.Decisions(1, selected = false))
-        assertThat(rows[1]).isEqualTo(SidebarRow.Switcher(sidebar.list!!))
-        assertThat(rows[2]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.NEW_CHAT))
-        assertThat(
-            rows[3]
-        ).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.INSTRUCTIONS, url = sidebar.links.instructions))
-        assertThat(rows[4]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.BOTS, meta = "08:30", attention = false))
-        assertThat(rows[7]).isEqualTo(SidebarRow.Search)
-        assertThat(rows.filterIsInstance<SidebarRow.Section>().map { it.title })
-            .containsExactly("Pinned", "Today", "Yesterday")
-            .inOrder()
+        assertThat(rows[1]).isEqualTo(
+            SidebarRow.Head(sidebar.list!!, SidebarRow.View.CHATS, canAdd = true, newUrl = sidebar.links.newChat)
+        )
+        assertThat(rows[2]).isEqualTo(SidebarRow.Search(SidebarRow.View.CHATS, "Website relaunch"))
+        assertThat(rows[3]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.BOTS, meta = "08:30", attention = false))
+        assertThat(rows[4]).isEqualTo(SidebarRow.Section("Pinned"))
+        assertThat(rows[5]).isEqualTo(SidebarRow.ChatRow(sidebar.pins.single(), selected = false, pinned = true))
+        assertThat(rows.filterIsInstance<SidebarRow.Section>().map { it.title }).containsExactly("Pinned")
         val selected = rows.filterIsInstance<SidebarRow.ChatRow>().filter { it.selected }
         assertThat(selected.map { it.chat.number }).containsExactly(41L)
+        assertThat(rows.filterIsInstance<SidebarRow.SeeAll>()).isEmpty()
     }
 
     @Test
-    fun `searching filters by every word and hides the actions`() {
+    fun `New chat is raised on its page, whatever project it starts in`() {
+        val head = SidebarRow.build(sidebar, "", "$base/482139075/chats/new", "Pinned", botsKnown = true)[1]
+        assertThat((head as SidebarRow.Head).adding).isTrue()
+    }
+
+    @Test
+    fun `a guest's head has no plus`() {
+        val guest = sidebar.copy(links = sidebar.links.copy(newChat = null))
+        val head = SidebarRow.build(guest, "", null, "Pinned", botsKnown = true)[1] as SidebarRow.Head
+        assertThat(head.canAdd).isFalse()
+    }
+
+    @Test
+    fun `the list ends with its page once it holds everything, and not while searching`() {
+        val whole = sidebar.copy(next = null, links = sidebar.links.copy(chats = "/482139075/projects/3"))
+        assertThat(SidebarRow.build(whole, "", null, "Pinned", botsKnown = true).last())
+            .isEqualTo(SidebarRow.SeeAll("/482139075/projects/3", "Website relaunch"))
+        assertThat(
+            SidebarRow.build(whole, "launch", null, "Pinned", botsKnown = true).filterIsInstance<SidebarRow.SeeAll>()
+        ).isEmpty()
+        val empty = whole.copy(chats = emptyList())
+        assertThat(SidebarRow.build(empty, "", null, "Pinned", botsKnown = true).filterIsInstance<SidebarRow.SeeAll>())
+            .isEmpty()
+        // A server from before 2026-11-01 sends no page.
+        assertThat(
+            SidebarRow.build(sidebar.copy(next = null), "", null, "Pinned", botsKnown = true)
+                .filterIsInstance<SidebarRow.SeeAll>()
+        ).isEmpty()
+    }
+
+    @Test
+    fun `an empty list says what shows there`() {
+        val empty = sidebar.copy(chats = emptyList(), pins = emptyList())
+        assertThat(SidebarRow.build(empty, "", null, "Pinned", botsKnown = true).last())
+            .isEqualTo(SidebarRow.Empty(SidebarRow.Empty.Kind.NO_PROJECT_CHATS, "Website relaunch"))
+    }
+
+    @Test
+    fun `searching filters by every word and hides the Bots row`() {
         val rows = SidebarRow.build(sidebar, "  LAUNCH  plan ", null, "Pinned", botsKnown = true)
         assertThat(rows.filterIsInstance<SidebarRow.Nav>()).isEmpty()
         assertThat(rows.first()).isEqualTo(SidebarRow.Decisions(1, selected = false))
@@ -197,7 +233,7 @@ class SidebarTest {
     }
 
     @Test
-    fun `sections follow the pins, a closed one hides its chats, and the rest go under Other chats`() {
+    fun `sections follow the search and pins, a closed one hides its chats, and the rest go under Other chats`() {
         val rows = SidebarRow.build(withSections, "", null, "Pinned", botsKnown = true, otherTitle = "Other chats")
         val after = rows.dropWhile { it !is SidebarRow.Section }
         assertThat(
@@ -210,7 +246,7 @@ class SidebarTest {
                 }
             }
         ).containsExactly(
-            "Pinned", "7", "Search", "[Customers]", "37", "[Hiring]", "Other chats", "42", "41", "40"
+            "Pinned", "7", "[Customers]", "37", "[Hiring]", "Other chats", "42", "41", "40"
         ).inOrder()
 
         // A search finds chats in sections too, closed ones included.
@@ -266,14 +302,14 @@ class SidebarTest {
     fun `an older server keeps the Bots row, a newer one puts the switch under Decisions`() {
         val old = SidebarRow.build(sidebar, "", null, "Pinned", botsKnown = true, view = SidebarRow.View.BOTS)
         assertThat(old.filterIsInstance<SidebarRow.Views>()).isEmpty()
-        assertThat(old[4]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.BOTS, meta = "08:30", attention = false))
+        assertThat(old[3]).isEqualTo(SidebarRow.Nav(SidebarRow.Nav.Kind.BOTS, meta = "08:30", attention = false))
 
         val chats = SidebarRow.build(withBots, "", null, "Pinned", botsKnown = true)
         assertThat(chats[0]).isInstanceOf(SidebarRow.Decisions::class.java)
         assertThat(chats[1]).isEqualTo(SidebarRow.Views(SidebarRow.View.CHATS, botsAttention = true))
-        assertThat(chats[2]).isEqualTo(SidebarRow.Switcher(withBots.list!!))
-        assertThat(chats.filterIsInstance<SidebarRow.Nav>().map { it.kind })
-            .containsExactly(SidebarRow.Nav.Kind.NEW_CHAT, SidebarRow.Nav.Kind.INSTRUCTIONS)
+        assertThat(chats[2]).isInstanceOf(SidebarRow.Head::class.java)
+        // Neither New chat nor Instructions is a row any more.
+        assertThat(chats.filterIsInstance<SidebarRow.Nav>()).isEmpty()
         assertThat(chats.filterIsInstance<SidebarRow.ChatRow>()).isNotEmpty()
 
         // Both stay at the top while searching, above the field.
@@ -283,7 +319,7 @@ class SidebarTest {
     }
 
     @Test
-    fun `the Bots half draws Decisions, the switch, the card, New bot, then the bots by group`() {
+    fun `an older server's Bots half draws Decisions, the switch, the card, New bot, then the bots by group`() {
         val rows = SidebarRow.build(
             withBots,
             "",
@@ -303,7 +339,7 @@ class SidebarTest {
             .inOrder()
         assertThat(rows.filterIsInstance<SidebarRow.BotRow>().filter { it.selected }.map { it.bot.id })
             .containsExactly(3L)
-        assertThat(rows).doesNotContain(SidebarRow.Search)
+        assertThat(rows.filterIsInstance<SidebarRow.Search>()).isEmpty()
         assertThat(rows.filterIsInstance<SidebarRow.ChatRow>()).isEmpty()
 
         // One group alone has no heading; no bots at all says where they'll show.
@@ -358,9 +394,131 @@ class SidebarTest {
         assertThat(SidebarRow.isCurrent(bot, null)).isFalse()
     }
 
+    private val listed = Sidebar.parse(
+        json.replace(
+            """"bots": {"count": 0, "attention": false, "next_run": "08:30"}""",
+            botsJson.replace(
+                "\"items\": [",
+                """"list": {"key": "all", "name": "All bots", "kind": "all", "hq": false},
+                   "lists": [{"key": "recent", "name": "My bots", "kind": "recent", "new_url": "/482139075/bots/new"},
+                             {"key": "all", "name": "All bots", "kind": "all", "current": true, "new_url": "/482139075/bots/new"},
+                             {"key": "3", "name": "Support", "kind": "project", "url": "/482139075/projects/3", "new_url": "/482139075/bots/new?project_id=3"}],
+                   "items": ["""
+            )
+                .replace(
+                    """"id": 5, "name": "Support triage",""",
+                    """"id": 5, "name": "Support triage", "description": "Answers refunds", "lists": ["all", "3"],"""
+                )
+                .replace(
+                    """"id": 3, "name": "Morning briefing",""",
+                    """"id": 3, "name": "Morning briefing", "description": null, "lists": ["all", "recent"],"""
+                )
+                .replace(
+                    """"id": 4, "name": "Weekly report",""",
+                    """"id": 4, "name": "Weekly report", "lists": ["all", "recent"],"""
+                )
+        )
+    )
+
+    private fun botRows(query: String = "", list: String? = null, current: String? = null) = SidebarRow.build(
+        listed,
+        query,
+        current,
+        "Pinned",
+        botsKnown = true,
+        view = SidebarRow.View.BOTS,
+        botList = list
+    )
+
+    private fun ids(rows: List<SidebarRow>) = rows.filterIsInstance<SidebarRow.BotRow>().map { it.bot.id }
+
     @Test
-    fun `a project's mark is its initials`() {
-        assertThat(SidebarDrawer.initialsOf("Website relaunch")).isEqualTo("WR")
-        assertThat(SidebarDrawer.initialsOf("hq")).isEqualTo("H")
+    fun `the Bots view opens as the Chats view does, on the list chosen on the web`() {
+        val rows = botRows()
+        val chats = SidebarRow.build(listed, "", null, "Pinned", botsKnown = true)
+        assertThat(rows[0]).isInstanceOf(SidebarRow.Decisions::class.java)
+        assertThat(rows[1]).isEqualTo(SidebarRow.Views(SidebarRow.View.BOTS, botsAttention = true))
+        assertThat(rows[2]).isEqualTo(
+            SidebarRow.Head(
+                listed.bots!!.lists[1],
+                SidebarRow.View.BOTS,
+                canAdd = true,
+                newUrl = "/482139075/bots/new",
+                waiting = 2
+            )
+        )
+        assertThat(rows[3]).isEqualTo(SidebarRow.Search(SidebarRow.View.BOTS, null))
+        assertThat(rows.take(4).map { it::class }).isEqualTo(chats.take(4).map { it::class })
+        assertThat(ids(rows)).containsExactly(5L, 3L, 4L).inOrder()
+        assertThat(rows.filterIsInstance<SidebarRow.BotsCard>()).isEmpty()
+    }
+
+    @Test
+    fun `the list chosen here narrows the bots, New bot, the search's hint and what waits`() {
+        val mine = botRows(list = "recent")
+        assertThat(ids(mine)).containsExactly(3L, 4L).inOrder()
+        assertThat((mine[2] as SidebarRow.Head).waiting).isEqualTo(0)
+        assertThat(mine.filterIsInstance<SidebarRow.Section>()).isEmpty()
+
+        val project = botRows(list = "3")
+        assertThat(ids(project)).containsExactly(5L)
+        assertThat((project[2] as SidebarRow.Head).newUrl).isEqualTo("/482139075/bots/new?project_id=3")
+        assertThat(project[3]).isEqualTo(SidebarRow.Search(SidebarRow.View.BOTS, "Support"))
+
+        // A list that's gone falls back to the server's.
+        assertThat((botRows(list = "99")[2] as SidebarRow.Head).list.key).isEqualTo("all")
+    }
+
+    @Test
+    fun `the search looks in a bot's name and what it does, every word, not its state`() {
+        assertThat(ids(botRows("REFUNDS"))).containsExactly(5L)
+        assertThat(ids(botRows("triage answers"))).containsExactly(5L)
+        assertThat(ids(botRows("paused"))).isEmpty()
+        assertThat(botRows("paused").last()).isEqualTo(SidebarRow.Empty(SidebarRow.Empty.Kind.NO_BOT_MATCHES))
+    }
+
+    @Test
+    fun `New bot is raised on its page, an empty list says so, and no bots at all offers New bot`() {
+        val head = botRows(current = "$base/482139075/bots/new")[2] as SidebarRow.Head
+        assertThat(head.adding).isTrue()
+
+        val bots = listed.bots!!
+        val elsewhere = listed.copy(bots = bots.copy(items = bots.items!!.filter { "3" !in it.lists }))
+        val empty = SidebarRow.build(
+            elsewhere,
+            "",
+            null,
+            "Pinned",
+            botsKnown = true,
+            view = SidebarRow.View.BOTS,
+            botList = "3"
+        )
+        assertThat(empty.last()).isEqualTo(SidebarRow.Empty(SidebarRow.Empty.Kind.NO_BOTS))
+
+        val none = listed.copy(bots = bots.copy(items = emptyList()))
+        val noneRows = SidebarRow.build(none, "", null, "Pinned", botsKnown = true, view = SidebarRow.View.BOTS)
+        assertThat(noneRows.last()).isEqualTo(SidebarRow.NoBots("/482139075/bots/new"))
+    }
+
+    @Test
+    fun `a chosen list with no choices to go with it keeps the card`() {
+        val bots = listed.bots!!
+        val rows = SidebarRow.build(
+            listed.copy(bots = bots.copy(lists = emptyList())),
+            "",
+            null,
+            "Pinned",
+            botsKnown = true,
+            view = SidebarRow.View.BOTS
+        )
+        assertThat(rows.filterIsInstance<SidebarRow.BotsCard>()).hasSize(1)
+    }
+
+    @Test
+    fun `reads the new keys, which older servers leave out`() {
+        assertThat(listed.bots!!.lists.last().url).isEqualTo("/482139075/projects/3")
+        assertThat(withBots.bots!!.lists).isEmpty()
+        assertThat(withBots.bots!!.items!!.first().description).isNull()
+        assertThat(sidebar.links.chats).isNull()
     }
 }

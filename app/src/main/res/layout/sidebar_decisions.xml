@@ -4,26 +4,28 @@
   a button of its own just before the Chats | Bots switch, outlined like the
   list switcher since it's the one thing in the sidebar that asks for the
   person. The list-checks icon, "Decisions" spelled out, and at its end how
-  many wait as a small attention badge, or a quiet "None".
+  many wait as a small attention badge, or the happy bot and a quiet "All clear".
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="48dp"
-    android:layout_marginBottom="6dp"
+    android:layout_height="36dp"
+    android:layout_marginBottom="8dp"
     android:background="@drawable/sidebar_decisions"
     android:focusable="true"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="14dp"
-    android:paddingEnd="10dp">
+    android:paddingStart="10dp"
+    android:paddingEnd="6dp">
 
     <ImageView
         android:id="@+id/sidebar_decisions_icon"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_marginEnd="10dp"
-        android:importantForAccessibility="no" />
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_marginEnd="8dp"
+        android:importantForAccessibility="no"
+        android:scaleType="center" />
 
     <TextView
         android:layout_width="0dp"
@@ -33,21 +35,25 @@
         android:importantForAccessibility="no"
         android:maxLines="1"
         android:text="@string/sidebar_waiting"
-        android:textAppearance="?attr/textAppearanceTitleSmall"
-        android:textColor="?attr/colorOnSurface" />
+        android:fontFamily="@font/geist_semibold"
+        app:fontFamily="@font/geist_semibold"
+        android:includeFontPadding="false"
+        android:textColor="@color/lw_ink"
+        android:textSize="14sp" />
 
     <TextView
         android:id="@+id/sidebar_decisions_count"
         android:layout_width="wrap_content"
-        android:layout_height="24dp"
+        android:layout_height="22dp"
         android:layout_marginStart="8dp"
         android:background="@drawable/sidebar_decisions_count"
         android:fontFeatureSettings="tnum"
         android:fontFamily="@font/geist_semibold"
+        app:fontFamily="@font/geist_semibold"
         android:gravity="center"
         android:importantForAccessibility="no"
         android:includeFontPadding="false"
-        android:minWidth="24dp"
+        android:minWidth="22dp"
         android:paddingHorizontal="7dp"
         android:textColor="@color/lw_attention_ink"
         android:textSize="12sp"
@@ -60,9 +66,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:fontFamily="monospace"
+        android:drawablePadding="4dp"
+        android:fontFamily="@font/geist_mono_medium"
+        app:fontFamily="@font/geist_mono_medium"
+        android:gravity="center_vertical"
         android:importantForAccessibility="no"
-        android:paddingEnd="4dp"
+        android:paddingEnd="6dp"
         android:text="@string/sidebar_decisions_none"
         android:textColor="@color/lw_ink_faint"
         android:textSize="11sp"

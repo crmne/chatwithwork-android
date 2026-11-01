@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="welcome_padding">24dp</dimen>
-    <!-- Material 3's modal navigation drawer: 360dp at most, and never wider than the screen less a touch target. -->
-    <dimen name="sidebar_width">320dp</dimen>
+    <!-- As wide as the web's sidebar, whose numbers the sidebar's rows follow. -->
+    <dimen name="sidebar_width">288dp</dimen>
 </resources>

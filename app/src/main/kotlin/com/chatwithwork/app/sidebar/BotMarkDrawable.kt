@@ -25,8 +25,14 @@ import kotlin.random.Random
  * its bottom row, never with animations turned off (Remove animations, or an
  * animator scale of 0), nor while [blinks] is false (a paused bot holds still).
  */
-class BotMarkDrawable(context: Context, @ColorInt color: Int, sizeDp: Float = 20f, private val blinks: Boolean = true) :
-    Drawable(),
+class BotMarkDrawable(
+    context: Context,
+    @ColorInt color: Int,
+    sizeDp: Float = 20f,
+    private val blinks: Boolean = true,
+    /** Other eyes in place of its own, as `[x, y, width, height]` in the grid; [HAPPY], for nothing left to do. */
+    private val face: List<IntArray>? = null
+) : Drawable(),
     Runnable {
     private val sizePx = Math.round(sizeDp * context.resources.displayMetrics.density)
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
@@ -44,8 +50,9 @@ class BotMarkDrawable(context: Context, @ColorInt color: Int, sizeDp: Float = 20
         if (framesFor != bounds) {
             val left = bounds.left + (bounds.width() - side) / 2f
             val top = bounds.top + (bounds.height() - side) / 2f
-            open = frame(left, top, side / GRID.size, "#Ee")
-            closed = frame(left, top, side / GRID.size, "#e")
+            val cell = side / GRID.size
+            open = if (face != null) faceFrame(left, top, cell, face) else frame(left, top, cell, "#Ee")
+            closed = frame(left, top, cell, "#e")
             framesFor = Rect(bounds)
         }
         canvas.drawPath(if (blinking) closed else open, paint)
@@ -69,6 +76,22 @@ class BotMarkDrawable(context: Context, @ColorInt color: Int, sizeDp: Float = 20
             }
         }
     }
+
+    private fun faceFrame(left: Float, top: Float, cell: Float, eyes: List<IntArray>) =
+        frame(left, top, cell, "#").also { path ->
+            eyes.forEach { (x, y, width, height) ->
+                val eye = Path().apply {
+                    addRect(
+                        left + x * cell,
+                        top + y * cell,
+                        left + (x + width) * cell,
+                        top + (y + height) * cell,
+                        Path.Direction.CW
+                    )
+                }
+                path.op(eye, Path.Op.UNION)
+            }
+        }
 
     override fun setVisible(visible: Boolean, restart: Boolean): Boolean {
         val changed = super.setVisible(visible, restart)
@@ -124,6 +147,16 @@ class BotMarkDrawable(context: Context, @ColorInt color: Int, sizeDp: Float = 20
             "...#.#..........",
             "...##...........",
             "................"
+        )
+
+        /** The web's happy face (BotMark::FACES): eyes that smile, for nothing left to do. */
+        val HAPPY = listOf(
+            intArrayOf(3, 7, 1, 1),
+            intArrayOf(4, 6, 2, 1),
+            intArrayOf(6, 7, 1, 1),
+            intArrayOf(9, 7, 1, 1),
+            intArrayOf(10, 6, 2, 1),
+            intArrayOf(12, 7, 1, 1)
         )
 
         private const val CLOSED_MS = 120L

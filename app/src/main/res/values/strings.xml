@@ -4,13 +4,17 @@
 
     <!-- The sidebar -->
     <string name="new_chat">New chat</string>
-    <string name="sidebar_instructions">Instructions</string>
     <string name="settings">Settings</string>
     <string name="sidebar_open">Open the sidebar</string>
     <string name="sidebar_search">Search chats</string>
+    <string name="sidebar_search_bots">Search bots</string>
+    <string name="sidebar_search_in">Search %1$s</string>
+    <string name="sidebar_new_in">%1$s in %2$s</string>
+    <string name="sidebar_see_all">See all, by date</string>
+    <string name="sidebar_open_project">Open %1$s</string>
     <string name="sidebar_waiting">Decisions</string>
     <string name="sidebar_nothing_waiting">No decisions are waiting.</string>
-    <string name="sidebar_decisions_none">None</string>
+    <string name="sidebar_decisions_none">All clear</string>
     <plurals name="sidebar_decisions_description">
         <item quantity="one">Decisions, %d decision waiting for you</item>
         <item quantity="other">Decisions, %d decisions waiting for you</item>
@@ -32,6 +36,10 @@
         <item quantity="one">%d working</item>
         <item quantity="other">%d working</item>
     </plurals>
+    <plurals name="sidebar_head_waiting">
+        <item quantity="one">%d waiting</item>
+        <item quantity="other">%d waiting</item>
+    </plurals>
     <plurals name="sidebar_bots_waiting">
         <item quantity="one">%d waiting for you</item>
         <item quantity="other">%d waiting for you</item>
@@ -41,7 +49,10 @@
     <string name="sidebar_bots_needs_you">Needs you</string>
     <string name="sidebar_bots_quiet">Quiet</string>
     <string name="sidebar_no_bots">Your bots, and the ones shared with you, show up here.</string>
-    <string name="sidebar_start_from_recipe">Start from a recipe</string>
+    <string name="sidebar_no_bots_here">No bots here yet.</string>
+    <string name="sidebar_no_bot_matches">No bots match.</string>
+    <string name="sidebar_bot_failed">Failed</string>
+    <string name="sidebar_bot_paused">Paused</string>
     <string name="sidebar_bot_shared_in">shared in %1$s</string>
     <plurals name="sidebar_bot_waiting">
         <item quantity="one">%d decision waiting for you</item>
@@ -57,16 +68,19 @@
         <item quantity="one">%d chat</item>
         <item quantity="other">%d chats</item>
     </plurals>
-    <string name="sidebar_project">Project</string>
-    <string name="sidebar_showing">Showing</string>
     <string name="sidebar_switcher_description">Showing %1$s. Choose what the sidebar shows.</string>
     <string name="sidebar_lists_title">Show chats from</string>
+    <string name="sidebar_bot_lists_title">Show bots from</string>
+    <string name="sidebar_lists_projects">Projects you\'re on</string>
+    <string name="sidebar_lists_only_you">only you</string>
     <string name="sidebar_all_projects">All projects…</string>
     <string name="sidebar_new_project">New project</string>
     <string name="sidebar_all_organizations">All organizations</string>
     <string name="sidebar_new_organization">New organization</string>
     <string name="sidebar_person_menu">%1$s. Organizations and settings.</string>
-    <string name="sidebar_no_chats">No chats here yet.</string>
+    <string name="sidebar_no_chats">Your chats show up here.</string>
+    <string name="sidebar_no_listed_chats">Chats you can read show up here.</string>
+    <string name="sidebar_no_project_chats">No chats in %1$s yet.</string>
     <string name="sidebar_no_matches">No chats match.</string>
     <string name="sidebar_chat_waiting">waiting for a decision</string>
     <string name="sidebar_chat_answering">answering</string>

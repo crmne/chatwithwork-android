@@ -1,25 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  A row of the sidebar: New chat, Bots, New bot, or a chat. Material's
-  navigation drawer item, a pill when it's the page showing, with a dot for
+  A row of the sidebar: a chat, or an older server's New bot or Bots. Like the
+  web's .sidebar__link, raised when it's the page showing, with a dot for
   state (answering, waiting) and a count or time at its end.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="48dp"
+    android:layout_height="35dp"
     android:background="@drawable/sidebar_row_background"
     android:focusable="true"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingHorizontal="14dp">
+    android:paddingHorizontal="10dp">
 
     <ImageView
         android:id="@+id/sidebar_row_icon"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
-        android:layout_marginEnd="12dp"
-        android:importantForAccessibility="no" />
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_marginEnd="10dp"
+        android:importantForAccessibility="no"
+        android:scaleType="center" />
 
     <TextView
         android:id="@+id/sidebar_row_label"
@@ -28,8 +29,8 @@
         android:layout_weight="1"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textAppearance="?attr/textAppearanceBodyLarge"
-        android:textColor="?attr/colorOnSurface"
+        android:textColor="@color/lw_ink_muted"
+        android:textSize="14sp"
         tools:text="Lisbon offsite budget" />
 
     <TextView

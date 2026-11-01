@@ -64,6 +64,7 @@ import com.chatwithwork.app.push.PushNotifications
 import com.chatwithwork.app.routing.AppUrls
 import com.chatwithwork.app.routing.BrowserTabs
 import com.chatwithwork.app.routing.RouteDecisionHandlers
+import com.chatwithwork.app.sidebar.BotMarkDrawable
 import com.chatwithwork.app.sidebar.Sidebar
 import com.chatwithwork.app.sidebar.SidebarClient
 import com.chatwithwork.app.sidebar.SidebarDrawer
@@ -435,7 +436,8 @@ class MainActivity :
             data,
             navigator?.currentDestination?.location,
             botsKnown = viewModel.account != null,
-            view = SidebarRow.View.from(memory.sidebarView)
+            view = SidebarRow.View.from(memory.sidebarView),
+            botList = viewModel.account?.let(memory::botListKey)
         )
     }
 
@@ -528,43 +530,70 @@ class MainActivity :
         showSidebar()
     }
 
+    /** The switcher's menu, in the view showing, as the web's: My and All, the projects they're on, then the links. */
     override fun chooseList() {
         val data = viewModel.sidebar ?: return
         val account = viewModel.account ?: return
-        val actions =
-            data.lists.map { list ->
+        val bots = SidebarRow.View.from(memory.sidebarView) == SidebarRow.View.BOTS &&
+            data.bots?.lists.orEmpty().isNotEmpty()
+        val lists = if (bots) data.bots?.lists.orEmpty() else data.lists
+        val chosen = if (bots) data.bots?.chosenList(memory.botListKey(account)) else data.list
+        val projectHeader = getString(R.string.sidebar_lists_projects)
+        val choices = mutableListOf<Pair<ActionSheet.Action, () -> Unit>>()
+
+        var headed = false
+        lists.forEach { list ->
+            val action =
                 ActionSheet.Action(
                     title = list.name,
                     image =
                         when {
+                            list.pinned -> "keep"
                             list.hq -> "home_work"
                             list.isProject -> "folder"
                             list.kind == "all" -> "forum"
                             else -> "lock"
                         },
-                    checked = list.current
+                    icon = botMarkIcon().takeIf { bots && list.kind == "all" },
+                    checked = list.key == chosen?.key,
+                    subtitle =
+                        when {
+                            list.hq -> "HQ"
+                            list.kind == "recent" -> getString(R.string.sidebar_lists_only_you)
+                            else -> null
+                        },
+                    header = projectHeader.takeIf { list.isProject && !headed }
                 )
-            } +
-                listOfNotNull(
-                    data.links.projects?.let {
-                        ActionSheet.Action(getString(R.string.sidebar_all_projects), "folder_open")
-                    },
-                    data.links.newProject?.let { ActionSheet.Action(getString(R.string.sidebar_new_project), "add") }
-                )
-        ActionSheet.show(this, getString(R.string.sidebar_lists_title), actions) { index ->
-            val list = data.lists.getOrNull(index)
-            when {
-                list != null -> {
+            headed = headed || list.isProject
+            choices += action to {
+                if (bots) {
+                    memory.setBotListKey(account, list.key)
+                    showSidebar()
+                } else {
                     memory.setListKey(account, list.key)
                     refreshSidebar(all = false)
                 }
-
-                index == data.lists.size && data.links.projects != null -> openPath(data.links.projects)
-
-                else -> data.links.newProject?.let(::openPath)
             }
         }
+        chosen?.url?.let { url ->
+            choices += ActionSheet.Action(getString(R.string.sidebar_open_project, chosen.name), "open_in_new") to
+                { openPath(url) }
+        }
+        data.links.projects?.let { url ->
+            choices += ActionSheet.Action(getString(R.string.sidebar_all_projects), "folder_open") to { openPath(url) }
+        }
+        data.links.newProject?.let { url ->
+            choices += ActionSheet.Action(getString(R.string.sidebar_new_project), "add") to { openPath(url) }
+        }
+        val title = getString(if (bots) R.string.sidebar_bot_lists_title else R.string.sidebar_lists_title)
+        ActionSheet.show(this, title, choices.map { it.first }) { index -> choices[index].second() }
     }
+
+    private fun botMarkIcon() = BotMarkDrawable(
+        this,
+        MaterialColors.getColor(findViewById(R.id.sidebar), com.google.android.material.R.attr.colorOnSurfaceVariant),
+        blinks = false
+    ).apply { setBounds(0, 0, intrinsicWidth, intrinsicHeight) }
 
     /** A long press on a chat in the sidebar: what the web row's menu offers, at the row. */
     override fun showChatActions(chat: Sidebar.Chat, anchor: View) {

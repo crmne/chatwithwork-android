@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The one primary button in the sidebar: New bot, spelled out, for someone with no bots. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/ripple">
+    <item>
+        <shape>
+            <solid android:color="@color/lw_ink" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+</ripple>

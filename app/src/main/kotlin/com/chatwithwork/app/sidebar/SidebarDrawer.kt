@@ -2,7 +2,7 @@ package com.chatwithwork.app.sidebar
 
 import android.annotation.SuppressLint
 import android.content.res.ColorStateList
-import android.graphics.Typeface
+import android.graphics.Rect
 import android.text.Editable
 import android.text.SpannableStringBuilder
 import android.text.Spanned
@@ -19,10 +19,12 @@ import android.widget.RadioButton
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.AccessibilityDelegateCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
@@ -78,6 +80,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
     private var current: String? = null
     private var botsKnown = false
     private var view = SidebarRow.View.CHATS
+    private var botList: String? = null
     var query = ""
         private set
 
@@ -85,12 +88,13 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         list.layoutManager = LinearLayoutManager(context)
         list.adapter = adapter
         list.itemAnimator = null
+        list.addItemDecoration(Gaps())
         list.addOnScrollListener(
             object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     val manager = recyclerView.layoutManager as LinearLayoutManager
                     if (dy > 0 &&
-                        adapter.currentList.none { it is SidebarRow.BotsCard } &&
+                        view == SidebarRow.View.CHATS &&
                         manager.findLastVisibleItemPosition() >= adapter.itemCount - LOAD_MORE_AHEAD
                     ) {
                         actions.loadMore()
@@ -102,11 +106,12 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         render()
     }
 
-    fun show(sidebar: Sidebar?, current: String?, botsKnown: Boolean, view: SidebarRow.View) {
+    fun show(sidebar: Sidebar?, current: String?, botsKnown: Boolean, view: SidebarRow.View, botList: String?) {
         this.sidebar = sidebar
         this.current = current
         this.botsKnown = botsKnown
         this.view = view
+        this.botList = botList
         render()
     }
 
@@ -137,9 +142,13 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                 otherTitle = context.getString(R.string.sidebar_other_chats),
                 view = view,
                 needsYouTitle = context.getString(R.string.sidebar_bots_needs_you),
-                quietTitle = context.getString(R.string.sidebar_bots_quiet)
+                quietTitle = context.getString(R.string.sidebar_bots_quiet),
+                botList = botList
             )
-        ) { if (atTop) list.scrollToPosition(0) }
+        ) {
+            list.invalidateItemDecorations()
+            if (atTop) list.scrollToPosition(0)
+        }
         renderPerson()
     }
 
@@ -172,17 +181,52 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
 
     private fun symbol(
         name: String,
-        color: Int = MaterialColors.getColor(root, com.google.android.material.R.attr.colorOnSurface)
-    ) = SymbolDrawable(context, name, sizeDp = 22f, color = color).apply {
+        color: Int = MaterialColors.getColor(root, com.google.android.material.R.attr.colorOnSurface),
+        sizeDp: Float = 20f
+    ) = SymbolDrawable(context, name, sizeDp = sizeDp, color = color, weight = SYMBOL_WEIGHT).apply {
         setBounds(0, 0, intrinsicWidth, intrinsicHeight)
     }
 
     /** The bots' mark, kept at its own size so its squares stay whole pixels. */
     private fun botMark(
         color: Int = MaterialColors.getColor(root, com.google.android.material.R.attr.colorOnSurface),
-        sizeDp: Float = 20f,
-        blinks: Boolean = true
-    ) = BotMarkDrawable(context, color, sizeDp, blinks)
+        sizeDp: Float = 18f,
+        blinks: Boolean = true,
+        face: List<IntArray>? = null
+    ) = BotMarkDrawable(context, color, sizeDp, blinks, face)
+
+    private fun ink(color: Int) = ContextCompat.getColor(context, color)
+
+    /**
+     * The gaps around rows, the web's: they depend on the neighbours, which
+     * change without a row being bound again, so they aren't in its layout.
+     */
+    private inner class Gaps : RecyclerView.ItemDecoration() {
+        override fun getItemOffsets(outRect: Rect, view: View, parent: RecyclerView, state: RecyclerView.State) {
+            val position = parent.getChildAdapterPosition(view)
+            val rows = adapter.currentList
+            val row = rows.getOrNull(position) ?: return
+            val previous = rows.getOrNull(position - 1)
+            val unit = context.resources.displayMetrics.density
+            when {
+                row is SidebarRow.BotRow && previous is SidebarRow.Search -> outRect.top = (GAP_DP * unit).toInt()
+
+                row is SidebarRow.Section && previous is SidebarRow.Search -> outRect.top = (-GAP_DP * unit).toInt()
+
+                row is SidebarRow.ChatRow -> {
+                    val lastPin = row.pinned && (rows.getOrNull(position + 1) as? SidebarRow.ChatRow)?.pinned != true
+                    val under =
+                        when {
+                            lastPin -> GAP_DP
+                            row.pinned -> PIN_GAP_DP
+                            else -> 1
+                        }
+                    if (row.pinned && previous is SidebarRow.Section) outRect.top = (PIN_GAP_DP * unit).toInt()
+                    outRect.bottom = (under * unit).toInt()
+                }
+            }
+        }
+    }
 
     private fun hideKeyboard(view: View) {
         context.getSystemService<InputMethodManager>()?.hideSoftInputFromWindow(view.windowToken, 0)
@@ -190,13 +234,14 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
 
     private inner class RowsAdapter : ListAdapter<SidebarRow, RecyclerView.ViewHolder>(Diff) {
         override fun getItemViewType(position: Int): Int = when (getItem(position)) {
-            is SidebarRow.Switcher -> TYPE_SWITCHER
+            is SidebarRow.Head -> TYPE_HEAD
+            is SidebarRow.SeeAll -> TYPE_SEE_ALL
             is SidebarRow.BotsCard -> TYPE_SWITCHER
             is SidebarRow.Views -> TYPE_VIEWS
             is SidebarRow.Decisions -> TYPE_DECISIONS
             is SidebarRow.BotRow -> TYPE_BOT
             is SidebarRow.NoBots -> TYPE_NO_BOTS
-            SidebarRow.Search -> TYPE_SEARCH
+            is SidebarRow.Search -> TYPE_SEARCH
             is SidebarRow.Section -> TYPE_SECTION
             is SidebarRow.Empty -> TYPE_SECTION
             is SidebarRow.ChatSection -> TYPE_CHAT_SECTION
@@ -207,6 +252,8 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             val inflater = LayoutInflater.from(parent.context)
             val layout =
                 when (viewType) {
+                    TYPE_HEAD -> R.layout.sidebar_head
+                    TYPE_SEE_ALL -> R.layout.sidebar_see_all
                     TYPE_SWITCHER -> R.layout.sidebar_switcher
                     TYPE_SEARCH -> R.layout.sidebar_search
                     TYPE_SECTION -> R.layout.sidebar_section
@@ -225,55 +272,51 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             val view = holder.itemView
             when (val row = getItem(position)) {
-                is SidebarRow.Switcher -> bindSwitcher(view, row.list)
-
-                SidebarRow.Search -> Unit
-
+                is SidebarRow.Head -> bindHead(view, row)
+                is SidebarRow.Search -> bindSearch(view as EditText, row)
+                is SidebarRow.SeeAll -> bindSeeAll(view as TextView, row)
                 is SidebarRow.Section -> (view as TextView).text = row.title
-
-                is SidebarRow.Empty -> (view as TextView).setText(
-                    if (row.kind ==
-                        SidebarRow.Empty.Kind.NO_CHATS
-                    ) {
-                        R.string.sidebar_no_chats
-                    } else {
-                        R.string.sidebar_no_matches
-                    }
-                )
-
+                is SidebarRow.Empty -> (view as TextView).text = emptyText(row)
                 is SidebarRow.Nav -> bindNav(view, row)
-
                 is SidebarRow.ChatRow -> bindChat(view, row)
-
                 is SidebarRow.ChatSection -> bindChatSection(view, row.section)
-
                 is SidebarRow.BotsCard -> bindBotsCard(view, row)
-
                 is SidebarRow.Views -> bindViews(view, row)
-
                 is SidebarRow.Decisions -> bindDecisions(view, row)
-
                 is SidebarRow.BotRow -> bindBot(view, row)
-
                 is SidebarRow.NoBots -> bindNoBots(view, row)
             }
         }
 
+        private fun emptyText(row: SidebarRow.Empty): String = when (row.kind) {
+            SidebarRow.Empty.Kind.NO_CHATS -> context.getString(R.string.sidebar_no_chats)
+            SidebarRow.Empty.Kind.NO_LISTED_CHATS -> context.getString(R.string.sidebar_no_listed_chats)
+            SidebarRow.Empty.Kind.NO_PROJECT_CHATS -> context.getString(R.string.sidebar_no_project_chats, row.project)
+            SidebarRow.Empty.Kind.NO_MATCHES -> context.getString(R.string.sidebar_no_matches)
+            SidebarRow.Empty.Kind.NO_BOTS -> context.getString(R.string.sidebar_no_bots_here)
+            SidebarRow.Empty.Kind.NO_BOT_MATCHES -> context.getString(R.string.sidebar_no_bot_matches)
+        }
+
+        private fun dp(value: Int) = (value * context.resources.displayMetrics.density).toInt()
+
         private fun bindDecisions(view: View, row: SidebarRow.Decisions) {
             val waiting = row.count > 0
             view.findViewById<ImageView>(R.id.sidebar_decisions_icon).setImageDrawable(
-                SymbolDrawable(
-                    context,
-                    "checklist",
-                    sizeDp = 20f,
-                    color = ContextCompat.getColor(context, R.color.lw_ink_muted)
-                )
+                symbol("checklist", ink(R.color.lw_ink_muted), sizeDp = 20f)
             )
             view.findViewById<TextView>(R.id.sidebar_decisions_count).apply {
                 text = row.count.toString()
                 isVisible = waiting
             }
-            view.findViewById<View>(R.id.sidebar_decisions_none).isVisible = !waiting
+            view.findViewById<TextView>(R.id.sidebar_decisions_none).apply {
+                isVisible = !waiting
+                if (!waiting && compoundDrawablesRelative[0] == null) {
+                    val mark =
+                        botMark(ink(R.color.lw_ink_faint), sizeDp = 16f, blinks = false, face = BotMarkDrawable.HAPPY)
+                    mark.setBounds(0, 0, mark.intrinsicWidth, mark.intrinsicHeight)
+                    setCompoundDrawablesRelative(mark, null, null, null)
+                }
+            }
             view.isActivated = waiting
             view.isSelected = row.selected
             view.contentDescription =
@@ -286,13 +329,18 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         }
 
         private fun bindViews(view: View, row: SidebarRow.Views) {
-            val ink = MaterialColors.getColor(view, com.google.android.material.R.attr.colorOnSurface)
+            val chosen = ink(R.color.lw_ink)
+            val muted = ink(R.color.lw_ink_muted)
+            val chatsInk = if (row.view == SidebarRow.View.CHATS) chosen else muted
+            val botsInk = if (row.view == SidebarRow.View.BOTS) chosen else muted
             val chats = view.findViewById<View>(R.id.sidebar_view_chats)
             val bots = view.findViewById<View>(R.id.sidebar_view_bots)
             view.findViewById<ImageView>(R.id.sidebar_view_chats_icon)
-                .setImageDrawable(SymbolDrawable(context, "chat_bubble", sizeDp = 18f, color = ink))
+                .setImageDrawable(symbol("forum", chatsInk, sizeDp = 18f))
             view.findViewById<ImageView>(R.id.sidebar_view_bots_icon)
-                .setImageDrawable(botMark(ink, sizeDp = 16f, blinks = false))
+                .setImageDrawable(botMark(botsInk, sizeDp = 16f, blinks = false))
+            view.findViewById<TextView>(R.id.sidebar_view_chats_label).setTextColor(chatsInk)
+            view.findViewById<TextView>(R.id.sidebar_view_bots_label).setTextColor(botsInk)
             view.findViewById<View>(R.id.sidebar_view_bots_dot).isVisible = row.botsAttention
             chats.isSelected = row.view == SidebarRow.View.CHATS
             bots.isSelected = row.view == SidebarRow.View.BOTS
@@ -378,25 +426,48 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         private fun bindBot(view: View, row: SidebarRow.BotRow) {
             val bot = row.bot
             val paused = bot.state == "paused"
-            view.findViewById<ImageView>(R.id.sidebar_bot_mark).setImageDrawable(botMark(blinks = !paused))
+            val faint = ink(R.color.lw_ink_faint)
+            val nameInk =
+                when {
+                    row.selected -> ink(R.color.lw_ink)
+                    paused -> faint
+                    else -> ink(R.color.lw_ink_muted)
+                }
+            view.findViewById<ImageView>(R.id.sidebar_bot_mark)
+                .setImageDrawable(botMark(nameInk, blinks = !paused))
             view.findViewById<View>(R.id.sidebar_bot_live).isVisible = bot.working
-            view.findViewById<TextView>(R.id.sidebar_bot_name).text = bot.name
-            view.findViewById<TextView>(R.id.sidebar_bot_project).apply {
-                text = bot.project
+            view.findViewById<TextView>(R.id.sidebar_bot_name).apply {
+                text = bot.name
+                setTextColor(nameInk)
+            }
+            view.findViewById<ImageView>(R.id.sidebar_bot_project).apply {
                 isVisible = bot.project != null
+                setImageDrawable(symbol("folder", faint, sizeDp = 16f))
             }
             val waiting = bot.waiting > 0
+            view.findViewById<View>(R.id.sidebar_bot_dot).isVisible = waiting
             view.findViewById<TextView>(R.id.sidebar_bot_state).apply {
-                // A count is a number, set in mono like the other rows' counts; words stay in Geist.
-                val words = (tag as? Typeface) ?: typeface.also { tag = it }
-                text = if (waiting) bot.waiting.toString() else bot.stateLabel
-                isVisible = !text.isNullOrEmpty()
-                typeface = if (waiting) Typeface.MONOSPACE else words
-            }
-            val dot = if (waiting) R.color.lw_attention else toneColor(bot.tone)
-            view.findViewById<View>(R.id.sidebar_bot_dot).apply {
-                isVisible = waiting || bot.stateLabel != null
-                backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, dot))
+                // Its one state, as the web's end of the row; numbers and times are mono.
+                val (words, color) =
+                    when {
+                        waiting -> bot.waiting.toString() to faint
+
+                        bot.state == "failed" -> context.getString(R.string.sidebar_bot_failed) to
+                            ink(R.color.lw_negative_ink)
+
+                        paused -> context.getString(R.string.sidebar_bot_paused) to faint
+
+                        bot.state == "next" -> bot.nextRun to faint
+
+                        else -> null to faint
+                    }
+                val mono = waiting || bot.state == "next"
+                text = words
+                isVisible = words != null
+                setTextColor(color)
+                typeface =
+                    ResourcesCompat.getFont(context, if (mono) R.font.geist_mono_medium else R.font.geist_regular)
+                textSize = if (mono) 11f else 12f
             }
             view.isSelected = row.selected
             val state =
@@ -418,20 +489,85 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         }
 
         private fun bindNoBots(view: View, row: SidebarRow.NoBots) {
-            val link = view.findViewById<TextView>(R.id.sidebar_bots_recipe)
-            link.isVisible = row.url != null
-            link.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            val button = view.findViewById<TextView>(R.id.sidebar_bots_new)
+            button.isVisible = row.url != null
+            button.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                symbol("add", ink(R.color.lw_ink_inverted), sizeDp = 20f),
                 null,
                 null,
-                SymbolDrawable(
-                    context,
-                    "arrow_forward",
-                    sizeDp = 16f,
-                    color = MaterialColors.getColor(link, com.google.android.material.R.attr.colorOnSurface)
-                ).apply { setBounds(0, 0, intrinsicWidth, intrinsicHeight) },
                 null
             )
-            link.setOnClickListener { row.url?.let(actions::openPath) }
+            button.setOnClickListener { row.url?.let(actions::openPath) }
+        }
+
+        private fun bindHead(view: View, row: SidebarRow.Head) {
+            val list = row.list
+            val muted = ink(R.color.lw_ink_muted)
+            val bots = row.view == SidebarRow.View.BOTS
+            val button = view.findViewById<View>(R.id.sidebar_head_list)
+            view.findViewById<ImageView>(R.id.sidebar_head_icon).setImageDrawable(
+                when {
+                    list.hq -> symbol("home_work", muted, sizeDp = 18f)
+                    list.isProject -> symbol("folder", muted, sizeDp = 18f)
+                    list.kind == "recent" -> symbol("lock", muted, sizeDp = 18f)
+                    bots -> botMark(muted, sizeDp = 16f, blinks = false)
+                    else -> symbol("forum", muted, sizeDp = 18f)
+                }
+            )
+            view.findViewById<TextView>(R.id.sidebar_head_name).text = list.name
+            val waiting = row.waiting > 0
+            val state = context.resources.getQuantityString(R.plurals.sidebar_head_waiting, row.waiting, row.waiting)
+            view.findViewById<View>(R.id.sidebar_head_dot).isVisible = waiting
+            view.findViewById<TextView>(R.id.sidebar_head_state).apply {
+                text = state
+                isVisible = waiting
+            }
+            view.findViewById<ImageView>(R.id.sidebar_head_caret)
+                .setImageDrawable(symbol("unfold_more", ink(R.color.lw_ink_faint), sizeDp = 18f))
+            button.contentDescription =
+                listOfNotNull(
+                    context.getString(R.string.sidebar_switcher_description, list.name),
+                    state.takeIf { waiting }
+                ).joinToString(" ")
+            button.setOnClickListener { actions.chooseList() }
+
+            val add = view.findViewById<View>(R.id.sidebar_head_new)
+            val name = context.getString(if (bots) R.string.new_bot else R.string.new_chat)
+            add.isVisible = row.canAdd
+            add.isSelected = row.adding
+            add.contentDescription =
+                if (list.isProject && row.newUrl?.contains("project_id=") == true) {
+                    context.getString(R.string.sidebar_new_in, name, list.name)
+                } else {
+                    name
+                }
+            view.findViewById<ImageView>(R.id.sidebar_head_plus)
+                .setImageDrawable(symbol("add", ink(R.color.lw_ink), sizeDp = 24f))
+            add.setOnClickListener {
+                if (bots) row.newUrl?.let(actions::openPath) else actions.startNewChat()
+            }
+        }
+
+        private fun bindSearch(field: EditText, row: SidebarRow.Search) {
+            field.hint =
+                when {
+                    row.project != null -> context.getString(R.string.sidebar_search_in, row.project)
+                    row.view == SidebarRow.View.BOTS -> context.getString(R.string.sidebar_search_bots)
+                    else -> context.getString(R.string.sidebar_search)
+                }
+        }
+
+        private fun bindSeeAll(view: TextView, row: SidebarRow.SeeAll) {
+            view.text =
+                row.project?.let { context.getString(R.string.sidebar_open_project, it) }
+                    ?: context.getString(R.string.sidebar_see_all)
+            view.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                null,
+                null,
+                symbol("arrow_forward", ink(R.color.lw_ink_faint), sizeDp = 16f),
+                null
+            )
+            view.setOnClickListener { actions.openPath(row.url) }
         }
 
         private fun bindChatSection(view: View, section: Sidebar.Section) {
@@ -470,10 +606,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
 
         private fun setUpSearch(field: EditText) {
             field.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                symbol(
-                    "search",
-                    MaterialColors.getColor(field, com.google.android.material.R.attr.colorOnSurfaceVariant)
-                ),
+                symbol("search", ink(R.color.lw_ink_faint), sizeDp = 18f),
                 null,
                 null,
                 null
@@ -488,7 +621,7 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                     override fun afterTextChanged(s: Editable?) {
                         val text = s?.toString().orEmpty()
                         if (text == query) return
-                        if (query.isEmpty() && text.isNotEmpty()) actions.loadAll()
+                        if (query.isEmpty() && text.isNotEmpty() && view == SidebarRow.View.CHATS) actions.loadAll()
                         query = text
                         render()
                     }
@@ -500,44 +633,11 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             }
         }
 
-        private fun bindSwitcher(view: View, list: Sidebar.ChatList) {
-            view.findViewById<TextView>(R.id.sidebar_switcher_kicker).setText(
-                if (list.isProject) R.string.sidebar_project else R.string.sidebar_showing
-            )
-            view.findViewById<TextView>(R.id.sidebar_switcher_name).text = list.name
-            view.findViewById<TextView>(R.id.sidebar_switcher_states).isVisible = false
-            view.findViewById<ImageView>(R.id.sidebar_switcher_caret).setImageResource(R.drawable.ic_expand_more)
-            val symbol =
-                when {
-                    list.isProject -> null
-                    list.kind == "all" -> "forum"
-                    else -> "lock"
-                }
-            view.findViewById<TextView>(R.id.sidebar_switcher_mark).text =
-                if (symbol == null) initialsOf(list.name) else null
-            view.findViewById<ImageView>(R.id.sidebar_switcher_symbol).apply {
-                isVisible = symbol != null
-                scaleType = ImageView.ScaleType.FIT_CENTER
-                symbol?.let {
-                    setImageDrawable(
-                        SymbolDrawable(
-                            context,
-                            it,
-                            sizeDp = 18f,
-                            color = ContextCompat.getColor(context, R.color.lw_ink_inverted)
-                        )
-                    )
-                }
-            }
-            view.contentDescription = context.getString(R.string.sidebar_switcher_description, list.name)
-            view.setOnClickListener { actions.chooseList() }
-        }
-
         private fun bindNav(view: View, row: SidebarRow.Nav) {
+            view.updateLayoutParams<RecyclerView.LayoutParams> { height = dp(35) }
             val (icon, label) =
                 when (row.kind) {
                     SidebarRow.Nav.Kind.NEW_CHAT -> "edit_square" to R.string.new_chat
-                    SidebarRow.Nav.Kind.INSTRUCTIONS -> "menu_book" to R.string.sidebar_instructions
                     SidebarRow.Nav.Kind.BOTS -> BOT_MARK to R.string.sidebar_bots
                     SidebarRow.Nav.Kind.NEW_BOT -> "add" to R.string.new_bot
                 }
@@ -554,7 +654,6 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             view.setOnClickListener {
                 when (row.kind) {
                     SidebarRow.Nav.Kind.NEW_CHAT -> actions.startNewChat()
-                    SidebarRow.Nav.Kind.INSTRUCTIONS -> row.url?.let(actions::openPath)
                     SidebarRow.Nav.Kind.BOTS -> actions.openBots()
                     SidebarRow.Nav.Kind.NEW_BOT -> row.url?.let(actions::openPath) ?: actions.openBots()
                 }
@@ -569,7 +668,9 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                     chat.isProcessing -> R.color.lw_live
                     else -> null
                 }
-            bindRow(view, null, chat.title, null, dot, row.selected)
+            bindRow(view, CHAT_ICON.takeIf { row.pinned }, chat.title, null, dot, row.selected)
+            // A pin is the web's plain row; a chat's row is a little taller.
+            view.updateLayoutParams<RecyclerView.LayoutParams> { height = dp(if (row.pinned) 35 else 38) }
             val state =
                 when {
                     chat.waiting -> context.getString(R.string.sidebar_chat_waiting)
@@ -595,9 +696,18 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             iconView.isVisible = icon != null
             icon?.let {
                 iconView.scaleType = if (it == BOT_MARK) ImageView.ScaleType.CENTER else ImageView.ScaleType.FIT_CENTER
-                iconView.setImageDrawable(if (it == BOT_MARK) botMark() else symbol(it))
+                iconView.setImageDrawable(
+                    when (it) {
+                        BOT_MARK -> botMark()
+                        CHAT_ICON -> symbol(it, ink(R.color.lw_ink_muted))
+                        else -> symbol(it)
+                    }
+                )
             }
-            view.findViewById<TextView>(R.id.sidebar_row_label).text = label
+            view.findViewById<TextView>(R.id.sidebar_row_label).apply {
+                text = label
+                setTextColor(ink(if (selected) R.color.lw_ink else R.color.lw_ink_muted))
+            }
             view.findViewById<TextView>(R.id.sidebar_row_meta).apply {
                 text = meta
                 isVisible = meta != null
@@ -617,7 +727,10 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
 
             oldItem is SidebarRow.Nav && newItem is SidebarRow.Nav -> oldItem.kind == newItem.kind
 
-            oldItem is SidebarRow.Switcher && newItem is SidebarRow.Switcher -> true
+            oldItem is SidebarRow.Head && newItem is SidebarRow.Head -> true
+
+            // The field stays put across the views, keeping its focus and text.
+            oldItem is SidebarRow.Search && newItem is SidebarRow.Search -> true
 
             oldItem is SidebarRow.BotsCard && newItem is SidebarRow.BotsCard -> true
 
@@ -634,6 +747,9 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         }
 
         override fun areContentsTheSame(oldItem: SidebarRow, newItem: SidebarRow): Boolean = oldItem == newItem
+
+        // Any change rebinds the same view, never a copy of it.
+        override fun getChangePayload(oldItem: SidebarRow, newItem: SidebarRow): Any = Unit
     }
 
     companion object {
@@ -646,8 +762,14 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         private const val TYPE_BOT = 7
         private const val TYPE_NO_BOTS = 8
         private const val TYPE_DECISIONS = 9
+        private const val TYPE_HEAD = 10
+        private const val TYPE_SEE_ALL = 11
         private const val LOAD_MORE_AHEAD = 8
         private const val BOT_MARK = "bot"
+        private const val CHAT_ICON = "chat_bubble"
+        private const val SYMBOL_WEIGHT = 400
+        private const val GAP_DP = 8
+        private const val PIN_GAP_DP = 2
 
         /** A bot's state's tone (`attention`, `negative`, `live`, `positive`, or none) as a dot's colour. */
         fun toneColor(tone: String?): Int = when (tone) {
@@ -657,12 +779,5 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             "positive" -> R.color.lw_positive
             else -> R.color.lw_ink_faint
         }
-
-        /** Two initials for a project's mark: "Website relaunch" is "WR". */
-        fun initialsOf(name: String): String = name
-            .split(Regex("\\s+"))
-            .filter { it.isNotEmpty() }
-            .take(2)
-            .joinToString("") { it.first().uppercase() }
     }
 }

@@ -28,6 +28,11 @@ class SessionMemory(context: Context) {
 
     fun setListKey(account: String, key: String?) = preferences.edit { putString("$KEY_LIST$account", key) }
 
+    /** The list the sidebar's Bots view shows in [account]; null until one's chosen here. */
+    fun botListKey(account: String): String? = preferences.getString("$KEY_BOT_LIST$account", null)
+
+    fun setBotListKey(account: String, key: String?) = preferences.edit { putString("$KEY_BOT_LIST$account", key) }
+
     /** The half of the sidebar's Chats | Bots switch last chosen, on this install ("chats" or "bots"). */
     var sidebarView: String?
         get() = preferences.getString(KEY_VIEW, null)
@@ -54,6 +59,7 @@ class SessionMemory(context: Context) {
         const val KEY_SIGNED_IN = "signed_in"
         const val KEY_ACCOUNT = "account"
         const val KEY_LIST = "list:"
+        const val KEY_BOT_LIST = "bot_list:"
         const val KEY_NEW_CHAT = "new_chat:"
         const val KEY_VIEW = "sidebar_view"
         const val KEY_LEFT_CHAT = "left_answering_chat"
