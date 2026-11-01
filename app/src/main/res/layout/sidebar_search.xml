@@ -1,18 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Filters the chats by title, here on the phone. -->
+<!-- The search under a view's head, the same in both (the web's .sidebar__search). -->
 <EditText xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/sidebar_search"
     android:layout_width="match_parent"
-    android:layout_height="44dp"
-    android:layout_marginBottom="6dp"
+    android:layout_height="32dp"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="8dp"
     android:autofillHints=""
     android:background="@drawable/sidebar_search_background"
-    android:drawablePadding="10dp"
+    android:drawablePadding="6dp"
     android:hint="@string/sidebar_search"
     android:imeOptions="actionSearch|flagNoExtractUi"
+    android:includeFontPadding="false"
     android:inputType="text"
     android:maxLines="1"
-    android:paddingHorizontal="14dp"
-    android:textAppearance="?attr/textAppearanceBodyMedium"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="0dp"
     android:textColor="?attr/colorOnSurface"
-    android:textColorHint="?attr/colorOnSurfaceVariant" />
+    android:textColorHint="@color/lw_ink_faint"
+    android:textSize="12sp" />

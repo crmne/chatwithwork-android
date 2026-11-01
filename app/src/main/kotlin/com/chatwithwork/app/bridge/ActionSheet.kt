@@ -29,7 +29,9 @@ object ActionSheet {
         val disabled: Boolean = false,
         val checked: Boolean = false,
         val subtitle: String? = null,
-        val icon: Drawable? = null
+        val icon: Drawable? = null,
+        /** A small heading above it, starting a group. */
+        val header: String? = null
     )
 
     @SuppressLint("InflateParams") // A dialog's content has no parent until it's set.
@@ -51,6 +53,13 @@ object ActionSheet {
         val error = MaterialColors.getColor(content, AppCompatR.attr.colorError)
 
         actions.forEachIndexed { index, action ->
+            action.header?.let { header ->
+                val label = inflater.inflate(R.layout.sidebar_section, list, false) as TextView
+                val inset = (HEADER_INSET_DP * context.resources.displayMetrics.density).toInt()
+                label.text = header
+                label.setPaddingRelative(inset, label.paddingTop, inset, label.paddingBottom)
+                list.addView(label)
+            }
             val row = inflater.inflate(R.layout.action_sheet_item, list, false)
             val label = row.findViewById<TextView>(R.id.action_sheet_item_label)
             val icon = row.findViewById<ImageView>(R.id.action_sheet_item_icon)
@@ -99,6 +108,7 @@ object ActionSheet {
     }
 
     private const val DISABLED_ALPHA = 0.38f
+    private const val HEADER_INSET_DP = 24
 }
 
 /**

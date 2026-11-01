@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Material's navigation drawer item: a full pill when it's the page showing. -->
+<!-- A sidebar row: raised with a hairline when it's the page showing, as the web's. -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/ripple">
     <item android:id="@android:id/mask">
         <shape>
             <solid android:color="@android:color/white" />
-            <corners android:radius="24dp" />
+            <corners android:radius="10dp" />
         </shape>
     </item>
     <item>
         <selector>
             <item android:state_selected="true">
                 <shape>
-                    <solid android:color="@color/sidebar_selected" />
-                    <corners android:radius="24dp" />
+                    <solid android:color="@color/lw_surface" />
+                    <stroke android:width="1dp" android:color="@color/lw_line" />
+                    <corners android:radius="10dp" />
                 </shape>
             </item>
             <item>

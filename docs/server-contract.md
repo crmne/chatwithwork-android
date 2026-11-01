@@ -700,11 +700,30 @@ On Android:
 
 ## 11. The sidebar
 
-**Instructions and order (2026-10-29).** Optional `links.instructions`
-opens the same notes as the chosen web chat list, including its project
-when applicable. The Chats view follows the web: list chooser, New chat,
-Instructions, pins, search, sections and chats. Decisions and the Chats |
-Bots switch stay above both views. Older servers can omit the link.
+**Same head in both views (2026-11-01).** Chats and Bots open the same way,
+as the web's (`.sidebar__head`, `.sidebar__search`), so switching moves
+nothing: Decisions, the Chats | Bots switch, the head (one row: the list
+selector and a square `+`, starting a chat or opening `new_url`, raised on
+that page, and no `+` for a guest), and the search. Then Pinned and the
+chats by latest question in one list, with no day headings, or the bots.
+There are no New chat or Instructions rows; `links.instructions` stays for
+older builds, and Instructions stays in Settings. New, all optional:
+
+- `bots.list`, the list the web's Bots view last chose, and `bots.lists`,
+  the same choices as `lists`, each also with `new_url`. `bots.new_url` is
+  the chosen list's.
+- Each `BOT`'s `description`, which the Bots search looks in with the name,
+  every word, ignoring case, and `lists`, the keys of the lists holding it.
+  `items` are always every bot the person reads, so the app narrows them at
+  once, and remembers its choice per organization, starting from `bots.list`.
+- A list's `url`, a project's page, for "Open <project>" in the selector's
+  menu (My and All, "Projects you're on", then Open, All projects… and New
+  project), and `links.chats`, the chosen list's page, the last row once the
+  list holds everything ("See all, by date", or "Open <project>"), only
+  while it has a chat and not while searching.
+
+A server without `bots.lists` keeps the card and New bot in the Bots view
+(described below), with no search there.
 
 Builds that draw the sidebar themselves register the `sidebar` bridge
 component, so the user agent's `bridge-components` lists `sidebar`
@@ -745,7 +764,8 @@ CHAT = {"number": 42, "title": "Launch date in #launch", "url": "/482139075/chat
 SECTION = {"id": 7, "name": "Customers", "collapsed": false, "chats": [CHAT],
            "edit_url": "/482139075/sidebar/sections/7/edit", "collapse_url": "/482139075/sidebar/sections/7/collapse",
            "position_url": "/482139075/sidebar/sections/7/position"}
-BOT = {"id": 5, "name": "Front desk", "url": "/482139075/bots/5", "group": "needs_you", "project": "Website relaunch",
+BOT = {"id": 5, "name": "Front desk", "description": "Answers refunds", "url": "/482139075/bots/5", "lists": ["all", "3"],
+       "group": "needs_you", "project": "Website relaunch",
        "state": "waiting", "state_label": "Waiting for you", "tone": "attention", "waiting": 1, "working": false,
        "next_run": null}
 ACTION = {"key": "delete", "title": "Delete", "method": "delete", "url": "/482139075/chats/42",
@@ -795,7 +815,8 @@ many decisions wait for the person in it; `working` whether one of its chats
 is answering now; `next_run` its next timed run, if any.
 
 With `items`, the sidebar draws a segmented Chats | Bots switch right
-under Decisions, in place of the Bots row. Its Bots half shows an attention
+under Decisions, in place of the Bots row (the rest of this paragraph is
+what a server without `bots.lists` gets, see "Same head in both views"). Its Bots half shows an attention
 dot, never a number, while `bots.attention`: Decisions carries the one
 count.
 Chats shows the sidebar as before. Bots keeps the same skeleton: a card in
@@ -839,17 +860,17 @@ a modal). A search lists the matches in sections too. Without `sections`
 (an older server) the list is as before.
 
 What the app draws from it, top to bottom: Decisions (below), the Chats |
-Bots switch (above, from servers that send `bots.items`), the list switcher (`list`; a
-chooser of `lists`, then "All projects..." and "New project"), New chat
-(`links.new_chat`, also where
-the bar's New chat and a cold start go), from a server without
-`bots.items` the Bots row (`bots`' count with an attention dot, else the
-next run), Instructions (`links.instructions`), Pinned, search (titles
-filtered on the phone), the person's own sections (`sections`, below), then
-the chats by `group` (under one "Other chats" heading instead when there
-are sections, as on the web), a live dot on those
-answering and an attention dot on those waiting, loading `next` near the
-end.
+Bots switch (from servers that send `bots.items`), the head (the list
+selector, `list` with a chooser of `lists`, and the square `+`, starting from
+`links.new_chat`, also where the bar's New chat and a cold start go), the
+search (chat titles, or a bot's name and description, every word, filtered
+on the phone), from a server without `bots.items` the Bots row (`bots`' count
+with an attention dot, else the next run), then Pinned, the person's own
+sections (`sections`, below), and the chats by latest question (under one
+"Other chats" heading when there are sections, as on the web), a live dot on
+those answering and an attention dot on those waiting, loading `next` near
+the end, or the bots. `group` is no longer drawn, nor New chat and
+Instructions as rows.
 
 **Decisions (2026-10-28).** As on the web (`decisions/_sidebar_button`),
 Decisions is a button of its own at the top of the sidebar, just before
@@ -858,7 +879,7 @@ for guests, who have no switch. It's outlined like the list switcher, since
 it's the one thing in the sidebar that asks for the person: the list-checks
 icon, "Decisions" spelled out, and at its end `waiting.count` as a small
 badge on the attention wash (the outline then takes the attention edge),
-or a quiet "None" at 0. It opens the Decisions page (`waiting.url`, else
+or the happy bot and a quiet "All clear" at 0. It opens the Decisions page (`waiting.url`, else
 `links.decisions`), or, from a server with neither, a sheet of its items,
 and shows as selected while that page is showing, on any decision. It
 reads the same JSON, so no key changes. Earlier builds drew it as a pill

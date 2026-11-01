@@ -52,7 +52,11 @@ data class Sidebar(
         val kind: String = "recent",
         val hq: Boolean = false,
         val pinned: Boolean = false,
-        val current: Boolean = false
+        val current: Boolean = false,
+        /** The project's page, for "Open <project>"; null for My and All. */
+        val url: String? = null,
+        /** In `bots.lists`, New bot from this list. */
+        @SerialName("new_url") val newUrl: String? = null
     ) {
         val isProject: Boolean get() = kind == "project"
     }
@@ -67,7 +71,9 @@ data class Sidebar(
         val organizations: String? = null,
         @SerialName("new_organization") val newOrganization: String? = null,
         val decisions: String? = null,
-        val instructions: String? = null
+        val instructions: String? = null,
+        /** The chosen list's page, with every chat by date (servers from 2026-11-01). */
+        val chats: String? = null
     )
 
     @Serializable
@@ -106,22 +112,39 @@ data class Sidebar(
         @SerialName("next_run") val nextRun: String? = null,
         /** The Bots page. */
         val url: String? = null,
-        /** New bot: the recipes, Describe your bot, Start from nothing. */
+        /** New bot in the chosen list: the recipes, Describe your bot, Start from nothing. */
         @SerialName("new_url") val newUrl: String? = null,
+        /** The list the web's Bots view last chose, until this install chooses one. */
+        val list: ChatList? = null,
+        /**
+         * What the Bots view can show, the Chats view's choices. Empty from
+         * servers before 2026-11-01, which keep the Bots card.
+         */
+        val lists: List<ChatList> = emptyList(),
         /**
          * The person's bots and the shared ones they read, as the web's Bots
          * view lists them: those that need them first. Null from servers
          * before the apps' Chats | Bots switch, which keep the Bots row.
          */
         val items: List<Bot>? = null
-    )
+    ) {
+        /** The list [key] names, or what's chosen on the web while it names none. */
+        fun chosenList(key: String?): ChatList? = lists.firstOrNull { it.key == key }
+            ?: lists.firstOrNull { it.current }
+            ?: lists.firstOrNull { it.key == list?.key }
+            ?: list
+    }
 
     /** One bot in the sidebar's Bots view (the web's `bots/_sidebar_bot`). */
     @Serializable
     data class Bot(
         val id: Long,
         val name: String,
+        /** What it does, for the search. */
+        val description: String? = null,
         val url: String,
+        /** The keys of the lists holding it. */
+        val lists: List<String> = emptyList(),
         /** `needs_you` or `quiet`, the web's two headings; the items come in that order. */
         val group: String = QUIET,
         /** The project a shared bot is in; null for the person's own. */

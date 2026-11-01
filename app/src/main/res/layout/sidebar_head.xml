@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A view's head, the same row in Chats and Bots, so switching moves nothing, as
+  the web's (.sidebar__head): the list selector, and a square plus beside it,
+  New chat or New bot, raised on that page. It's 44dp to the eye (SidebarDrawer's
+  gaps take back 2dp each way), and reaches the sidebar's edge, for the plus's
+  48dp target.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:layout_marginEnd="-8dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingEnd="8dp">
+
+    <com.chatwithwork.app.sidebar.SidebarFitRow
+        android:id="@+id/sidebar_head_list"
+        android:layout_width="0dp"
+        android:layout_height="36dp"
+        android:layout_weight="1"
+        android:background="@drawable/sidebar_head_list"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp">
+
+        <ImageView
+            android:id="@+id/sidebar_head_icon"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="-4dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/sidebar_head_tile"
+            android:importantForAccessibility="no"
+            android:scaleType="center" />
+
+        <TextView
+            android:id="@+id/sidebar_head_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/geist_semibold"
+            app:fontFamily="@font/geist_semibold"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:textColor="@color/lw_ink"
+            android:textSize="14sp"
+            tools:text="My chats" />
+
+        <View
+            android:id="@+id/sidebar_head_dot"
+            android:layout_width="6dp"
+            android:layout_height="6dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/sidebar_dot"
+            android:backgroundTint="@color/lw_attention"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/sidebar_head_state"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:textColor="@color/lw_attention_ink"
+            android:textSize="12sp"
+            android:visibility="gone"
+            tools:text="1 waiting"
+            tools:visibility="visible" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <ImageView
+            android:id="@+id/sidebar_head_caret"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:scaleType="center"
+            android:importantForAccessibility="no" />
+
+    </com.chatwithwork.app.sidebar.SidebarFitRow>
+
+    <FrameLayout
+        android:id="@+id/sidebar_head_new"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/sidebar_new"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/sidebar_head_plus"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:scaleType="center"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no" />
+
+    </FrameLayout>
+
+</LinearLayout>

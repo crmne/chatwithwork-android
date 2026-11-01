@@ -2,7 +2,7 @@
 <!--
   The sidebar: Material 3's modal navigation drawer, drawn with Live Wire's
   sunken canvas like the web's sidebar. The list scrolls (Decisions, the Chats | Bots
-  switch, list switcher, New chat, Instructions, pins, search, chats, or the bots); the person stays at the foot. SidebarDrawer fills it from the
+  switch, each view's head and search, then pins and chats, or the bots); the person stays at the foot. SidebarDrawer fills it from the
   server's JSON.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -23,7 +23,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:paddingHorizontal="12dp"
+        android:paddingHorizontal="8dp"
         android:paddingTop="12dp"
         android:paddingBottom="8dp" />
 
