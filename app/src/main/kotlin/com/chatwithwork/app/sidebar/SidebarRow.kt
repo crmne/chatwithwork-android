@@ -213,7 +213,7 @@ sealed interface SidebarRow {
         ): List<SidebarRow> {
             val rows = mutableListOf<SidebarRow>(decisions(sidebar, current))
             val listed = items.filter { list.key in it.lists }
-            val newUrl = list.newUrl ?: bots.newUrl
+            val newUrl = list.newUrl
             rows += Views(View.BOTS, botsAttention = bots.attention)
             rows += Head(
                 list,

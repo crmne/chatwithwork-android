@@ -82,6 +82,10 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
     private var view = SidebarRow.View.CHATS
     private var botList: String? = null
 
+    /** Whether a search is on the chats, which then need every one (`all=1`). */
+    val searchesChats: Boolean
+        get() = query.isNotEmpty() && !showsBots
+
     /** Whether the bots show, which a remembered Bots doesn't mean where the server sends none. */
     private val showsBots: Boolean
         get() = adapter.currentList.any { it is SidebarRow.Views && it.view == SidebarRow.View.BOTS }

@@ -449,7 +449,7 @@ class MainActivity :
     }
 
     /** Fetches the sidebar for the organization showing (the first page, or every chat while searching). */
-    private fun refreshSidebar(debounce: Boolean = false, all: Boolean = sidebar.query.isNotEmpty()) {
+    private fun refreshSidebar(debounce: Boolean = false, all: Boolean = sidebar.searchesChats) {
         val account = viewModel.account ?: return
         fetchJob?.cancel()
         fetchJob =
