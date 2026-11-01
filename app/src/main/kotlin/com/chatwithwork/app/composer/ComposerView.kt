@@ -1,12 +1,16 @@
 package com.chatwithwork.app.composer
 
+import android.animation.ValueAnimator
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Rect
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.AttributeSet
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
+import android.view.animation.LinearInterpolator
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -80,6 +84,14 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private val dictateButton by lazy { findViewById<ImageButton>(R.id.composer_dictate) }
     private val webSearchButton by lazy { findViewById<ImageButton>(R.id.composer_web_search) }
     private val composerBackground = ComposerBackground(context)
+    private val composerGlow = ComposerGlow(context)
+    private val box by lazy { findViewById<View>(R.id.composer_box) }
+    private val boxBounds = Rect()
+    private var look = ComposerLook()
+    private var glowOpacity = look.glowOpacity
+    private var glowFade: ValueAnimator? = null
+    private var flow: ValueAnimator? = null
+    private var onScreen = false
     private val model by lazy { findViewById<TextView>(R.id.composer_model) }
     private val stop by lazy { findViewById<ImageButton>(R.id.composer_stop) }
     private val send by lazy { findViewById<ImageButton>(R.id.composer_send) }
@@ -141,8 +153,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     override fun onFinishInflate() {
         super.onFinishInflate()
-        findViewById<View>(R.id.composer_box).background = composerBackground
-        input.setOnFocusChangeListener { _, _ -> updateEdge() }
+        box.background = composerBackground
+        input.setOnFocusChangeListener { _, _ -> updateLook() }
         val ink = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface)
         plus.setOnClickListener { actions?.openSheet() }
         dictateButton.setImageDrawable(SymbolDrawable(context, "mic", color = muted()))
@@ -181,7 +193,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     fun show(state: ComposerState, connecting: Boolean = false) {
         this.state = state
-        updateEdge()
+        updateLook()
         // A new composer may already hold words (shared in, or a draft): the field starts with them.
         if (connecting && text.isBlank() && !state.text.isNullOrBlank()) {
             input.setText(state.text)
@@ -241,14 +253,68 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         if (state.overlay && container.width > 0) actions?.layout(if (state.visible) height else 0, container.width)
     }
 
-    private fun updateEdge() {
-        composerBackground.edgeOpacity = if (state.locked) {
-            0.3f
-        } else if (input.hasFocus()) {
-            1f
-        } else {
-            0.7f
+    private fun updateLook() {
+        val wanted = ComposerLook.of(state, input.hasFocus())
+        if (wanted == look) return
+        val edgeChanged = wanted.edge != look.edge
+        look = wanted
+        composerBackground.look = wanted
+        fadeGlow(wanted.glowOpacity)
+        if (edgeChanged) {
+            // The amber or rainbow bitmap, and the shadow's place, are drawn here.
+            invalidate()
+            updateFlow()
         }
+    }
+
+    /** With the web's --duration-base. Animations off, the animator lands at once. */
+    private fun fadeGlow(opacity: Float) {
+        glowFade?.cancel()
+        if (opacity == glowOpacity) return
+        glowFade = ValueAnimator.ofFloat(glowOpacity, opacity).apply {
+            duration = LOOK_FADE_MS
+            addUpdateListener {
+                glowOpacity = it.animatedValue as Float
+                invalidate()
+            }
+            start()
+        }
+    }
+
+    /**
+     * The edge flows on screen while an answer runs, one loop in 5 seconds, and
+     * stands still with animations off, the system's reduced motion.
+     */
+    private fun updateFlow() {
+        val flowing = look.edge == ComposerLook.Edge.FLOWING && onScreen && ValueAnimator.areAnimatorsEnabled()
+        if (!flowing) {
+            flow?.cancel()
+            flow = null
+            composerBackground.flow = 0f
+        } else if (flow == null) {
+            flow = ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = FLOW_MS
+                interpolator = LinearInterpolator()
+                repeatCount = ValueAnimator.INFINITE
+                addUpdateListener { composerBackground.flow = it.animatedFraction }
+                start()
+            }
+        }
+    }
+
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        onScreen = isVisible
+        updateFlow()
+    }
+
+    // Behind every child, and past this view's bounds: KeyboardSwipeLayout doesn't clip it.
+    override fun dispatchDraw(canvas: Canvas) {
+        if (box.isVisible) {
+            box.getHitRect(boxBounds)
+            composerGlow.draw(canvas, boxBounds, look, glowOpacity)
+        }
+        super.dispatchDraw(canvas)
     }
 
     private fun muted() = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant)
@@ -374,6 +440,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     }
 
     override fun onDetachedFromWindow() {
+        onScreen = false
+        updateFlow()
         // Leaving the page, or the app closing, ends the recording, unsent.
         if (dictation != null) cancelDictation()
         super.onDetachedFromWindow()
@@ -514,6 +582,10 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private companion object {
         const val DISABLED_ALPHA = 0.38f
         const val TRANSCRIBING_ALPHA = 0.5f
+
+        // --duration-base, and rainbow-flow's 5s.
+        const val LOOK_FADE_MS = 220L
+        const val FLOW_MS = 5000L
 
         // The box's padding around the bar (view_composer.xml).
         const val BOX_PADDING_DP = 8
