@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material 3's tonal icon button: a 40dp circle in a 48dp touch target. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/ripple">
+    <item>
+        <inset android:inset="4dp">
+            <shape android:shape="oval">
+                <solid android:color="@color/lw_surface_selected" />
+            </shape>
+        </inset>
+    </item>
+</ripple>

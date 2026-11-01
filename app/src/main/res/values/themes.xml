@@ -51,6 +51,8 @@
 
         <item name="android:fontFamily">@font/geist</item>
         <item name="fontFamily">@font/geist</item>
+        <!-- The same letterforms as the web's text. -->
+        <item name="android:fontFeatureSettings">"ss01"</item>
         <item name="textAppearanceHeadlineSmall">@style/TextAppearance.ChatWithWork.HeadlineSmall</item>
         <item name="textAppearanceTitleLarge">@style/TextAppearance.ChatWithWork.TitleLarge</item>
         <item name="textAppearanceTitleMedium">@style/TextAppearance.ChatWithWork.TitleMedium</item>
@@ -73,6 +75,9 @@
         <item name="actionMenuTextColor">@color/action_menu_text</item>
 
         <item name="toolbarStyle">@style/Widget.ChatWithWork.Toolbar</item>
+        <item name="toolbarNavigationButtonStyle">@style/Widget.ChatWithWork.Toolbar.Button.Navigation</item>
+        <item name="actionButtonStyle">@style/Widget.ChatWithWork.Toolbar.Button.Action</item>
+        <item name="actionOverflowButtonStyle">@style/Widget.ChatWithWork.Toolbar.Button.Overflow</item>
         <item name="appBarLayoutStyle">@style/Widget.ChatWithWork.AppBarLayout</item>
         <item name="popupMenuStyle">@style/Widget.ChatWithWork.PopupMenu</item>
         <item name="actionOverflowMenuStyle">@style/Widget.ChatWithWork.PopupMenu.Overflow</item>
@@ -106,9 +111,9 @@
     <style name="TextAppearance.ChatWithWork.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
         <item name="android:fontFamily">@font/geist</item>
         <item name="fontFamily">@font/geist</item>
-        <item name="android:textFontWeight">600</item>
-        <item name="android:textSize">20sp</item>
-        <item name="android:letterSpacing">-0.015</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:letterSpacing">-0.01</item>
     </style>
 
     <style name="TextAppearance.ChatWithWork.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
@@ -208,7 +213,29 @@
         <item name="titleTextAppearance">?attr/textAppearanceTitleLarge</item>
         <item name="titleTextColor">?attr/colorOnSurface</item>
         <item name="navigationIconTint">?attr/colorOnSurface</item>
-        <item name="titleMarginStart">4dp</item>
+        <item name="titleMarginStart">8dp</item>
+        <item name="contentInsetStartWithNavigation">0dp</item>
+    </style>
+
+    <!-- Tonal circles, with no text-action's minimum width pushing them apart. -->
+    <style name="Widget.ChatWithWork.Toolbar.Button.Navigation" parent="Widget.AppCompat.Toolbar.Button.Navigation">
+        <item name="android:background">@drawable/toolbar_navigation_button</item>
+        <item name="android:minWidth">48dp</item>
+        <item name="android:layout_marginStart">4dp</item>
+    </style>
+
+    <style name="Widget.ChatWithWork.Toolbar.Button.Action" parent="Widget.AppCompat.ActionButton">
+        <item name="android:background">@drawable/toolbar_icon_button</item>
+        <item name="android:minWidth">48dp</item>
+        <item name="android:paddingStart">0dp</item>
+        <item name="android:paddingEnd">0dp</item>
+    </style>
+
+    <style name="Widget.ChatWithWork.Toolbar.Button.Overflow" parent="Widget.AppCompat.ActionButton.Overflow">
+        <item name="android:src">@drawable/ic_more</item>
+        <item name="android:background">@drawable/toolbar_icon_button</item>
+        <item name="android:minWidth">48dp</item>
+        <item name="android:layout_marginEnd">4dp</item>
     </style>
 
     <!-- Icons in the bar stay muted, as Material has them; a text action ("Save") is ink. -->
