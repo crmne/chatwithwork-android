@@ -923,9 +923,9 @@ The conversation has that height plus 1.5rem of bottom padding; older apps
 leave the variable unset and keep their previous clearance.
 
 An optional `visible` state flag defaults to true. While a web modal
-dialog is open, the bridge sends false: native hides the composer, releases
-its inset and reports layout height 0, while keeping the draft. Closing the
-dialog restores the composer without taking focus from the page. This
+dialog or a popover is open, the bridge sends false: native hides the composer, releases
+its inset and reports layout height 0, while keeping the draft. Closing it
+restores the composer without taking focus from the page. This
 applies to connector search, model consent and any other web modal.
 
 Builds that register the `composer` component draw the composer
