@@ -18,6 +18,7 @@
     <color name="lw_positive_ink">#44FF9A</color>
     <color name="lw_live">#44B0FF</color>
     <color name="lw_live_ink">#44B0FF</color>
+    <color name="lw_shadow">#E6000000</color>
     <color name="lw_attention">#FFC247</color>
     <color name="lw_attention_ink">#FFC247</color>
     <color name="lw_attention_wash">#312B20</color>

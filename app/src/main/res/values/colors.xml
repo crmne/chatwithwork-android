@@ -27,6 +27,8 @@
     <color name="lw_attention_wash">#F9EFD7</color>
     <color name="lw_attention_edge">#D7C088</color>
     <color name="lw_negative">#F0552F</color>
+    <!-- tokens.css: shadow-color, 28% and 90%, for the composer's shadow-float. -->
+    <color name="lw_shadow">#47141E3C</color>
     <color name="lw_dot">#1A0A0D14</color>
     <!-- Over the page while the sidebar is open: Material's scrim, in ink. -->
     <!-- The sidebar's row for the page showing, on its sunken canvas. -->
