@@ -384,6 +384,7 @@ listed:
 ```
 /chats  /chats/*  /projects  /projects/*  /settings  /settings/*
 /*/chats  /*/chats/*  /*/projects  /*/projects/*  /*/settings  /*/settings/*
+/*/bots  /*/bots/*  /*/decisions  /*/decisions/*
 /*/join/*  /accounts  /accounts/*  /device  /*/device
 /invitations/*  /shared/*  /users/password/edit*  /users/confirmation*
 ```

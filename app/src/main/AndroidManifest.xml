@@ -93,6 +93,10 @@
                 <data android:pathPattern="/.*/chats/.*" />
                 <data android:pathPattern="/.*/projects" />
                 <data android:pathPattern="/.*/projects/.*" />
+                <data android:pathPattern="/.*/bots" />
+                <data android:pathPattern="/.*/bots/.*" />
+                <data android:pathPattern="/.*/decisions" />
+                <data android:pathPattern="/.*/decisions/.*" />
                 <data android:pathPattern="/.*/settings" />
                 <data android:pathPattern="/.*/settings/.*" />
                 <data android:pathPattern="/.*/join/.*" />
