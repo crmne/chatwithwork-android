@@ -110,7 +110,7 @@ open class WebFragment : HotwireWebFragment() {
      * The bar's title and buttons sit straight on the page: no surface, no
      * hairline, and what scrolls up fades into the page's background behind
      * them. The page leaves room for the bar (--native-top-bar-height), and
-     * so does the pull to refresh's spinner.
+     * so do the pull to refresh's spinners, the page's and an error's.
      */
     private fun runPageUnderBar(view: View) {
         view.findViewById<View>(R.id.toolbar_divider).isVisible = false
@@ -121,14 +121,18 @@ open class WebFragment : HotwireWebFragment() {
             background = topFade()
             isVisible = true
         }
-        val spinner = view.findViewById<SwipeRefreshLayout>(HotwireR.id.hotwire_webView_container)
+        val spinners =
+            listOf(HotwireR.id.hotwire_webView_container, HotwireR.id.hotwire_error_refresh)
+                .map { view.findViewById<SwipeRefreshLayout>(it) }
         val bar = view.findViewById<View>(R.id.app_bar)
         bar.background = null
         bar.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
             val height = bottom - top
             if (height != oldBottom - oldTop) {
-                val circle = spinner.progressCircleDiameter
-                spinner.setProgressViewOffset(false, height - circle, height + circle / 2)
+                spinners.forEach { spinner ->
+                    val circle = spinner.progressCircleDiameter
+                    spinner.setProgressViewOffset(false, height - circle, height + circle / 2)
+                }
                 tellPageItsTop()
             }
         }
