@@ -6,6 +6,24 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.1.8
+
+Version 1.1.8 (10108) gives the composer the web's rainbow glow and states
+([#31](https://github.com/crmne/chatwithwork-android/pull/31)), draws the
+sidebar as the web's, with one head and search in both views
+([#33](https://github.com/crmne/chatwithwork-android/pull/33)), and opens links
+to bots and Decisions in the app
+([#35](https://github.com/crmne/chatwithwork-android/pull/35)). Tag `v1.1.8`.
+
+The signed, Firebase-enabled bundle became available to Internal testers on
+2026-11-02 at 12:56 Europe/Berlin. Only Internal testing was updated. Open
+testing and Production were left unchanged, with 1.1.3 and 1.1.5 in review.
+
+Validation: CI passed on the tagged commit, the release build's features match
+the list under Permissions, and the upload signature was verified. It wasn't
+tried on a device or emulator. Play reported no loss of supported devices and
+only the existing non-blocking native dependency debug-symbol warning.
+
 ## Release 1.1.7
 
 Version 1.1.7 (10107) keeps the menu button on the screen the sidebar opened,
