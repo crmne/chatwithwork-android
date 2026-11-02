@@ -82,11 +82,19 @@ flashes as toasts). What differs on Android:
   Earlier builds had tabs (Chats, Bots and Settings in a floating
   toolbar) and read `android_v1.json`, the `native-tabs` meta tag and
   `data-native-tab-root`; keep serving those for them.
-- **The page sits under the top app bar, above the gesture bar.** The app
+- **A page starts below the top app bar; a chat runs under it.** The app
   puts the web view below its top app bar and above the gesture bar, and
   moves it above the keyboard. `env(safe-area-inset-*)` is 0 in the Android
   web view: don't pad for it. `viewport-fit=cover` makes no difference
-  here.
+  here. On a chat's page (`/chats/<number>`, `/chats/new`) the bar has no
+  surface or hairline: the web view reaches the top of the screen, what
+  scrolls up fades into the canvas behind the title and buttons, and the
+  app sets `--native-top-bar-height` on `<html>` to how much of the page the
+  bar covers (status bar included, in CSS pixels; `0px` on other pages,
+  which start below it). The server's `native.css` and `scroll_controller.js`
+  keep a chat's start, a new question's place, and the panel sheet clear
+  of it. The server must carry those rules before a build with this bar
+  ships, or a chat's first message sits under the bar.
 - **Titles.** The app shows `<title>` in its top app bar, and follows it
   when the page changes it later (`onReceivedTitle`): a chat's `<title>`
   changes as its automatic title arrives, or someone renames it. Until the server

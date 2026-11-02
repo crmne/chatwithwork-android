@@ -25,13 +25,13 @@
         android:focusable="true"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="8dp">
+        android:paddingStart="4dp"
+        android:paddingEnd="8dp">
 
         <ImageView
             android:id="@+id/sidebar_head_icon"
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:layout_marginStart="-4dp"
             android:layout_marginEnd="8dp"
             android:background="@drawable/sidebar_head_tile"
             android:importantForAccessibility="no"

@@ -149,6 +149,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.splashscreen)
+    implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.androidx.webkit)
     implementation(libs.mlkit.document.scanner)
     implementation(libs.material)
