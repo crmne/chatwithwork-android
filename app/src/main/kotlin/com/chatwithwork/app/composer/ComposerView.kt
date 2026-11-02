@@ -10,6 +10,7 @@ import android.util.AttributeSet
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -308,7 +309,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         updateFlow()
     }
 
-    // Behind every child, and past this view's bounds: KeyboardSwipeLayout doesn't clip it.
+    // Behind every child, and past this view's bounds: see onAttachedToWindow.
     override fun dispatchDraw(canvas: Canvas) {
         if (box.isVisible) {
             box.getHitRect(boxBounds)
@@ -437,6 +438,21 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         dictation?.cancel()
         dictation = null
         renderDictation()
+    }
+
+    /**
+     * The glow reaches past this view, into the gesture bar's strip, so nothing
+     * above it may clip: the window's padding for that strip, and the navigation
+     * host's own container, which is made in code and out of a layout's reach.
+     */
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        generateSequence(parent as? ViewGroup) { it.parent as? ViewGroup }
+            .takeWhile { it.id != android.R.id.content }
+            .forEach {
+                it.clipChildren = false
+                it.clipToPadding = false
+            }
     }
 
     override fun onDetachedFromWindow() {
