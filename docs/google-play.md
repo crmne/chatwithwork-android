@@ -331,6 +331,16 @@ tools, support widget, and analytics, not only the Kotlin app. The corrected
 passed; Publishing overview confirms the changes are in review with no
 unsent changes. Production remains unpublished.
 
+On November 2, 2026 the declaration went from 20 types to 16: Contacts,
+Calendar events, Emails and Other financial info were removed, and the form
+went for review with the listing changes already waiting. Google defines
+collection as "transmitting data from your app off a user's device". Those
+four reach us server to server from a connected account, never from the
+phone, and Claude, ChatGPT, Microsoft 365 Copilot and Perplexity declare none
+of them either. We still process that data, as the privacy policy says; this
+form covers what leaves the device. Whatever someone sends from the app is
+declared under its own type, such as files or messages.
+
 Data is encrypted in transit (HTTPS only). People can delete their account
 and its data in the app. Nothing is shared with third parties in Play's
 sense: model providers and other processors act for us, and user-initiated
@@ -345,28 +355,23 @@ and the privacy policy when updating the form.
 | Personal info > User IDs | Yes | No | App functionality, Account management, Analytics, Personalization, Fraud prevention, security, and compliance |
 | Personal info > Address (billing details) | Yes | Yes | App functionality |
 | Financial info > Purchase history (plan, seats and credits sent by the support widget) | Yes | Yes | App functionality |
-| Financial info > Other financial info (connected accounting balances and transactions) | Yes | Yes | App functionality |
 | Location > Approximate location (analytics country inferred from IP) | Yes | No | Analytics |
-| Messages > Emails (connected accounts) | Yes | Yes | App functionality |
-| Messages > Other in-app messages (assistant, connected chat, support) | Yes | No | App functionality |
+| Messages > Other in-app messages (assistant and support) | Yes | No | App functionality |
 | Photos and videos > Photos, Videos (attachments) | Yes | Yes | App functionality |
 | Audio > Voice or sound recordings (dictation and audio attachments) | Yes | Yes | App functionality |
 | Files and docs (attachments) | Yes | Yes | App functionality |
-| Contacts (connected workspace directories and CRM) | Yes | Yes | App functionality |
-| Calendar > Calendar events (connected calendars) | Yes | Yes | App functionality |
 | App activity > App interactions (page views, feedback and feature counts) | Yes | No | App functionality, Analytics |
 | App activity > In-app search history (retained search tool calls) | Yes | Yes | App functionality |
 | App activity > Other user-generated content (instructions, memory and notes) | Yes | Yes | App functionality, Personalization |
 | App info and performance > Diagnostics (server errors and latency traces) | Yes | No | App functionality, Analytics |
 | Device or other IDs (push tokens and analytics visitor identifiers) | Yes | No | App functionality, Analytics |
 | Precise location, payment-card details, credit score, health, sensitive personal info, SMS/MMS, web browsing history, installed apps, native crash logs | No | | |
+| Contacts, Calendar events, Emails, Other financial info (the server reads these from connected accounts, and the app never sends them) | No | | |
 
 Plausible is loaded by the production web view and records page paths,
 country and daily visitor identifiers. The support widget sends the
 identity's plan, seat and credit metadata. Editable billing details collect
-an address even though native checkout is hidden. Connected Outlook
-calendar, Slack directory and Odoo accounting tools also count: their
-results are retained in chats or encrypted provider caches. Optional means
+an address even though native checkout is hidden. Optional means
 the person can avoid that feature or connection, not that the app has an
 analytics opt-out. The push permission is optional, but the same device-ID
 category also covers analytics, so the combined category is required.
@@ -386,7 +391,7 @@ which is account data.
 There are no advertisements, advertising identifiers, or cross-company
 tracking. First-party analytics is declared above. Payment-card entry stays
 on the external website; the native app has no checkout. This does not
-exclude billing addresses, purchase history or connected accounting data.
+exclude billing addresses or purchase history.
 
 ## Permissions
 
