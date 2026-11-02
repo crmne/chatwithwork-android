@@ -39,4 +39,16 @@ object PageScripts {
     fun install(webView: WebView) {
         webView.evaluateJavascript(script, null)
     }
+
+    /**
+     * Tells the page how much of its top the app's bar covers, in the page's
+     * own pixels: a chat runs under the bar and keeps what it opens with
+     * clear of it (docs/server-contract.md). 0 where the page starts below it.
+     */
+    fun setTopBarHeight(webView: WebView, height: Int) {
+        if (webView.width > 0) webView.evaluateJavascript(topBarHeightScript(height, webView.width), null)
+    }
+
+    internal fun topBarHeightScript(height: Int, viewWidth: Int): String = "document.documentElement.style" +
+        ".setProperty('--native-top-bar-height', ($height * window.innerWidth / $viewWidth) + 'px')"
 }

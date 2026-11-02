@@ -1,42 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   A web screen: the native top app bar, a hairline once the page has scrolled, and the page with the
-  native composer floating over chat pages (hidden elsewhere). The ids
-  are Hotwire Native's: it finds the toolbar (titles from the page's <title>)
-  and the hotwire_view (the shared web view, progress, and error states).
+  native composer floating over chat pages (hidden elsewhere). In a chat the bar has no surface or
+  hairline: the page runs under it, and top_fade, between the two, fades what scrolls up into the
+  page's background (WebFragment). The ids are Hotwire Native's: it finds the toolbar (titles from
+  the page's <title>) and the hotwire_view (the shared web view, progress, and error states).
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:colorBackground"
-    tools:ignore="Overdraw"
-    android:orientation="vertical">
-
-    <com.google.android.material.appbar.AppBarLayout
-        android:id="@+id/app_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:fitsSystemWindows="true">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="64dp" />
-
-    </com.google.android.material.appbar.AppBarLayout>
-
-    <View
-        android:id="@+id/toolbar_divider"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:alpha="0"
-        android:background="?attr/colorOutlineVariant" />
+    tools:ignore="Overdraw">
 
     <com.chatwithwork.app.composer.KeyboardSwipeLayout
+        android:id="@+id/page_area"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="match_parent"
+        android:layout_below="@id/toolbar_divider">
 
         <FrameLayout
             android:id="@+id/composer_page"
@@ -54,4 +35,37 @@
 
     </com.chatwithwork.app.composer.KeyboardSwipeLayout>
 
-</LinearLayout>
+    <!-- Reaches past the bar: the last of the fade softens the page's edge. -->
+    <View
+        android:id="@+id/top_fade"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@id/app_bar"
+        android:layout_alignParentTop="true"
+        android:layout_marginBottom="@dimen/top_fade_overhang"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:fitsSystemWindows="true">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="64dp" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <View
+        android:id="@+id/toolbar_divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@id/app_bar"
+        android:alpha="0"
+        android:background="?attr/colorOutlineVariant" />
+
+</RelativeLayout>

@@ -3,4 +3,6 @@
     <dimen name="welcome_padding">24dp</dimen>
     <!-- As wide as the web's sidebar, whose numbers the sidebar's rows follow. -->
     <dimen name="sidebar_width">288dp</dimen>
+    <!-- Negative: how far the top fade reaches below a chat's bar. -->
+    <dimen name="top_fade_overhang">-28dp</dimen>
 </resources>

@@ -1,14 +1,26 @@
 package com.chatwithwork.app.fragments
 
 import android.annotation.SuppressLint
+import android.graphics.LinearGradient
+import android.graphics.Shader
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.PaintDrawable
+import android.graphics.drawable.ShapeDrawable
+import android.graphics.drawable.shapes.RectShape
 import android.os.Bundle
+import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.RelativeLayout
 import androidx.appcompat.R as AppCompatR
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
+import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.chatwithwork.app.R
 import com.chatwithwork.app.routing.AppUrls
 import dev.hotwire.core.config.Hotwire
@@ -18,6 +30,7 @@ import dev.hotwire.core.turbo.errors.HttpError
 import dev.hotwire.core.turbo.errors.VisitError
 import dev.hotwire.core.turbo.nav.PresentationContext
 import dev.hotwire.core.turbo.webview.HotwireWebChromeClient
+import dev.hotwire.navigation.R as HotwireR
 import dev.hotwire.navigation.destinations.HotwireDestination
 import dev.hotwire.navigation.destinations.HotwireDestinationDeepLink
 import dev.hotwire.navigation.fragments.HotwireWebFragment
@@ -26,7 +39,8 @@ import java.lang.ref.WeakReference
 /**
  * A page: the native top app bar over the shared web view. The root (a chat)
  * has the sidebar's button where back would be; every screen but a modal has
- * New chat in its bar.
+ * New chat in its bar. In a chat the bar has no surface of its own and the
+ * page runs under it.
  */
 @HotwireDestinationDeepLink(uri = "hotwire://fragment/web")
 open class WebFragment : HotwireWebFragment() {
@@ -44,8 +58,17 @@ open class WebFragment : HotwireWebFragment() {
         outState.putBoolean(OPENED_FROM_SIDEBAR, openedFromSidebar)
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
-        inflater.inflate(R.layout.fragment_web, container, false)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val themed =
+            if (runsUnderBar) {
+                inflater.cloneInContext(
+                    ContextThemeWrapper(inflater.context, R.style.ThemeOverlay_ChatWithWork_ChatScreen)
+                )
+            } else {
+                inflater
+            }
+        return themed.inflate(R.layout.fragment_web, container, false)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -75,6 +98,68 @@ open class WebFragment : HotwireWebFragment() {
             }
             if (!isModal) addShellActions(toolbar)
         }
+
+        if (runsUnderBar) runPageUnderBar(view)
+    }
+
+    /** A chat, whose page the bar floats over. */
+    private val runsUnderBar: Boolean
+        get() = AppUrls.isChat(location)
+
+    /**
+     * The bar's title and buttons sit straight on the page: no surface, no
+     * hairline, and what scrolls up fades into the page's background behind
+     * them. The page leaves room for the bar (--native-top-bar-height), and
+     * so does the pull to refresh's spinner.
+     */
+    private fun runPageUnderBar(view: View) {
+        view.findViewById<View>(R.id.toolbar_divider).isVisible = false
+        view.findViewById<View>(R.id.page_area).updateLayoutParams<RelativeLayout.LayoutParams> {
+            removeRule(RelativeLayout.BELOW)
+        }
+        view.findViewById<View>(R.id.top_fade).apply {
+            background = topFade()
+            isVisible = true
+        }
+        val spinner = view.findViewById<SwipeRefreshLayout>(HotwireR.id.hotwire_webView_container)
+        val bar = view.findViewById<View>(R.id.app_bar)
+        bar.background = null
+        bar.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            val height = bottom - top
+            if (height != oldBottom - oldTop) {
+                val circle = spinner.progressCircleDiameter
+                spinner.setProgressViewOffset(false, height - circle, height + circle / 2)
+                tellPageItsTop()
+            }
+        }
+    }
+
+    /** The page's canvas down past the title, then an ease rather than a ramp, whose ends would show as lines. */
+    private fun topFade(): Drawable {
+        val canvas = ContextCompat.getColor(requireContext(), R.color.lw_canvas)
+        val colors = TOP_FADE_ALPHAS.map { ColorUtils.setAlphaComponent(canvas, it) }.toIntArray()
+        return PaintDrawable().apply {
+            // Without a shape it ignores the shader and fills in black.
+            shape = RectShape()
+            shaderFactory =
+                object : ShapeDrawable.ShaderFactory() {
+                    override fun resize(width: Int, height: Int): Shader = LinearGradient(
+                        0f,
+                        0f,
+                        0f,
+                        height.toFloat(),
+                        colors,
+                        TOP_FADE_STOPS,
+                        Shader.TileMode.CLAMP
+                    )
+                }
+        }
+    }
+
+    /** The web view is shared: each screen says how much of its top is covered as it takes over. */
+    private fun tellPageItsTop() {
+        val covered = if (runsUnderBar) view?.findViewById<View>(R.id.app_bar)?.height ?: 0 else 0
+        PageScripts.setTopBarHeight(navigator.session.webView, covered)
     }
 
     /** The sidebar's button on the root and on what the sidebar opened, and New chat on every screen but a modal. */
@@ -130,11 +215,12 @@ open class WebFragment : HotwireWebFragment() {
     override fun onVisitStarted(location: String) {
         // A file's pages may have been zoomed; the page after them starts whole.
         if (!AppUrls.isFileViewer(location)) unzoom()
+        tellPageItsTop()
         super.onVisitStarted(location)
     }
 
     override fun onVisitCompleted(location: String, completedOffline: Boolean) {
-        showBarEdgeOnceScrolled()
+        if (!runsUnderBar) showBarEdgeOnceScrolled()
         super.onVisitCompleted(location, completedOffline)
         allowZoom(AppUrls.isFileViewer(location))
         host?.onVisitCompleted(this, location)
@@ -167,6 +253,7 @@ open class WebFragment : HotwireWebFragment() {
     override fun onColdBootPageCompleted(location: String) {
         super.onColdBootPageCompleted(location)
         PageScripts.install(navigator.session.webView)
+        tellPageItsTop()
     }
 
     private val host: WebScreenHost?
@@ -202,6 +289,9 @@ interface WebScreenHost {
  * which WebView.zoomBy clamps to; it refuses 0.01 and below.
  */
 private const val MIN_ZOOM_FACTOR = 0.02f
+
+private val TOP_FADE_STOPS = floatArrayOf(0f, 0.68f, 0.76f, 0.84f, 0.92f, 1f)
+private val TOP_FADE_ALPHAS = listOf(255, 255, 224, 140, 46, 0)
 
 private const val OPENED_FROM_SIDEBAR = "opened_from_sidebar"
 
