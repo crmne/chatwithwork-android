@@ -8,6 +8,8 @@
   While dictation listens or transcribes, its line takes the field's place,
   as the web composer's does ([data-dictating]): "Listening", the waveform
   across the composer, and the time, with Cancel and Stop in the bar.
+  Its 16dp sides put the box's edges on the answer's text (Chat with Work's
+  docs/ui/native-apps.md, "Chat screen proportions").
 -->
 <com.chatwithwork.app.composer.ComposerView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -16,7 +18,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingHorizontal="12dp"
+    android:paddingHorizontal="16dp"
     android:paddingTop="6dp"
     android:paddingBottom="10dp"
     android:visibility="gone"
