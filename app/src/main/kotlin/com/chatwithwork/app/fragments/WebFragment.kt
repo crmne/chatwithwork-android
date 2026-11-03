@@ -108,8 +108,8 @@ open class WebFragment : HotwireWebFragment() {
 
     /**
      * The bar's title and buttons sit straight on the page: no surface, no
-     * hairline, and what scrolls up fades into the page's background behind
-     * them. The page leaves room for the bar (--native-top-bar-height), and
+     * hairline, one compact row, and what scrolls up fades into the page's
+     * background behind them. The page leaves room for the bar (--native-top-bar-height), and
      * so do the pull to refresh's spinners, the page's and an error's.
      */
     private fun runPageUnderBar(view: View) {
@@ -126,6 +126,9 @@ open class WebFragment : HotwireWebFragment() {
                 .map { view.findViewById<SwipeRefreshLayout>(it) }
         val bar = view.findViewById<View>(R.id.app_bar)
         bar.background = null
+        view.findViewById<View>(R.id.toolbar).updateLayoutParams {
+            height = resources.getDimensionPixelSize(R.dimen.chat_bar_height)
+        }
         bar.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
             val height = bottom - top
             if (height != oldBottom - oldTop) {
