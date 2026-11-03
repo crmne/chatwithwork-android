@@ -4,5 +4,7 @@
     <!-- As wide as the web's sidebar, whose numbers the sidebar's rows follow. -->
     <dimen name="sidebar_width">288dp</dimen>
     <!-- Negative: how far the top fade reaches below a chat's bar. -->
-    <dimen name="top_fade_overhang">-28dp</dimen>
+    <dimen name="top_fade_overhang">-20dp</dimen>
+    <!-- A chat's bar: one row, as tall as a phone's compact top bar, its buttons still 48dp targets. -->
+    <dimen name="chat_bar_height">56dp</dimen>
 </resources>
