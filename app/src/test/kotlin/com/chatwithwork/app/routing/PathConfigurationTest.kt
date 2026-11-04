@@ -1,6 +1,7 @@
 package com.chatwithwork.app.routing
 
 import com.chatwithwork.app.AppConfig
+import com.chatwithwork.app.fragments.pageUnderTopBar
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.google.gson.Gson
@@ -62,6 +63,23 @@ class PathConfigurationTest {
             }
         assertThat(properties("/shared/abc123")["pull_to_refresh_enabled"]).isEqualTo(false)
         assertThat(properties("/shared/abc123")["presentation"]).isNull()
+    }
+
+    @Test
+    fun `every page, modal or not, runs under the top bar`() {
+        listOf(
+            "/482139075/chats/42",
+            "/482139075/bots",
+            "/482139075/bots/7",
+            "/482139075/settings",
+            "/482139075/settings/connectors",
+            "/482139075/chats/42/files/3",
+            "/482139075/bots/new",
+            "/users/sign_in",
+            "/shared/abc123"
+        ).forEach { path ->
+            assertWithMessage(path).that(properties(path).pageUnderTopBar).isTrue()
+        }
     }
 
     @Test

@@ -7,6 +7,7 @@
       ],
       "properties": {
         "context": "default",
+        "page_under_top_bar": true,
         "pull_to_refresh_enabled": true,
         "uri": "hotwire://fragment/web"
       }
