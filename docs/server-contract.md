@@ -844,6 +844,19 @@ a server without `waiting.url`) leads each with `asker.name`, then `summary`
 and the project, as the web's decision row does. Without `asker` it's as
 before.
 
+**Question or Permission (server, 2026-11-04).** Each of `waiting.items`
+also carries `family`, `question` or `permission` (the server's
+`Decision#family`), and `label`, the web tag's words for it ("Question",
+"Permission · runs a command", "Permission · deletes",
+`DecisionsHelper#decision_kind_label`). The sheet of `waiting.items` shows
+`label` under each item's summary, as its subtitle, as the web's decision row
+and queue show their tag; without `label` it spells the family ("Question",
+"Permission"), and without either the item is as before. Like the rest of the
+sheet, it shows only from a server without `waiting.url`: with one, Decisions
+opens the web page, which draws the tag itself. Never branch on `label`'s
+words, which may be translated: `family` is the stable key. The iOS app draws
+the same under each row of its Decisions list.
+
 **Chats | Bots (server, 2026-10-27).** `bots` also carries `url` (the Bots
 page), `new_url` (New bot) and `items`, the person's bots and the shared ones
 they read, as the web sidebar's Bots view lists them (`bots/_sidebar_list`),

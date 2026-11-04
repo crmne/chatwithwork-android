@@ -94,8 +94,24 @@ data class Sidebar(
         /** One line saying what's to decide (servers from 2026-10-26). */
         val summary: String? = null,
         /** Who asks (servers from 2026-10-27), which the list leads with, as the web's decision row does. */
-        val asker: Asker? = null
-    )
+        val asker: Asker? = null,
+        /** `question` or `permission` (servers from 2026-11-04). */
+        val family: String? = null,
+        /** The web tag's words: "Question", "Permission · runs a command" (servers from 2026-11-04). */
+        val label: String? = null
+    ) {
+        /**
+         * What the row says under its summary, as the web's decision row's
+         * tag: [label], else the family in [question] or [permission]'s words.
+         */
+        fun tag(question: String, permission: String): String? =
+            label?.takeIf { it.isNotBlank() }
+                ?: when (family) {
+                    "question" -> question
+                    "permission" -> permission
+                    else -> null
+                }
+    }
 
     @Serializable
     data class Asker(

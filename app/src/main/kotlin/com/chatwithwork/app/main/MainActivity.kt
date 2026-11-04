@@ -700,6 +700,12 @@ class MainActivity :
                         item.asker?.let { asker ->
                             listOfNotNull(asker.name, item.summary ?: item.title, item.project).joinToString(" · ")
                         } ?: listOfNotNull(item.title, item.project).joinToString(" · "),
+                    // Question or Permission, under the summary as the web's tag.
+                    subtitle =
+                        item.tag(
+                            getString(R.string.sidebar_decision_question),
+                            getString(R.string.sidebar_decision_permission)
+                        ),
                     image =
                         when (item.kind) {
                             "question" -> "help"
