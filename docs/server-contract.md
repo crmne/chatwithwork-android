@@ -82,19 +82,25 @@ flashes as toasts). What differs on Android:
   Earlier builds had tabs (Chats, Bots and Settings in a floating
   toolbar) and read `android_v1.json`, the `native-tabs` meta tag and
   `data-native-tab-root`; keep serving those for them.
-- **A page starts below the top app bar; a chat runs under it.** The app
-  puts the web view below its top app bar and above the gesture bar, and
-  moves it above the keyboard. `env(safe-area-inset-*)` is 0 in the Android
-  web view: don't pad for it. `viewport-fit=cover` makes no difference
-  here. On a chat's page (`/chats/<number>`, `/chats/new`) the bar has no
-  surface or hairline: the web view reaches the top of the screen, what
-  scrolls up fades into the canvas behind the title and buttons, and the
-  app sets `--native-top-bar-height` on `<html>` to how much of the page the
-  bar covers (status bar included, in CSS pixels; `0px` on other pages,
-  which start below it). The server's `native.css` and `scroll_controller.js`
-  keep a chat's start, a new question's place, and the panel sheet clear
-  of it. The server must carry those rules before a build with this bar
-  ships, or a chat's first message sits under the bar.
+- **Every page runs under the top app bar.** The app puts the web view
+  above the gesture bar, and moves it above the keyboard.
+  `env(safe-area-inset-*)` is 0 in the Android web view: don't pad for it.
+  `viewport-fit=cover` makes no difference here. Every screen, a chat, a
+  page, or a modal, has the same bar (`TopBar`): no surface or hairline,
+  one 56dp row, and what scrolls up fades into the canvas behind the title
+  and buttons. Where the page runs under it, the web view reaches the top
+  of the screen and the app sets `--native-top-bar-height` on `<html>` to
+  how much of the page the bar covers (status bar included, in CSS pixels;
+  `0px` on a page that starts below it). A chat always runs under it; any
+  other page only where the path configuration's `page_under_top_bar` is
+  `true`, which `android_v2.json` sets for every page once the server's
+  `native.css` keeps every page's start, and anything sticky at its top,
+  clear of the bar. A server whose configuration doesn't say so gets
+  pages that start below the bar, with the fade's last 20dp coming in over
+  them as they scroll. Pages don't draw a header of their own: `.app-bar`
+  and `.native-hidden` stay hidden, so the bar and its fade are the only
+  ones. `scroll_controller.js` and the panel sheet keep a chat's new
+  question and the sheet clear of the bar too.
 - **Titles.** The app shows `<title>` in its top app bar, and follows it
   when the page changes it later (`onReceivedTitle`): a chat's `<title>`
   changes as its automatic title arrives, or someone renames it. Until the server

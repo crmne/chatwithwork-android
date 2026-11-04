@@ -90,10 +90,10 @@ class ComposerBackground(context: Context) : Drawable() {
 
     override fun draw(canvas: Canvas) {
         box.set(bounds)
-        canvas.drawRoundRect(box, 20 * density, 20 * density, surface)
+        canvas.drawRoundRect(box, RADIUS_DP * density, RADIUS_DP * density, surface)
         box.inset(density, density)
         edge.alpha = (look.edgeOpacity * 255).toInt()
-        canvas.drawRoundRect(box, 19 * density, 19 * density, edge)
+        canvas.drawRoundRect(box, (RADIUS_DP - 1) * density, (RADIUS_DP - 1) * density, edge)
     }
 
     override fun setAlpha(alpha: Int) {
@@ -109,6 +109,8 @@ class ComposerBackground(context: Context) : Drawable() {
     override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 
     companion object {
+        /** The box's corners, which the notice above it shares (drawable/composer_notice.xml). */
+        const val RADIUS_DP = 20f
         val COLORS =
             intArrayOf(
                 0xFF44FF9A.toInt(),

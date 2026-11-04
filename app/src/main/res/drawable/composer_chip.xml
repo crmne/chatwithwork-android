@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/ripple">
-    <item>
-        <shape>
-            <solid android:color="@android:color/transparent" />
-            <corners android:radius="20dp" />
-        </shape>
+<!-- The model picker (.model-picker__trigger on touch screens): a clear 36dp pill between 4dp above and below, ink at 7% pressed. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <inset android:insetTop="4dp" android:insetBottom="4dp">
+            <shape>
+                <solid android:color="@color/composer_pressed" />
+                <corners android:radius="18dp" />
+            </shape>
+        </inset>
     </item>
-</ripple>
+    <item>
+        <inset android:insetTop="4dp" android:insetBottom="4dp">
+            <shape>
+                <solid android:color="@android:color/transparent" />
+                <corners android:radius="18dp" />
+            </shape>
+        </inset>
+    </item>
+</selector>

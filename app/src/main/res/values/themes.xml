@@ -200,13 +200,13 @@
         <item name="cornerSize">20dp</item>
     </style>
 
-    <!-- Top app bar: the page's canvas, ink title, a hairline below. -->
+    <!-- Top app bar (TopBar): no surface, hairline, or lift; the fade under it is the page's canvas. -->
     <style name="Widget.ChatWithWork.AppBarLayout" parent="Widget.Material3.AppBarLayout">
-        <item name="android:background">?attr/colorSurface</item>
+        <item name="android:background">@android:color/transparent</item>
         <item name="liftOnScroll">false</item>
     </style>
 
-    <!-- On the app bar's canvas, which draws the background. -->
+    <!-- Straight on the fade, which draws the background. -->
     <style name="Widget.ChatWithWork.Toolbar" parent="Widget.Material3.Toolbar.Surface">
         <item name="android:background">@android:color/transparent</item>
         <item name="materialThemeOverlay">@style/ThemeOverlay.ChatWithWork.Toolbar</item>
@@ -217,15 +217,16 @@
         <item name="contentInsetStartWithNavigation">0dp</item>
     </style>
 
-    <!-- Tonal circles, with no text-action's minimum width pushing them apart. -->
+    <!-- The bar's buttons sit straight on the page, with only the ripple's circle under a finger, and no
+         text-action's minimum width pushing them apart. -->
     <style name="Widget.ChatWithWork.Toolbar.Button.Navigation" parent="Widget.AppCompat.Toolbar.Button.Navigation">
-        <item name="android:background">@drawable/toolbar_navigation_button</item>
+        <item name="android:background">@drawable/toolbar_bare_button</item>
         <item name="android:minWidth">48dp</item>
         <item name="android:layout_marginStart">4dp</item>
     </style>
 
     <style name="Widget.ChatWithWork.Toolbar.Button.Action" parent="Widget.AppCompat.ActionButton">
-        <item name="android:background">@drawable/toolbar_icon_button</item>
+        <item name="android:background">@drawable/toolbar_bare_button</item>
         <item name="android:minWidth">48dp</item>
         <item name="android:paddingStart">0dp</item>
         <item name="android:paddingEnd">0dp</item>
@@ -233,28 +234,9 @@
 
     <style name="Widget.ChatWithWork.Toolbar.Button.Overflow" parent="Widget.AppCompat.ActionButton.Overflow">
         <item name="android:src">@drawable/ic_more</item>
-        <item name="android:background">@drawable/toolbar_icon_button</item>
+        <item name="android:background">@drawable/toolbar_bare_button</item>
         <item name="android:minWidth">48dp</item>
         <item name="android:layout_marginEnd">4dp</item>
-    </style>
-
-    <!-- A chat's bar: its buttons sit straight on the page, with only the ripple left of their circles. -->
-    <style name="ThemeOverlay.ChatWithWork.ChatScreen" parent="">
-        <item name="toolbarNavigationButtonStyle">@style/Widget.ChatWithWork.Toolbar.Button.Navigation.Bare</item>
-        <item name="actionButtonStyle">@style/Widget.ChatWithWork.Toolbar.Button.Action.Bare</item>
-        <item name="actionOverflowButtonStyle">@style/Widget.ChatWithWork.Toolbar.Button.Overflow.Bare</item>
-    </style>
-
-    <style name="Widget.ChatWithWork.Toolbar.Button.Navigation.Bare">
-        <item name="android:background">@drawable/toolbar_bare_button</item>
-    </style>
-
-    <style name="Widget.ChatWithWork.Toolbar.Button.Action.Bare">
-        <item name="android:background">@drawable/toolbar_bare_button</item>
-    </style>
-
-    <style name="Widget.ChatWithWork.Toolbar.Button.Overflow.Bare">
-        <item name="android:background">@drawable/toolbar_bare_button</item>
     </style>
 
     <!-- Icons in the bar stay muted, as Material has them; a text action ("Save") is ink. -->

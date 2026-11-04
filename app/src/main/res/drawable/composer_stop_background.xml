@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The web's Stop (.chat-prompt__stop): Send's ink square, and ink at 10% while it stops. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false">
+        <inset android:inset="5dp">
+            <shape>
+                <solid android:color="@color/composer_stop_disabled" />
+                <corners android:radius="9dp" />
+            </shape>
+        </inset>
+    </item>
+    <item android:state_pressed="true">
+        <inset android:inset="5dp">
+            <shape>
+                <solid android:color="@color/composer_ink_pressed" />
+                <corners android:radius="9dp" />
+            </shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:inset="5dp">
+            <shape>
+                <solid android:color="@color/lw_ink" />
+                <corners android:radius="9dp" />
+            </shape>
+        </inset>
+    </item>
+</selector>

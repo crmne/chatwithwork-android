@@ -1,32 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The web's touch send button (.chat-prompt__send): a 36dp square with 10dp corners inside its 44dp target. Ink when there's something to send (or an answer to stop), the quiet surface otherwise. -->
-<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/ripple">
-    <item>
-        <selector>
-            <item android:state_enabled="false">
-                <inset android:inset="4dp">
-                    <shape>
-                        <solid android:color="@color/lw_surface_hover" />
-                        <corners android:radius="10dp" />
-                    </shape>
-                </inset>
-            </item>
-            <item>
-                <inset android:inset="4dp">
-                    <shape>
-                        <solid android:color="@color/lw_ink" />
-                        <corners android:radius="10dp" />
-                    </shape>
-                </inset>
-            </item>
-        </selector>
-    </item>
-    <item android:id="@android:id/mask">
-        <inset android:inset="4dp">
+<!-- The web's Send on touch screens (.btn-primary.btn-square in .chat-prompt__bar): a 34dp ink square with 9dp corners inside its 44dp target, lighter pressed, and nearly clear with nothing to send (.btn-disabled-visual). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false">
+        <inset android:inset="5dp">
             <shape>
-                <solid android:color="@android:color/white" />
-                <corners android:radius="10dp" />
+                <solid android:color="@color/composer_send_disabled" />
+                <corners android:radius="9dp" />
             </shape>
         </inset>
     </item>
-</ripple>
+    <item android:state_pressed="true">
+        <inset android:inset="5dp">
+            <shape>
+                <solid android:color="@color/composer_ink_pressed" />
+                <corners android:radius="9dp" />
+            </shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:inset="5dp">
+            <shape>
+                <solid android:color="@color/lw_ink" />
+                <corners android:radius="9dp" />
+            </shape>
+        </inset>
+    </item>
+</selector>

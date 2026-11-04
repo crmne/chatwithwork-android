@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A file chip's remove button, as the web's .attachment__remove: a clear 28dp square with 6dp corners (radius-tag)
+     inside its 36dp target, ink at 8% pressed. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <inset android:inset="4dp">
+            <shape>
+                <solid android:color="@color/composer_remove_pressed" />
+                <corners android:radius="6dp" />
+            </shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:inset="4dp">
+            <shape>
+                <solid android:color="@android:color/transparent" />
+                <corners android:radius="6dp" />
+            </shape>
+        </inset>
+    </item>
+</selector>

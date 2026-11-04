@@ -158,7 +158,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         input.setOnFocusChangeListener { _, _ -> updateLook() }
         val ink = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface)
         plus.setOnClickListener { actions?.openSheet() }
-        dictateButton.setImageDrawable(SymbolDrawable(context, "mic", color = muted()))
+        dictateButton.setImageDrawable(SymbolDrawable(context, "mic", sizeDp = ICON_DP, color = ink))
         dictateButton.setOnClickListener { actions?.dictate() }
         webSearchButton.setOnClickListener {
             val search = state.webSearch ?: return@setOnClickListener
@@ -178,7 +178,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         model.setOnClickListener { actions?.chooseModel() }
         stop.setOnClickListener { onStop() }
         send.setOnClickListener { onSend() }
-        dictationCancel.setImageDrawable(SymbolDrawable(context, "close", color = ink))
+        dictationCancel.setImageDrawable(SymbolDrawable(context, "close", sizeDp = ICON_DP, color = ink))
         dictationCancel.setOnClickListener { cancelDictation() }
         dictationStop.setOnClickListener { dictation?.stop() }
         input.addTextChangedListener(
@@ -338,7 +338,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             "everything" -> "report"
             else -> "add"
         }
-        plus.setImageDrawable(SymbolDrawable(context, symbol, color = ink))
+        plus.setImageDrawable(SymbolDrawable(context, symbol, sizeDp = ICON_DP, color = ink))
         ViewCompat.setStateDescription(plus, permission?.label)
         plus.contentDescription =
             context.getString(if (sheet.attachOnly) R.string.composer_attach else R.string.composer_add)
@@ -353,7 +353,13 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             webSearchButton.isSelected = search.on
             webSearchButton.alpha = if (search.disabled) DISABLED_ALPHA else 1f
             webSearchButton.setImageDrawable(
-                SymbolDrawable(context, "language", filled = search.on, color = if (search.on) ink else muted())
+                SymbolDrawable(
+                    context,
+                    "language",
+                    sizeDp = ICON_DP,
+                    filled = search.on,
+                    color = if (search.on) ink else muted()
+                )
             )
             ViewCompat.setStateDescription(
                 webSearchButton,
@@ -386,6 +392,13 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
                 csrfToken,
                 userAgent,
                 object : Dictation.Listener {
+                    // A phone that dims and locks mid-sentence stops the app, which ends the recording unsent, so
+                    // the screen stays on while the microphone is open. Android lets go of it by itself too, once
+                    // this view leaves the window.
+                    override fun onListening(listening: Boolean) {
+                        keepScreenOn = listening
+                    }
+
                     override fun onLevel(level: Float, elapsedMs: Long) {
                         waveform.add(level)
                         dictationTime.text = Dictation.elapsed(elapsedMs)
@@ -486,6 +499,10 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         dictationCancel.isVisible = on
         dictationStopFrame.isVisible = on
         dictationStop.isEnabled = !transcribing
+        // As the web's microphone: live while it listens, a ghost with a spinner while the words come back.
+        dictationStop.setBackgroundResource(
+            if (transcribing) R.drawable.composer_ghost_button else R.drawable.composer_listening_button
+        )
         dictationStop.setImageDrawable(
             if (transcribing) {
                 null
@@ -493,8 +510,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
                 SymbolDrawable(
                     context,
                     "stop",
+                    sizeDp = STOP_ICON_DP,
                     filled = true,
-                    color = ContextCompat.getColor(context, R.color.lw_ink_inverted)
+                    color = ContextCompat.getColor(context, R.color.lw_live_ink)
                 )
             }
         )
@@ -533,36 +551,43 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         clear()
     }
 
-    // While an answer runs, Stop stands alone in ink until there are words or files; then Send joins it as the ink
-    // button and Stop steps back to an outline beside it.
+    // As the web's: while an answer runs, Stop is the ink square, and once there are words or files Send joins it as
+    // the subtle one (chats/_submit_button). Both sit flush, as the touch bar's buttons do.
     private fun renderButtons() {
         val showsSend = state.showsSend(text) && !dictating
-        stop.isVisible = state.showsStop() && !dictating
+        val showsStop = state.showsStop() && !dictating
+        stop.isVisible = showsStop
         send.isVisible = showsSend
 
-        val stopAlone = !showsSend
         stop.isEnabled = state.canStop
-        stop.setBackgroundResource(
-            if (stopAlone) R.drawable.composer_send_background else R.drawable.composer_stop_quiet_background
-        )
-        val stopColor =
-            when {
-                !stop.isEnabled -> R.color.lw_ink_faint
-                stopAlone -> R.color.lw_ink_inverted
-                else -> R.color.lw_ink
-            }
+        val stopColor = if (stop.isEnabled) R.color.lw_ink_inverted else R.color.composer_stop_disabled_icon
         stop.setImageDrawable(
-            SymbolDrawable(context, "stop", filled = true, color = ContextCompat.getColor(context, stopColor))
+            SymbolDrawable(
+                context,
+                "stop",
+                sizeDp = STOP_ICON_DP,
+                filled = true,
+                color = ContextCompat.getColor(context, stopColor)
+            )
         )
-        val gap = if (showsSend) (BUTTON_GAP_DP * resources.displayMetrics.density).toInt() else 0
-        if ((stop.layoutParams as MarginLayoutParams).marginEnd != gap) {
-            stop.updateLayoutParams<MarginLayoutParams> { marginEnd = gap }
-        }
 
         send.isEnabled = state.canSend(text)
-        val sendColor = if (send.isEnabled) R.color.lw_ink_inverted else R.color.lw_ink_faint
+        send.setBackgroundResource(
+            if (showsStop) R.drawable.composer_subtle_button else R.drawable.composer_send_background
+        )
+        val sendColor =
+            when {
+                !send.isEnabled -> R.color.composer_send_disabled_icon
+                showsStop -> R.color.lw_ink
+                else -> R.color.lw_ink_inverted
+            }
         send.setImageDrawable(
-            SymbolDrawable(context, "arrow_upward", color = ContextCompat.getColor(context, sendColor))
+            SymbolDrawable(
+                context,
+                "arrow_upward",
+                sizeDp = ICON_DP,
+                color = ContextCompat.getColor(context, sendColor)
+            )
         )
     }
 
@@ -606,8 +631,10 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         // The box's padding around the bar (view_composer.xml).
         const val BOX_PADDING_DP = 8
 
-        // Between Stop and Send when both show, the same as between the model chip and Send.
-        const val BUTTON_GAP_DP = 8
+        // The web's touch bar draws Phosphor icons at 20px and Stop's at 15px; Material Symbols leave more room
+        // around their glyphs, so 24dp and 18dp draw them as large (the microphone measured 16.4dp tall in both).
+        const val ICON_DP = 24f
+        const val STOP_ICON_DP = 18f
 
         // The web conversation's column, 46rem (components/conversation.css): CSS pixels are dp in the web view.
         const val COLUMN_WIDTH_DP = 736
