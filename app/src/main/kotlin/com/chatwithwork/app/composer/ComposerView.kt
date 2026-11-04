@@ -631,9 +631,10 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         // The box's padding around the bar (view_composer.xml).
         const val BOX_PADDING_DP = 8
 
-        /** The web's touch bar draws its icons at 20px, and Stop's square at 15px. */
-        const val ICON_DP = 20f
-        const val STOP_ICON_DP = 15f
+        // The web's touch bar draws Phosphor icons at 20px and Stop's at 15px; Material Symbols leave more room
+        // around their glyphs, so 24dp and 18dp draw them as large (the microphone measured 16.4dp tall in both).
+        const val ICON_DP = 24f
+        const val STOP_ICON_DP = 18f
 
         // The web conversation's column, 46rem (components/conversation.css): CSS pixels are dp in the web view.
         const val COLUMN_WIDTH_DP = 736
