@@ -6,6 +6,33 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.1
+
+Version 1.2.1 (10201) keeps the chats someone opened readable offline, after
+a cold launch too, and draws the sidebar's bots in their colours with their
+states' faces, from
+[#42](https://github.com/crmne/chatwithwork-android/pull/42). Tag `v1.2.1`.
+It needs production's service worker for offline chats and the sidebar's
+`colour`, `face` and `line` keys for bots, both deployed on 2026-11-04; older
+servers keep the app's offline screen and the bots' mark in the text colour.
+
+The signed, Firebase-enabled bundle became available to Internal testers on
+2026-11-04 at 16:08 Europe/Berlin, with the What's new in
+`changelogs/10201.txt`. Only Internal testing was updated: Production and
+Open testing were left as they were.
+
+Validation: CI passed on the pull request, and unit tests, lint, formatting
+and all build variants passed locally. On an Android 17 emulator, a debug
+build pointed at staging (synthetic Northwind Studio data) opened a chat
+online, then in airplane mode a cold launch opened that chat from its
+offline copy with the composer locked, and New chat offline showed the
+app's offline screen; the Bots view was checked in light and dark with
+working, waiting, paused and idle bots. The release bundle itself wasn't
+tried on a device. The release build's features match the list under
+Permissions, and the upload signature was verified. Play reported no loss
+of supported devices and only the existing non-blocking native dependency
+debug-symbol warning.
+
 ## Release 1.2.0
 
 Version 1.2.0 (10200) gives every screen a chat's top bar, with no surface or
