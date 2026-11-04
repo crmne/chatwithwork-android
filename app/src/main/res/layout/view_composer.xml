@@ -140,7 +140,7 @@
                 android:id="@+id/composer_plus"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:background="@drawable/composer_round_button"
+                android:background="@drawable/composer_ghost_button"
                 android:contentDescription="@string/composer_add" />
 
             <ImageButton
@@ -165,7 +165,7 @@
                 android:id="@+id/composer_dictation_cancel"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:background="@drawable/composer_round_button"
+                android:background="@drawable/composer_ghost_button"
                 android:contentDescription="@string/dictation_cancel_description"
                 android:visibility="gone" />
 
@@ -177,8 +177,7 @@
             <TextView
                 android:id="@+id/composer_model"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:layout_marginEnd="8dp"
+                android:layout_height="44dp"
                 android:background="@drawable/composer_chip"
                 android:drawablePadding="4dp"
                 android:ellipsize="end"
@@ -186,8 +185,9 @@
                 android:gravity="center_vertical"
                 android:maxLines="1"
                 android:maxWidth="180dp"
-                android:paddingHorizontal="12dp"
-                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:paddingStart="8dp"
+                android:paddingEnd="7dp"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 tools:text="GPT-6 Luna" />
 
@@ -195,7 +195,7 @@
                 android:id="@+id/composer_stop"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:background="@drawable/composer_send_background"
+                android:background="@drawable/composer_stop_background"
                 android:contentDescription="@string/composer_stop"
                 android:visibility="gone" />
 
@@ -219,7 +219,7 @@
                     android:background="@drawable/composer_send_background"
                     android:contentDescription="@string/dictation_stop_description" />
 
-                <!-- Transcribing: Stop steps back to the quiet surface, with a spinner on it. -->
+                <!-- Transcribing: the microphone's ghost square with a spinner, as the web's busy microphone. -->
                 <com.google.android.material.progressindicator.CircularProgressIndicator
                     android:id="@+id/composer_dictation_spinner"
                     android:layout_width="wrap_content"

@@ -50,7 +50,7 @@
         android:id="@+id/composer_file_remove"
         android:layout_width="36dp"
         android:layout_height="36dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:background="@drawable/composer_file_remove"
         android:contentDescription="@null" />
 
 </LinearLayout>

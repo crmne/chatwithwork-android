@@ -36,7 +36,7 @@ object ComposerBar {
 
     /**
      * How wide the model chip may grow in a bar [widthDp] wide with [buttons]
-     * round buttons showing before it: what Send and the chip's gap leave,
+     * buttons showing before it: what Send and the chip's gap leave,
      * between its narrowest and its widest. The chip measures before Send,
      * so without this cap a long model name would push Send off the bar.
      */
