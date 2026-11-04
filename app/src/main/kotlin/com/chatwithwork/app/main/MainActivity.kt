@@ -372,7 +372,8 @@ class MainActivity :
     private fun isOnline(): Boolean {
         val connectivity = getSystemService(ConnectivityManager::class.java) ?: return true
         val capabilities = connectivity.getNetworkCapabilities(connectivity.activeNetwork) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        // Validated: a network that's up but can't reach the internet is offline too.
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
     override fun onNavigatorReady(navigator: Navigator) {

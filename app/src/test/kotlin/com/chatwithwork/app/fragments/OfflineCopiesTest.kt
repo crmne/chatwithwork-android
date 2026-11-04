@@ -32,4 +32,12 @@ class OfflineCopiesTest {
         assertThat(OfflineCopies.page("null")).isEqualTo(OfflineCopies.Page.OTHER)
         assertThat(OfflineCopies.page(null)).isEqualTo(OfflineCopies.Page.OTHER)
     }
+
+    @Test
+    fun `asks only the page at the held address that wasn't showing when the error came`() {
+        val script = OfflineCopies.whichPage("https://chatwithwork.com/482139075/chats/42?q='x'")
+        assertThat(script).contains("location.href !== 'https://chatwithwork.com/482139075/chats/42?q=\\'x\\''")
+        assertThat(script).startsWith("window.offlineCopyStale ||")
+        assertThat(OfflineCopies.MARK_STALE).isEqualTo("window.offlineCopyStale = true")
+    }
 }

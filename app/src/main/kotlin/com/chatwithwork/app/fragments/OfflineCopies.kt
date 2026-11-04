@@ -46,7 +46,7 @@ object OfflineCopies {
     /** Whether a failed request may be the network failing behind a page the worker still answers. */
     fun mayBeAnswered(isForMainFrame: Boolean, errorCode: Int): Boolean = isForMainFrame && errorCode in NETWORK_ERRORS
 
-    /** What rendered after a held error, from [WHICH_PAGE]'s result. */
+    /** What rendered after a held error, from [whichPage]'s result. */
     enum class Page { COPY, OFFLINE, OTHER }
 
     fun page(result: String?): Page = when (result) {
@@ -55,14 +55,26 @@ object OfflineCopies {
         else -> Page.OTHER
     }
 
+    private const val STALE = "offlineCopyStale"
+
+    /** Marks the page showing when a held error comes, which can't be the worker's answer. */
+    const val MARK_STALE = "window.$STALE = true"
+
     /**
-     * A kept copy carries `<meta name="offline-copy">`; the worker's own
-     * offline page (public/offline.html) has `main[data-offline]`. Anything
-     * else is the web view's error page, or a page that isn't ours.
+     * The script that says what's showing at [url]: a kept copy carries
+     * `<meta name="offline-copy">`, and the worker's own offline page
+     * (public/offline.html) has `main[data-offline]`. Anything else, the web
+     * view's error page, or the page before it while the failed load hasn't
+     * committed yet (its finish can be reported under the new address, even
+     * the same one on a reload: [MARK_STALE] marks it when the error comes),
+     * is `other`.
      */
-    const val WHICH_PAGE =
-        "document.querySelector('meta[name=\"offline-copy\"]') ? 'copy' : " +
+    fun whichPage(url: String): String {
+        val quoted = "'" + url.replace("\\", "\\\\").replace("'", "\\'") + "'"
+        return "window.$STALE || location.href !== $quoted ? 'other' : " +
+            "document.querySelector('meta[name=\"offline-copy\"]') ? 'copy' : " +
             "document.querySelector('main[data-offline]') ? 'offline' : 'other'"
+    }
 
     private val NETWORK_ERRORS = setOf(
         WebViewClient.ERROR_HOST_LOOKUP,
@@ -75,38 +87,56 @@ object OfflineCopies {
 
 /** Hotwire Native's own client, everything handed through but the error [OfflineCopies] describes. */
 internal class OfflineWebViewClient(private val inner: WebViewClient) : WebViewClient() {
-    private var held: Pair<WebResourceRequest, WebResourceError>? = null
+    /** A held error, numbered so a late page check or timeout can't act on a later one. */
+    private class Hold(val number: Int, val request: WebResourceRequest, val error: WebResourceError)
+
+    private var held: Hold? = null
+    private var holds = 0
     private val handler = Handler(Looper.getMainLooper())
-    private var release: Runnable? = null
 
     override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
         if (!OfflineCopies.mayBeAnswered(request.isForMainFrame, error.errorCode)) {
             inner.onReceivedError(view, request, error)
             return
         }
-        // Held until the page finishes, or a while if it never does.
-        held = request to error
-        release?.let(handler::removeCallbacks)
-        release = Runnable { releaseHeld(view) }.also { handler.postDelayed(it, HOLD_MS) }
+        // Held until the worker's answer finishes, or a while if it never does.
+        handler.removeCallbacksAndMessages(null)
+        val hold = Hold(++holds, request, error)
+        held = hold
+        view.evaluateJavascript(OfflineCopies.MARK_STALE, null)
+        handler.postDelayed({ releaseHeld(view, hold.number) }, HOLD_MS)
+    }
+
+    override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+        // Another page: the held error was for one it replaces, and handing
+        // it on now would fail this one's visit, so it's dropped.
+        if (held?.request?.url?.toString()?.let { it != url } == true) {
+            held = null
+            handler.removeCallbacksAndMessages(null)
+        }
+        inner.onPageStarted(view, url, favicon)
     }
 
     override fun onPageFinished(view: WebView, url: String) {
-        if (held == null) {
+        // Only the held request's own page decides: a page it replaces can
+        // still finish after the error, and is handed through as it was.
+        val hold = held?.takeIf { it.request.url.toString() == url }
+        if (hold == null) {
             inner.onPageFinished(view, url)
             return
         }
-        view.evaluateJavascript(OfflineCopies.WHICH_PAGE) { result ->
+        view.evaluateJavascript(OfflineCopies.whichPage(url)) { result ->
+            if (held?.number != hold.number || view.url != url) return@evaluateJavascript
             when (OfflineCopies.page(result)) {
                 OfflineCopies.Page.COPY -> {
                     Log.i(TAG, "Showing a kept copy offline")
                     held = null
-                    release?.let(handler::removeCallbacks)
-                    release = null
+                    handler.removeCallbacksAndMessages(null)
                     inner.onPageFinished(view, url)
                 }
 
                 OfflineCopies.Page.OFFLINE -> {
-                    releaseHeld(view)
+                    releaseHeld(view, hold.number)
                     inner.onPageFinished(view, url)
                 }
 
@@ -118,18 +148,15 @@ internal class OfflineWebViewClient(private val inner: WebViewClient) : WebViewC
         }
     }
 
-    private fun releaseHeld(view: WebView) {
-        release?.let(handler::removeCallbacks)
-        release = null
-        val (request, error) = held ?: return
+    private fun releaseHeld(view: WebView, number: Int) {
+        val hold = held?.takeIf { it.number == number } ?: return
         held = null
-        inner.onReceivedError(view, request, error)
+        handler.removeCallbacksAndMessages(null)
+        inner.onReceivedError(view, hold.request, hold.error)
     }
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
         inner.shouldOverrideUrlLoading(view, request)
-
-    override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) = inner.onPageStarted(view, url, favicon)
 
     override fun onPageCommitVisible(view: WebView, url: String) = inner.onPageCommitVisible(view, url)
 
