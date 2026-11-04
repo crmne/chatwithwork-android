@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Whether there's a connection at launch, to open the last chat's offline copy (granted at install). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Android 16's Live Updates: a chat left answering shows as promoted ongoing progress. -->
     <!--
@@ -35,7 +37,9 @@
 
     <!--
       No backups: the web view's cookies hold the session, and restoring them
-      on another phone would sign it in without the person.
+      on another phone would sign it in without the person; its storage holds
+      the chats kept for reading offline, which stay on this phone
+      (xml/data_extraction_rules.xml covers device transfers too).
     -->
     <application
         android:name=".ChatWithWorkApplication"

@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -361,7 +363,16 @@ class MainActivity :
             .answeringChatLeftSince(System.currentTimeMillis(), RESUME_WITHIN_MS)
             ?.takeIf { account == null || AppUrls.account(it) == account }
             ?.let { return it }
+        // With no connection New chat can't load, but the chat last shown may
+        // have a copy kept for reading offline (docs/server-contract.md).
+        if (!isOnline()) account?.let(memory::lastChat)?.let { return it }
         return account?.let { memory.newChatPath(it) }?.let(AppUrls::absolute) ?: AppUrls.newChat(account)
+    }
+
+    private fun isOnline(): Boolean {
+        val connectivity = getSystemService(ConnectivityManager::class.java) ?: return true
+        val capabilities = connectivity.getNetworkCapabilities(connectivity.activeNetwork) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
     override fun onNavigatorReady(navigator: Navigator) {
@@ -868,6 +879,7 @@ class MainActivity :
             viewModel.signedOut = true
             viewModel.sidebar = null
             memory.hasSignedIn = false
+            memory.forgetLastChats()
             PushNotifications.forget(this)
         }
 
@@ -926,6 +938,9 @@ class MainActivity :
         viewModel.startLocation = null
         memory.leftAnswering(null, 0)
         AppUrls.account(shown)?.let(::onAccount)
+        if (AppUrls.isChat(shown) && !AppUrls.isNewChat(shown)) {
+            AppUrls.account(shown)?.let { memory.setLastChat(it, shown) }
+        }
         openPendingLink(destination.navigator)
         updateChrome()
         if (viewModel.sidebarStale || drawer.isDrawerVisible(GravityCompat.START)) refreshSidebar(debounce = true)

@@ -52,6 +52,7 @@ open class WebFragment : HotwireWebFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        OfflineCopies.install(navigator.session.webView)
         pathProperties.title?.let(fragmentViewModel::setTitle)
         fragmentViewModel.title.observe(viewLifecycleOwner) { title ->
             toolbarForNavigation()?.title = PageTitles.clean(title)

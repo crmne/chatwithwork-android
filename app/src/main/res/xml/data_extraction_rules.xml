@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Nothing leaves the phone in backups or device transfers: the web view's cookies are the session. -->
+<!--
+  Nothing leaves the phone in backups or device transfers: the web view's
+  cookies are the session, and its storage (app_webview/, where the service
+  worker keeps the chats someone opened, encrypted, in IndexedDB and Cache
+  Storage) holds offline copies of chats. Excluding each whole domain covers
+  both; app_webview/ is named as well so a narrower rule later can't let it
+  through. Android 12 and later read this file for device transfers even
+  with allowBackup off; older versions back nothing up (allowBackup and
+  fullBackupContent in the manifest).
+-->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="root" />
+        <exclude domain="root" path="app_webview/" />
         <exclude domain="file" />
         <exclude domain="database" />
         <exclude domain="sharedpref" />
@@ -10,6 +20,7 @@
     </cloud-backup>
     <device-transfer>
         <exclude domain="root" />
+        <exclude domain="root" path="app_webview/" />
         <exclude domain="file" />
         <exclude domain="database" />
         <exclude domain="sharedpref" />

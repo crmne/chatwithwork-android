@@ -159,9 +159,31 @@ data class Sidebar(
         val waiting: Int = 0,
         /** One of its chats is answering now. */
         val working: Boolean = false,
-        @SerialName("next_run") val nextRun: String? = null
+        @SerialName("next_run") val nextRun: String? = null,
+        /**
+         * The line under its name, as the web's row says it (servers from
+         * 2026-11-04): what waits, that it failed, works or is paused, else
+         * what its latest run did, else when it first runs.
+         */
+        val line: String? = null,
+        /** `attention`, `negative`, `live`, or none: the colour of [line]. */
+        @SerialName("line_tone") val lineTone: String? = null,
+        /** What the web shows at the end of its name: "now", "12 min", "08:00", "Fri". */
+        @SerialName("line_when") val lineWhen: String? = null,
+        /** Its mark's paper as `#RRGGBB`, under black lines in both themes; none from older servers. */
+        val colour: String? = null,
+        /** The eyes its mark has for its state (`waiting`, `thinking`, `flat`, `happy`), or none for the blink. */
+        val face: String? = null
     ) {
         val needsYou: Boolean get() = group == NEEDS_YOU
+
+        /** [colour] as an opaque ARGB colour, or null when there's none or it isn't `#RRGGBB`. */
+        val paper: Int?
+            get() = colour
+                ?.takeIf { it.length == 7 && it.startsWith("#") }
+                ?.substring(1)
+                ?.toIntOrNull(16)
+                ?.let { it or 0xFF000000.toInt() }
 
         companion object {
             const val NEEDS_YOU = "needs_you"

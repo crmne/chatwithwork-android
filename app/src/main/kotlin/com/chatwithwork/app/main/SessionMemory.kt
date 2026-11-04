@@ -55,6 +55,20 @@ class SessionMemory(context: Context) {
         return url.takeIf { now - at in 0..within }
     }
 
+    /**
+     * The chat last shown in [account], only its address, to open on a launch
+     * with no connection: the server's worker may hold a copy of it to read
+     * (the Rails app's docs/offline-chats.md), where New chat can't load.
+     */
+    fun lastChat(account: String): String? = preferences.getString("$KEY_LAST_CHAT$account", null)
+
+    fun setLastChat(account: String, url: String?) = preferences.edit { putString("$KEY_LAST_CHAT$account", url) }
+
+    /** Signing out forgets every organization's. */
+    fun forgetLastChats() = preferences.edit {
+        preferences.all.keys.filter { it.startsWith(KEY_LAST_CHAT) }.forEach(::remove)
+    }
+
     private companion object {
         const val KEY_SIGNED_IN = "signed_in"
         const val KEY_ACCOUNT = "account"
@@ -64,5 +78,6 @@ class SessionMemory(context: Context) {
         const val KEY_VIEW = "sidebar_view"
         const val KEY_LEFT_CHAT = "left_answering_chat"
         const val KEY_LEFT_AT = "left_answering_at"
+        const val KEY_LAST_CHAT = "last_chat:"
     }
 }

@@ -202,8 +202,9 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         color: Int = MaterialColors.getColor(root, com.google.android.material.R.attr.colorOnSurface),
         sizeDp: Float = 18f,
         blinks: Boolean = true,
-        face: List<IntArray>? = null
-    ) = BotMarkDrawable(context, color, sizeDp, blinks, face)
+        face: List<List<IntArray>>? = null,
+        paper: Int? = null
+    ) = BotMarkDrawable(context, color, sizeDp, blinks, face, paper)
 
     private fun ink(color: Int) = ContextCompat.getColor(context, color)
 
@@ -442,60 +443,65 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             val bot = row.bot
             val paused = bot.state == "paused"
             val faint = ink(R.color.lw_ink_faint)
-            val nameInk =
-                when {
-                    row.selected -> ink(R.color.lw_ink)
-                    paused -> faint
-                    else -> ink(R.color.lw_ink_muted)
-                }
-            view.findViewById<ImageView>(R.id.sidebar_bot_mark)
-                .setImageDrawable(botMark(nameInk, blinks = !paused))
+            val waiting = bot.waiting > 0
+            // Its mark in its colour with its state's face, as the web's row
+            // (servers from 2026-11-04); older servers name neither, and the
+            // mark keeps the text colour and blinks.
+            val face = bot.face?.let(BotMarkDrawable.FACES::get)
+            view.findViewById<ImageView>(R.id.sidebar_bot_mark).setImageDrawable(
+                botMark(
+                    if (paused) faint else ink(R.color.lw_ink_muted),
+                    sizeDp = 28f,
+                    blinks = !paused,
+                    face = face,
+                    paper = bot.paper
+                )
+            )
             view.findViewById<View>(R.id.sidebar_bot_live).isVisible = bot.working
             view.findViewById<TextView>(R.id.sidebar_bot_name).apply {
                 text = bot.name
-                setTextColor(nameInk)
+                typeface = ResourcesCompat.getFont(context, R.font.geist_medium)
+                setTextColor(if (paused) faint else ink(R.color.lw_ink))
             }
             view.findViewById<ImageView>(R.id.sidebar_bot_project).apply {
                 isVisible = bot.project != null
-                setImageDrawable(symbol("folder", faint, sizeDp = 16f))
+                setImageDrawable(symbol("folder", faint, sizeDp = 14f))
             }
-            val waiting = bot.waiting > 0
-            view.findViewById<View>(R.id.sidebar_bot_dot).isVisible = waiting
-            view.findViewById<TextView>(R.id.sidebar_bot_state).apply {
-                // Its one state, as the web's end of the row; numbers and times are mono.
-                val (words, color) =
-                    when {
-                        waiting -> bot.waiting.toString() to faint
-
-                        bot.state == "failed" -> context.getString(R.string.sidebar_bot_failed) to
-                            ink(R.color.lw_negative_ink)
-
-                        paused -> context.getString(R.string.sidebar_bot_paused) to faint
-
-                        bot.state == "next" -> bot.nextRun to faint
-
-                        else -> null to faint
+            // Older servers send no line: their state's words, and a time to
+            // run next at the end of the name.
+            val line = bot.line ?: bot.stateLabel
+            val lineTone = if (bot.line != null) bot.lineTone else bot.tone
+            val lineWhen = bot.lineWhen ?: bot.nextRun.takeIf { bot.line == null && bot.state == "next" }
+            view.findViewById<TextView>(R.id.sidebar_bot_when).apply {
+                text = lineWhen
+                isVisible = lineWhen != null
+            }
+            view.findViewById<TextView>(R.id.sidebar_bot_line).apply {
+                text = line
+                isVisible = line != null
+                setTextColor(
+                    when (lineTone) {
+                        "attention" -> ink(R.color.lw_attention_ink)
+                        "negative" -> ink(R.color.lw_negative_ink)
+                        "live" -> ink(R.color.lw_live_ink)
+                        else -> faint
                     }
-                val mono = waiting || bot.state == "next"
-                text = words
-                isVisible = words != null
-                setTextColor(color)
-                typeface =
-                    ResourcesCompat.getFont(context, if (mono) R.font.geist_mono_medium else R.font.geist_regular)
-                textSize = if (mono) 11f else 12f
+                )
+            }
+            view.findViewById<TextView>(R.id.sidebar_bot_count).apply {
+                text = bot.waiting.toString()
+                isVisible = waiting
             }
             view.isSelected = row.selected
-            val state =
-                if (waiting) {
-                    context.resources.getQuantityString(R.plurals.sidebar_bot_waiting, bot.waiting, bot.waiting)
-                } else {
-                    bot.stateLabel
-                }
+            // Read as the web's row: name, project, when, its line, then how many wait.
             view.contentDescription =
                 listOfNotNull(
                     bot.name,
                     bot.project?.let { context.getString(R.string.sidebar_bot_shared_in, it) },
-                    state,
+                    lineWhen,
+                    line,
+                    context.resources.getQuantityString(R.plurals.sidebar_bot_waiting, bot.waiting, bot.waiting)
+                        .takeIf { waiting },
                     context.getString(R.string.sidebar_bot_working).takeIf { bot.working && bot.state != "working" }
                 ).joinToString(", ")
             view.setOnClickListener { actions.openPath(bot.url) }
