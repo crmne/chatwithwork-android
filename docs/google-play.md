@@ -6,6 +6,29 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.0
+
+Version 1.2.0 (10200) gives every screen a chat's top bar, with no surface or
+hairline, keeps the screen on while dictation listens, sets the composer's
+notice on an opaque surface, and draws the composer's buttons as the web
+composer's on a phone, from
+[#41](https://github.com/crmne/chatwithwork-android/pull/41). Tag `v1.2.0`.
+It doesn't need a server change: until production's `android_v2.json` sets
+`page_under_top_bar` (the Rails app's `native-top-bar-everywhere` branch),
+pages other than a chat start below the bar, and only chats run under it.
+
+The signed, Firebase-enabled bundle became available to Internal testers on
+2026-11-04 at 12:49 Europe/Berlin, with the What's new in
+`changelogs/10200.txt`. Only Internal testing was updated: Production still
+has 1.1.5 in 173 countries and regions, and Open testing 1.1.3, with the 1.1.5
+draft unsent.
+
+Validation: CI passed on the merge commit (the tag adds only What's new), the release build's
+features match the list under Permissions, and the upload signature was
+verified. This bundle wasn't tried on a device or emulator. Play reported no
+loss of supported devices and only the existing non-blocking native
+dependency debug-symbol warning.
+
 ## Release 1.1.9
 
 Version 1.1.9 (10109) fades a chat's content out under a top bar with no
