@@ -265,7 +265,8 @@ class SidebarTest {
         "bots": {"count": 1, "attention": true, "next_run": null, "url": "/482139075/bots", "new_url": "/482139075/bots/new",
                  "items": [
                    {"id": 5, "name": "Support triage", "url": "/482139075/bots/5", "group": "needs_you", "project": "Support",
-                    "state": "waiting", "state_label": "Waiting for you", "tone": "attention", "waiting": 2, "working": true, "next_run": null},
+                    "state": "waiting", "state_label": "Waiting for you", "tone": "attention", "waiting": 2, "working": true, "next_run": null,
+                    "line": "Reply to Ana about her refund", "line_tone": "attention", "line_when": "12 min", "colour": "#F7C8B2", "face": "waiting"},
                    {"id": 3, "name": "Morning briefing", "url": "/482139075/bots/3", "group": "quiet", "project": null,
                     "state": "next", "state_label": "Next 08:30", "tone": "positive", "waiting": 0, "working": false, "next_run": "08:30"},
                    {"id": 4, "name": "Weekly report", "url": "/482139075/bots/4", "group": "quiet",
@@ -290,6 +291,20 @@ class SidebarTest {
         assertThat(triage.waiting).isEqualTo(2)
         assertThat(bots.items!!.last().tone).isNull()
         assertThat(sidebar.bots?.items).isNull()
+
+        // The line under its name and its mark, as the web's row draws them;
+        // older servers send neither, and the mark keeps the text colour.
+        assertThat(triage.line).isEqualTo("Reply to Ana about her refund")
+        assertThat(triage.lineTone).isEqualTo("attention")
+        assertThat(triage.lineWhen).isEqualTo("12 min")
+        assertThat(triage.paper).isEqualTo(0xFFF7C8B2.toInt())
+        assertThat(BotMarkDrawable.FACES[triage.face]).hasSize(1)
+        val briefing = bots.items!![1]
+        assertThat(briefing.line).isNull()
+        assertThat(briefing.paper).isNull()
+        assertThat(briefing.face).isNull()
+        assertThat(briefing.copy(colour = "peach").paper).isNull()
+        assertThat(BotMarkDrawable.FACES.getValue("thinking")).hasSize(2)
 
         // A bot at work keeps the sidebar fresh, like a chat answering.
         val idle = withBots.copy(chats = sidebar.chats.map { it.copy(state = "idle") })

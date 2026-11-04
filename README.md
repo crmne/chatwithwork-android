@@ -79,6 +79,7 @@ Without it the app builds and runs, with push off.
 |---|---|
 | `INTERNET` | the server |
 | `POST_NOTIFICATIONS` | push notifications, offered once, the first time a change waits for approval or an answer takes a while, with a short explanation first, or from Settings › Notifications ([docs/push-notifications.md](docs/push-notifications.md)) |
+| `ACCESS_NETWORK_STATE` | whether there's a connection at launch: without one the app opens the chat last shown, whose copy the server's service worker may keep for reading offline (granted at install; Firebase already asked for it) |
 | `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS` | dictation: the native composer records (OGG/Opus, sent to the server to transcribe; Android 10 and later), and the page's microphone in pages that record themselves (`getUserMedia`) |
 
 The web view gets the microphone only for pages on the build's own server,

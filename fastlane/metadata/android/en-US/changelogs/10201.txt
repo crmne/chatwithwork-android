@@ -1,0 +1,1 @@
+Chats you've opened stay readable without a connection, even when you open the app offline: the chat shows as it was last loaded, and you can ask again once you're back. Bots in the sidebar now wear their own colours and a face for what they're doing, with what they last did under their name and how many decisions wait for you.

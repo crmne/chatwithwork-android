@@ -349,6 +349,31 @@ Links the app handles itself:
   `/resume_historical_location` and `/refresh_historical_location` show as
   snackbars.
 
+**Chats readable offline (server, 2026-11-04).** The pages register the
+server's service worker in the app too, and it keeps the chats someone
+opens, encrypted, in the web view's storage (the Rails app's
+docs/offline-chats.md). Without a connection a visit gets the worker's
+copy, or its "isn't available offline" page, as in a browser, and the
+composer locks through `bridge--composer`. Offline, a cold boot (a launch,
+or a reload) first reports the page's request as failed
+(`ERROR_HOST_LOOKUP` and the like) and commits the web view's error page,
+and only then renders what the worker answered. From 1.2.1 the app
+(`fragments/OfflineCopies.kt`) holds that error back until a page finishes:
+a kept copy (`<meta name="offline-copy">`) drops it, so the cold boot goes
+on and the copy shows with the bridge and Turbo; the worker's own offline
+page (`main[data-offline]`), or nothing within 3 seconds, hands it to
+Hotwire Native, which shows the app's offline screen as before. A launch
+with no connection opens the chat last shown in the organization (only its
+address is kept, forgotten on signing out) in place of New chat, which
+can't load offline. The worker's requests carry the web view's own user
+agent, so the server reads the app's from its `app_user_agent` cookie:
+never clear it. The web view's storage, and with it the copies, is
+excluded from backups and device transfers
+(`xml/data_extraction_rules.xml`). The sidebar's JSON doesn't go through
+the worker: offline it keeps what it last showed while the app runs, and
+after a launch with no connection it has only New chat, Bots and Settings
+until it's back online.
+
 ## 8. App Links
 
 Links to chatwithwork.com in emails and messages open the app once the site
@@ -782,7 +807,8 @@ SECTION = {"id": 7, "name": "Customers", "collapsed": false, "chats": [CHAT],
 BOT = {"id": 5, "name": "Front desk", "description": "Answers refunds", "url": "/482139075/bots/5", "lists": ["all", "3"],
        "group": "needs_you", "project": "Website relaunch",
        "state": "waiting", "state_label": "Waiting for you", "tone": "attention", "waiting": 1, "working": false,
-       "next_run": null}
+       "next_run": null, "line": "Reply to Ana about her refund", "line_tone": "attention", "line_when": "12 min",
+       "colour": "#F7C8B2", "face": "waiting"}
 ACTION = {"key": "delete", "title": "Delete", "method": "delete", "url": "/482139075/chats/42",
           "iosImage": "trash", "androidImage": "delete", "confirm": "Delete this chat?", "destructive": true}
 ```
@@ -849,6 +875,24 @@ chats, under the switch and the list switcher. The app remembers the chosen half
 so no switch; a server that sends no `items` keeps the Bots row. The sidebar
 keeps checking every 5 seconds while it's open and a bot is `working`, as it
 does for a chat.
+
+**Bots' colours and faces (server, 2026-11-04).** Each `BOT` also carries
+the line the web's row shows under its name (`bots/_sidebar_bot`,
+`BotsHelper#bot_sidebar_line`): `line`, its `line_tone` (`attention`,
+`negative`, `live`, or null), and `line_when`, what the web shows at the end
+of the name ("now", "12 min", "08:00", "Fri"); and its mark as the web draws
+it (the Rails app's docs/ui/native-apps.md, "Bots' colours and faces"):
+`colour`, the paper of its mark as `#RRGGBB`, and `face`, `waiting`,
+`thinking`, `flat`, `happy`, or null for the blinking mark. From 1.2.1 each
+row is two lines beside a 28 dp mark: a sticker filled with `colour`, its
+outline and eyes black in both themes, with `face`'s eyes (thinking swaps
+its two frames every 1.6 seconds; the others hold still) or else the blink,
+held still while `paused`, with the live dot while `working`. The first
+line is the name, a shared bot's project icon and `line_when` in mono at
+its end; the second is `line` in its tone's ink, with `waiting` at its end
+as a count on the attention wash when it's more than 0. A server without
+these keys gets the same two lines from `state_label`, `tone` and, for a
+`next` state, `next_run`, with the mark in the text colour.
 
 **Long press (2026-10-26).** Each chat's `actions` are what the web row's
 menu offers for it, in order: `rename`, `pin` or `unpin`, `section`,

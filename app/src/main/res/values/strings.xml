@@ -51,8 +51,6 @@
     <string name="sidebar_no_bots">Your bots, and the ones shared with you, show up here.</string>
     <string name="sidebar_no_bots_here">No bots here yet.</string>
     <string name="sidebar_no_bot_matches">No bots match.</string>
-    <string name="sidebar_bot_failed">Failed</string>
-    <string name="sidebar_bot_paused">Paused</string>
     <string name="sidebar_bot_shared_in">shared in %1$s</string>
     <plurals name="sidebar_bot_waiting">
         <item quantity="one">%d decision waiting for you</item>
