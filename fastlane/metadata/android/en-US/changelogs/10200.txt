@@ -1,0 +1,1 @@
+Every screen now has a chat's quiet top bar, with no line under it, and the composer's buttons look and feel like the web's. While you dictate, the screen stays on until the microphone closes, so a long message isn't cut short when the phone would dim. Notices above the composer, like running out of credits, now sit on a solid surface and stay readable over the chat.
