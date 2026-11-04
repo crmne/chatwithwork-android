@@ -48,6 +48,13 @@ object Dictation {
 
     /** What the composer draws while a [Session] runs. */
     interface Listener {
+        /**
+         * The microphone opened (true), or closed (false): stopped, full, failed,
+         * or cancelled. False comes once, and only after true. The composer keeps
+         * the screen on in between, or a phone that dims mid-sentence ends it.
+         */
+        fun onListening(listening: Boolean)
+
         /** The microphone's loudness, 0 to 1, about every 70 ms, and how long it's listened. */
         fun onLevel(level: Float, elapsedMs: Long)
 
@@ -64,17 +71,22 @@ object Dictation {
      * One dictation: records until [stop] (or five minutes), then posts the
      * recording to [path] with the web view's session and hands the words to
      * [listener]. [cancel] throws it away, recording or transcribing.
+     * [microphone] and [clock] are the phone's, or a test's.
      */
     class Session(
-        private val context: Context,
+        context: Context,
         private val scope: CoroutineScope,
         private val path: String,
         private val csrfToken: String?,
         private val userAgent: String?,
-        private val listener: Listener
+        private val listener: Listener,
+        private val microphone: (file: File, onEnd: () -> Unit) -> Microphone = { file, onEnd ->
+            PhoneMicrophone(context, file, onEnd)
+        },
+        private val clock: () -> Long = SystemClock::elapsedRealtime
     ) {
         private val file = File(context.cacheDir, "dictation-${System.currentTimeMillis()}.ogg")
-        private var recorder: MediaRecorder? = null
+        private var recorder: Microphone? = null
         private var job: Job? = null
 
         // The transcription's request while it's on its way, so Cancel can drop it.
@@ -88,24 +100,22 @@ object Dictation {
 
         /** Starts recording; false when the microphone couldn't. */
         fun start(): Boolean {
-            if (!supported) return false
             val recorder =
                 try {
-                    record(context, file)
+                    // Five minutes, or the recorder failing, end it as Stop does.
+                    microphone(file) { stop() }
                 } catch (_: Exception) {
                     file.delete()
                     return false
                 }
             this.recorder = recorder
-            started = SystemClock.elapsedRealtime()
-            recorder.setOnInfoListener { _, what, _ ->
-                if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) stop()
-            }
+            started = clock()
+            listener.onListening(true)
             job =
                 scope.launch {
                     while (isActive) {
                         val amplitude = runCatching { recorder.maxAmplitude }.getOrNull()
-                        val elapsed = SystemClock.elapsedRealtime() - started
+                        val elapsed = clock() - started
                         if (amplitude != null) speech.observe(amplitude / MAX_AMPLITUDE, elapsed)
                         listener.onLevel(loudness(amplitude ?: 0), elapsed)
                         delay(LEVEL_MS)
@@ -120,7 +130,7 @@ object Dictation {
             transcribing = true
             job?.cancel()
             release()
-            if (SystemClock.elapsedRealtime() - started < 500 || !speech.canTranscribe) {
+            if (clock() - started < 500 || !speech.canTranscribe) {
                 finished = true
                 file.delete()
                 listener.onResult(Result(null, null, nothingHeard = true))
@@ -151,6 +161,40 @@ object Dictation {
         private fun release() {
             val recorder = recorder ?: return
             this.recorder = null
+            recorder.close()
+            listener.onListening(false)
+        }
+    }
+
+    /** What a [Session] records with. */
+    interface Microphone {
+        /** The loudest moment since it was last asked, 0 to 32767. */
+        val maxAmplitude: Int
+
+        /** Stops recording and lets the microphone go. */
+        fun close()
+    }
+
+    /**
+     * The phone's microphone, recording OGG/Opus into [file] until [close], or
+     * until five minutes or a failure, when it calls [onEnd]. Throws when it
+     * can't start, as it can't before Android 10.
+     */
+    private class PhoneMicrophone(context: Context, file: File, onEnd: () -> Unit) : Microphone {
+        private val recorder: MediaRecorder
+
+        init {
+            if (!supported) throw IOException("Recording OGG/Opus needs Android 10")
+            recorder = record(context, file)
+            recorder.setOnInfoListener { _, what, _ ->
+                if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) onEnd()
+            }
+            recorder.setOnErrorListener { _, _, _ -> onEnd() }
+        }
+
+        override val maxAmplitude: Int get() = recorder.maxAmplitude
+
+        override fun close() {
             runCatching { recorder.stop() }
             recorder.release()
         }

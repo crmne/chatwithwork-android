@@ -386,6 +386,13 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
                 csrfToken,
                 userAgent,
                 object : Dictation.Listener {
+                    // A phone that dims and locks mid-sentence stops the app, which ends the recording unsent, so
+                    // the screen stays on while the microphone is open. Android lets go of it by itself too, once
+                    // this view leaves the window.
+                    override fun onListening(listening: Boolean) {
+                        keepScreenOn = listening
+                    }
+
                     override fun onLevel(level: Float, elapsedMs: Long) {
                         waveform.add(level)
                         dictationTime.text = Dictation.elapsed(elapsedMs)
