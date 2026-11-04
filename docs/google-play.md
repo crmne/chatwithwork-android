@@ -6,6 +6,32 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Production and Open testing: 1.2.1
+
+On 2026-11-04 at about 19:00 Europe/Berlin, 1.2.1 (10201), the build
+Internal testers already had, was promoted to Production (replacing 1.1.5)
+and to Open testing (replacing 1.1.3; the 1.1.5 draft there was dropped),
+full rollout, same 173 countries and regions. Both went out in one
+submission, "Changes in review" after Play's quick checks. Managed publishing
+is off, so each track publishes as soon as Google approves it; the last
+review (1.1.5, sent October 30) published on November 2. The review demo login
+was refreshed with `script/store/seed production review` just before. The
+only warning was the usual one about native debug symbols.
+
+What's new for both tracks, covering everything since 1.1.5:
+
+> Chats you've opened stay readable offline, even when you open the app
+> without a connection. Bots in the sidebar wear their own colours and a face
+> for what they're doing, with how many decisions wait for you. The composer
+> glows like the web's, and notices above it, like running out of credits,
+> sit on a solid surface. The sidebar matches the web's, every screen has a
+> quiet top bar, and the screen stays on while you dictate.
+
+The composer's notice was checked again on an Android 17 emulator against the
+playground for out of credits, offline and files waiting, light and dark: it
+sits on the box's opaque surface with its padlock. Nothing in the app changed
+for it, so there is no 1.2.2.
+
 ## Release 1.2.1
 
 Version 1.2.1 (10201) keeps the chats someone opened readable offline, after
