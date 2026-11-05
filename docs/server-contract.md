@@ -297,6 +297,24 @@ the apps. On Android:
   pressed (2026-10-27): Bad answer opens its reasons under the answer,
   including "Offensive or harmful", the in-app report Play's AI-Generated
   Content policy asks for.
+- **Beside the chat** (`chats/panels/show`, `/chats/<n>/beside`, server
+  2026-11-05): the web's side panel as a page of its own, since the chat
+  screen has no room beside it. The `.*` rule pushes it over the chat with
+  back to it, a drill-down. It shows the panel's tabs one at a time
+  (`?tab=`: Agents once the chat has some, Side chats, Details; another
+  tab replaces the page through `query_string_presentation: replace`),
+  kept live by the chat's broadcasts, never for guests. Its rows open
+  their chats with `?from=chat`, pushed over it with back to it; New side
+  chat is a form that goes to the new side chat. In sidebar builds the
+  chat's bar `button` opens it (the app draws New chat itself). Bar
+  buttons carry no badge, so the icon is the count of agents and side
+  chats: `counter_N` to 9, then `filter_9_plus`, `.fill` while one works
+  or waits for an approval, and `right_panel_open` at none, titled "Side
+  chats and more, N" for TalkBack. The server replaces that button over
+  the chat's stream as the count changes. Where the bar's one button is
+  something else (a bot's Setup or Make bot, a try's), "Side chats and
+  more" is the chat menu's first item instead. Nothing in the app changes
+  for it.
 - **The chat list** (`chats/index`) and **projects** (`projects/index`,
   from the sidebar's "All projects..."): places, replacing the root. The
   sidebar is the app's list, so the app opens neither by itself. A project
@@ -306,7 +324,9 @@ the apps. On Android:
   and a form that leaves the board's frame redirects back to the page's
   own address, which the board keeps in Turbo's history, so Hotwire
   Native's adapter refreshes it in place (a morph) instead of proposing a
-  screen. A decision's chat replaces the root, as any chat does.
+  screen. A decision's "Open chat" links to `/chats/<n>?from=decisions`,
+  which the `from=` rule pushes over Decisions with back to it; any other
+  link to a chat replaces the root.
 - **Bots** (`bots/index`, from the sidebar): a place, New bot (`add`) in
   the top app bar. A bot, its triggers and its conversations push on top,
   with back to Bots; a bot opened from the sidebar's Bots view is a place
