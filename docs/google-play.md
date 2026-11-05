@@ -6,6 +6,25 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.2
+
+Version 1.2.2 (10202) reads each decision's `family` and `label` and shows
+the label under its summary in the sheet of what waits, from
+[#43](https://github.com/crmne/chatwithwork-android/pull/43). Tag `v1.2.2`.
+That sheet only opens from a server without the Decisions page, so nothing
+changes on screen with production: Decisions opens the web page, which draws
+the same tag.
+
+The signed, Firebase-enabled bundle became available to Internal testers on
+2026-11-05 at 01:30 Europe/Berlin, with the What's new in
+`changelogs/10202.txt`. Only Internal testing was updated: 1.2.1 stayed in
+review for Production and Open testing, and 1.2.2 follows there as an update
+once that review is through. Play's preview showed no change in supported
+devices and only the usual warning about native debug symbols.
+
+Validation: CI passed on the pull request (unit tests, lint, formatting and
+every build variant). The release bundle wasn't tried on a device.
+
 ## Production and Open testing: 1.2.1
 
 On 2026-11-04 at about 19:00 Europe/Berlin, 1.2.1 (10201), the build
