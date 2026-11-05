@@ -128,8 +128,10 @@ app/src/test/            unit tests (JUnit, Truth)
 docs/                    the server contract and design notes
 ```
 
-- **MainActivity** owns one navigator, whose root is always a chat (the
-  path configuration's `replace_root` makes every chat replace it), the
+- **MainActivity** owns one navigator, whose root is always a place (a
+  chat, Decisions, Bots, Settings: the path configuration's `replace_root`,
+  and whatever the sidebar opens, `Places`), with only drill-downs pushed
+  over it, the
   sidebar (a `DrawerLayout` whose content `SidebarDrawer` draws from the
   server's JSON, fetched with the web view's cookies), and the welcome
   screen. It watches the navigator's traffic for what the server says: a
