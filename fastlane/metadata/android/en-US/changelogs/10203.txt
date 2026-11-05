@@ -1,0 +1,1 @@
+While an answer is on its way, its progress now shows as Android's own Live Update, in the status bar and on the lock screen.
