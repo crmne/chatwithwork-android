@@ -1,0 +1,1 @@
+The app now reads whether each decision is a question or a permission, as the web's Decisions shows it, ready for the sidebar's list.
