@@ -265,6 +265,9 @@ class LivePresentationTest {
         assertThat(LivePresentation("approval_waiting").chip).isEqualTo(R.string.live_update_chip_review)
         assertThat(LivePresentation("input_requested").chip).isEqualTo(R.string.live_update_chip_reply)
         for (phase in listOf("answered", "failed", "stopped")) assertThat(LivePresentation(phase).chip).isNull()
+        // A phase this build doesn't know claims no work, whatever its step.
+        assertThat(LivePresentation("future_state", "run").chip).isNull()
+        assertThat(LivePresentation("future_state", "run").mark).isEqualTo(LivePresentation.Mark.FLAT)
     }
 
     @Test

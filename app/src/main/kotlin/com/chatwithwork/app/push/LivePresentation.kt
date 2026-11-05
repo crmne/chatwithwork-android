@@ -108,23 +108,29 @@ data class LivePresentation(
     }
 
     val mark: Mark get() = when (state) {
-        State.STARTING, State.AGENTS, State.WORKING, State.QUIET -> if (step == "read") Mark.WRITING else Mark.THINKING
+        State.STARTING, State.AGENTS, State.WORKING -> if (step == "read") Mark.WRITING else Mark.THINKING
+
         State.WRITING -> Mark.WRITING
+
         State.DECISION, State.INPUT -> Mark.WAITING
+
         State.FINISHED -> Mark.HAPPY
-        State.FAILED, State.STOPPED -> Mark.FLAT
+
+        // A phase this build doesn't know: no claim of work, like its grey road.
+        State.FAILED, State.STOPPED, State.QUIET -> Mark.FLAT
     }
 
     /**
      * The status bar chip's word beside the mark, at most seven letters: what
-     * it's doing or what it needs. None once it's over, when nothing is promoted.
+     * it's doing or what it needs. None once it's over, when nothing is
+     * promoted, nor for a phase this build doesn't know (the chip shows the clock).
      */
     val chip: Int? get() = when (state) {
         State.DECISION -> R.string.live_update_chip_review
 
         State.INPUT -> R.string.live_update_chip_reply
 
-        State.FINISHED, State.FAILED, State.STOPPED -> null
+        State.FINISHED, State.FAILED, State.STOPPED, State.QUIET -> null
 
         State.AGENTS -> R.string.live_update_chip_agents
 
