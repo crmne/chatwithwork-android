@@ -104,13 +104,12 @@ data class Sidebar(
          * What the row says under its summary, as the web's decision row's
          * tag: [label], else the family in [question] or [permission]'s words.
          */
-        fun tag(question: String, permission: String): String? =
-            label?.takeIf { it.isNotBlank() }
-                ?: when (family) {
-                    "question" -> question
-                    "permission" -> permission
-                    else -> null
-                }
+        fun tag(question: String, permission: String): String? = label?.takeIf { it.isNotBlank() }
+            ?: when (family) {
+                "question" -> question
+                "permission" -> permission
+                else -> null
+            }
     }
 
     @Serializable
