@@ -393,6 +393,27 @@ class SidebarTest {
     }
 
     @Test
+    fun `tags each decision with the web's words, else its family, as older servers send neither`() {
+        val tagged = Sidebar.parse(
+            json.replace(
+                """"kind": "approval", "project": "Website relaunch"}""",
+                """"kind": "approval", "project": "Website relaunch", "family": "permission",
+                   "label": "Permission · runs a command"},
+                   {"title": "Pick a date", "url": "/482139075/decisions?decision=ask-7", "kind": "question",
+                    "project": null, "family": "question"}"""
+            )
+        )
+        val (command, question) = tagged.waiting.items
+        assertThat(command.family).isEqualTo("permission")
+        assertThat(command.tag("Question", "Permission")).isEqualTo("Permission · runs a command")
+        assertThat(question.label).isNull()
+        assertThat(question.tag("Question", "Permission")).isEqualTo("Question")
+        val old = sidebar.waiting.items.single()
+        assertThat(old.family).isNull()
+        assertThat(old.tag("Question", "Permission")).isNull()
+    }
+
+    @Test
     fun `the chosen half reads back from what the app remembered`() {
         assertThat(SidebarRow.View.from("bots")).isEqualTo(SidebarRow.View.BOTS)
         assertThat(SidebarRow.View.from("chats")).isEqualTo(SidebarRow.View.CHATS)
