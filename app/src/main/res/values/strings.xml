@@ -185,6 +185,19 @@
     <string name="live_update_open">Open</string>
     <string name="live_update_review">Review</string>
     <string name="live_update_reply">Reply</string>
+    <!-- The status bar chip's word beside the bot on Android 16 and later: seven letters at most. -->
+    <string name="live_update_chip_think">Think</string>
+    <string name="live_update_chip_search">Search</string>
+    <string name="live_update_chip_browse">Browse</string>
+    <string name="live_update_chip_read">Read</string>
+    <string name="live_update_chip_use">Tools</string>
+    <string name="live_update_chip_plan">Plan</string>
+    <string name="live_update_chip_run">Run</string>
+    <string name="live_update_chip_ask">Ask</string>
+    <string name="live_update_chip_write">Write</string>
+    <string name="live_update_chip_agents">Agents</string>
+    <string name="live_update_chip_review">Review</string>
+    <string name="live_update_chip_reply">Reply</string>
     <plurals name="live_update_steps">
         <item quantity="one">%d step</item>
         <item quantity="other">%d steps</item>

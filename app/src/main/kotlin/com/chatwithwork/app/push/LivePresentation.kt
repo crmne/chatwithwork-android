@@ -41,6 +41,22 @@ data class LivePresentation(
         FLAT(R.drawable.live_chip_flat)
     }
 
+    /**
+     * The bot mark's face as the Rails app draws it (`BotMark::FACES`), for
+     * Android 16's own template ([LiveTemplate]): its status bar chip and the
+     * head of its road. Failed is always flat, never crossed-out eyes.
+     */
+    enum class Mark(@param:DrawableRes val chip: Int, @param:DrawableRes val sticker: Int) {
+        THINKING(R.drawable.live_mark_thinking, R.drawable.live_sticker_thinking),
+        WRITING(R.drawable.live_mark_writing, R.drawable.live_sticker_writing),
+        WAITING(R.drawable.live_mark_waiting, R.drawable.live_sticker_waiting),
+        HAPPY(R.drawable.live_mark_happy, R.drawable.live_sticker_happy),
+        FLAT(R.drawable.live_mark_flat, R.drawable.live_sticker_flat)
+    }
+
+    /** One stretch of the road in Android's template: as long as the time its steps took, never a share of a whole. */
+    data class Stretch(val length: Int, val refused: Boolean)
+
     val isWorking: Boolean get() = phase == LiveProgress.ANSWERING
 
     /** Steps seen, by the count or by the trail where an end message lost the count. */
@@ -89,6 +105,53 @@ data class LivePresentation(
         State.FAILED, State.QUIET -> Face.CLOSED
 
         State.STOPPED -> Face.FLAT
+    }
+
+    val mark: Mark get() = when (state) {
+        State.STARTING, State.AGENTS, State.WORKING, State.QUIET -> if (step == "read") Mark.WRITING else Mark.THINKING
+        State.WRITING -> Mark.WRITING
+        State.DECISION, State.INPUT -> Mark.WAITING
+        State.FINISHED -> Mark.HAPPY
+        State.FAILED, State.STOPPED -> Mark.FLAT
+    }
+
+    /**
+     * The status bar chip's word beside the mark, at most seven letters: what
+     * it's doing or what it needs. None once it's over, when nothing is promoted.
+     */
+    val chip: Int? get() = when (state) {
+        State.DECISION -> R.string.live_update_chip_review
+
+        State.INPUT -> R.string.live_update_chip_reply
+
+        State.FINISHED, State.FAILED, State.STOPPED -> null
+
+        State.AGENTS -> R.string.live_update_chip_agents
+
+        else -> when (step) {
+            "search" -> R.string.live_update_chip_search
+            "list" -> R.string.live_update_chip_browse
+            "read" -> R.string.live_update_chip_read
+            "use" -> R.string.live_update_chip_use
+            "plan" -> R.string.live_update_chip_plan
+            "run" -> R.string.live_update_chip_run
+            "ask" -> R.string.live_update_chip_ask
+            "write" -> R.string.live_update_chip_write
+            else -> R.string.live_update_chip_think
+        }
+    }
+
+    /**
+     * The road as Android's template draws it, oldest first: a stretch per
+     * step, as long as its tick is tall, so length is time spent. Android
+     * draws at most [MAX_STRETCHES], so the oldest steps join into the first,
+     * which keeps the whole road's time. Empty before the first step.
+     */
+    val stretches: List<Stretch> get() {
+        val all = ticks.map { Stretch(it.height.toInt(), it.refused) }
+        if (all.size <= MAX_STRETCHES) return all
+        val older = all.dropLast(MAX_STRETCHES - 1)
+        return listOf(Stretch(older.sumOf { it.length }, older.all { it.refused })) + all.takeLast(MAX_STRETCHES - 1)
     }
 
     /** What the bot holds up while it works on a step. */
@@ -199,6 +262,9 @@ data class LivePresentation(
 
     private companion object {
         const val MAX_TICKS = 48
+
+        /** Android 16 draws one plain bar in place of more segments than this. */
+        const val MAX_STRETCHES = 10
         const val DEEP_AFTER = 24
         const val MAX_STOPS = 5
         const val MAX_AGENT_BOTS = 3

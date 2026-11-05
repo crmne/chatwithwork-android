@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from the Rails app's BotMark (face "thinking"): the status bar's alpha mask, eyes cut out. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M1,2h14v1h-14zM0,3h16v1h-16zM0,4h5v1h-5zM7,4h4v1h-4zM13,4h3v1h-3zM0,5h5v1h-5zM7,5h4v1h-4zM13,5h3v1h-3zM0,6h5v1h-5zM7,6h4v1h-4zM13,6h3v1h-3zM0,7h16v1h-16zM0,8h16v1h-16zM0,9h16v1h-16zM0,10h16v1h-16zM1,11h14v1h-14zM3,12h4v1h-4zM3,13h3v1h-3zM3,14h2v1h-2z" />
+</vector>

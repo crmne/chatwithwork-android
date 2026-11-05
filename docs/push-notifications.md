@@ -91,12 +91,28 @@ that chat, in Chats, inside the right organization.
   services, so the card keeps them in its extras and draws its end from them.
   Finished and stopped cards show how long it took, from `heard_at` minus
   `started_at`, fixed.
-  **Not promoted, on purpose.** Android promotes only standard templates: a
-  custom view rules out the status bar chip and the lock screen's top spot. We
-  tried both on emulators (API 36.1, 37): a promoted ProgressStyle notification
-  beside the card reads as the same thing twice. The promoted one has no
-  collapsed form, so it was never small; the card sat below it, and a group
-  summary loses promotion. So there's one card, and ProgressStyle is gone.
+  **Android 16 and later: the system's own Live Update.** Android promotes
+  only standard templates (`Notification.hasPromotableCharacteristics`: asks
+  with `setRequestPromotedOngoing`, ongoing, a title, a standard style, no
+  custom views, not colorized, not a group summary, a channel above MIN, and
+  `POST_PROMOTED_NOTIFICATIONS` in the manifest). So from API 36 the card
+  isn't drawn: `LiveTemplate` dresses the same notification in
+  `ProgressStyle`, and the system promotes it to the status bar chip, the top
+  of the lock screen and shade, and what phone makers build on it (OxygenOS 16
+  and ColorOS 16's Live Alerts and Fluid Cloud, One UI's Now Bar). The chip is
+  the bot mark's face (`BotMark::FACES`, `live_mark_*`) and a word of seven
+  letters at most (`LivePresentation.chip`: Think, Search, Write, Review,
+  Reply...). The bar is the road, never progress: a segment per step, as long
+  as its `pace` tick is tall, refused steps and failed or stopped roads flat
+  grey, the sticker face (`live_sticker_*`) at its head; the system's moving
+  bar before the first step. Android draws at most 10 segments, so the oldest
+  steps join into the first. The header's clock is the system chronometer. An
+  end isn't ongoing, so it isn't promoted, and says its steps and time in
+  words. Checked on the API 36.1 emulator (BE4B.251210.005): `PROMOTED_ONGOING`,
+  the chip, lock screen and shade. The 36.0 image (BE2A) never promotes.
+  On OxygenOS 16 each person turns on "Show Live Updates on Live Alerts" for
+  the app (Notifications & Quick Settings > Live Alerts), off by default.
+  Below Android 16 the drawn card stays.
   To keep it visible the channel is `live_update` at default importance with no
   sound or vibration (it replaced `answering`, low, whose cards sat collapsed
   under Silent): it sits with current notifications, expands when it's first,
@@ -217,7 +233,10 @@ Firebase console's messaging test with the same data keys.
   Notifications first, as the server contract says, a kind in `Push.Kind`
   (unknown kinds are dropped), and a channel in
   `PushNotifications.createChannels` where people should silence it apart.
-- **OEM skins.** Live Alerts on OxygenOS and ColorOS, and the like, take only
-  promoted notifications, so the card doesn't reach them. Custom notifications
-  aren't tried on any skin, and some may clip or reshape them; try Samsung,
-  Xiaomi, OPPO and OnePlus phones before relying on the look there.
+- **OEM islands below Android 16, and Xiaomi's.** OxygenOS 15 and ColorOS 15
+  take third-party apps into Live Alerts only through OPPO's partner push
+  integration (a `serviceId` OPPO approves), and HyperOS's focus notifications
+  (`miui.focus.param`) need Xiaomi's review and a whitelist. Neither is
+  public, so neither is wired in. Android 16's promoted template is the one
+  route, and it isn't tried on a real Samsung, Xiaomi, OPPO or OnePlus phone
+  yet.

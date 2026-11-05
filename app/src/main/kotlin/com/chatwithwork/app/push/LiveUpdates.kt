@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.text.format.DateUtils
 import android.webkit.CookieManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -27,7 +28,8 @@ import kotlinx.serialization.json.putJsonObject
 
 /**
  * A Live Update for a chat the person left while it was answering: an
- * ongoing card ([LiveCard], the iOS app's own, on every Android version),
+ * ongoing notification, Android's own promoted template from Android 16
+ * ([LiveTemplate]) and the iOS app's card below it ([LiveCard]),
  * saying the organization's name and what the answer is doing, never the
  * chat's title or anything in it.
  *
@@ -337,8 +339,11 @@ object LiveUpdates {
         val starting = shown.state == LivePresentation.State.STARTING
         val waiting = shown.state == LivePresentation.State.DECISION || shown.state == LivePresentation.State.INPUT
         val text = when {
-            starting -> organization
+            // Android's template names the organization in its header already.
+            starting -> organization.takeUnless { LiveTemplate.promotes }
+
             waiting -> context.getString(R.string.live_update_waiting)
+
             else -> stepsText(context, shown.walked)
         }
         return card(context, url, shown, message, text, organization, LiveCard.Clock.Running(clock))
@@ -349,8 +354,10 @@ object LiveUpdates {
                 }
             )
             .setOngoing(true)
+            .setRequestPromotedOngoing(true)
             .setWhen(clock)
-            .setShowWhen(false)
+            .setShowWhen(LiveTemplate.promotes)
+            .setUsesChronometer(LiveTemplate.promotes)
             .setTimeoutAfter(TIMEOUT_MS)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setContentIntent(open(context, url))
@@ -371,7 +378,16 @@ object LiveUpdates {
         val timed = shown.state == LivePresentation.State.FINISHED || shown.state == LivePresentation.State.STOPPED
         val total = took?.takeIf { it >= 0 && timed }
         val clock = total?.let { LiveCard.Clock.Fixed(it) } ?: LiveCard.Clock.Hidden
-        return card(context, progress.url, shown, null, stepsText(context, shown.walked), organization, clock)
+        val steps = stepsText(context, shown.walked)
+        // The drawn card shows the time itself; Android's template says it in words.
+        val text =
+            if (LiveTemplate.promotes) {
+                listOfNotNull(steps, total?.let { DateUtils.formatElapsedTime(it / 1000) }).joinToString(" · ")
+                    .ifEmpty { null }
+            } else {
+                steps
+            }
+        return card(context, progress.url, shown, null, text, organization, clock)
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .setShowWhen(false)
@@ -392,27 +408,30 @@ object LiveUpdates {
         clock: LiveCard.Clock
     ): NotificationCompat.Builder {
         val title = shown.title(message, context::getString)
+        val builder =
+            NotificationCompat
+                .Builder(context, PushNotifications.CHANNEL_ANSWERING)
+                .setSubText(organization)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setColor(ContextCompat.getColor(context, shown.color))
+                .setOnlyAlertOnce(true)
+                .addExtras(
+                    Bundle().apply {
+                        putInt(EXTRA_STEPS, shown.steps)
+                        putString(EXTRA_TRAIL, shown.trail)
+                        putString(EXTRA_PACE, shown.pace)
+                        putStringArrayList(EXTRA_SERVICES, ArrayList(shown.services))
+                    }
+                )
+        if (LiveTemplate.promotes) return LiveTemplate.dress(builder, context, shown, open(context, url))
         val view =
             LiveCard(context, shown, title, organization, stepsText(context, shown.walked), clock, open(context, url))
-        return NotificationCompat
-            .Builder(context, PushNotifications.CHANNEL_ANSWERING)
+        return builder
             .setSmallIcon(shown.face.chip)
-            .setSubText(organization)
-            .setContentTitle(title)
-            .setContentText(text)
-            .setColor(ContextCompat.getColor(context, shown.color))
-            .setOnlyAlertOnce(true)
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setCustomContentView(view.collapsed())
             .setCustomBigContentView(view.expanded())
-            .addExtras(
-                Bundle().apply {
-                    putInt(EXTRA_STEPS, shown.steps)
-                    putString(EXTRA_TRAIL, shown.trail)
-                    putString(EXTRA_PACE, shown.pace)
-                    putStringArrayList(EXTRA_SERVICES, ArrayList(shown.services))
-                }
-            )
     }
 
     private fun open(context: Context, url: String): PendingIntent = PendingIntent.getActivity(
