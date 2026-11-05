@@ -1,6 +1,7 @@
 package com.chatwithwork.app.main
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -331,7 +332,12 @@ class MainActivity :
     /**
      * Leaving a chat while it answers: a Live Update follows it, showing the
      * steps the server sends, until its end or its push arrives.
+     *
+     * The card's pictures are encoded as PNG here (`Bitmap.compress`, marked
+     * `@WorkerThread`): a few small images, once, as the app leaves. Drawing
+     * the card on another thread would race with [onStart] taking it away.
      */
+    @SuppressLint("ThreadConstraint")
     private fun showLiveUpdate() {
         if (isChangingConfigurations || viewModel.signedOut) return
         val (chat, composer) = answeringChat() ?: return
