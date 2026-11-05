@@ -167,6 +167,22 @@ class PathConfigurationTest {
     }
 
     @Test
+    fun `a chat a page opens says where from, and is pushed with back to that page`() {
+        listOf(
+            "/482139075/chats/42?from=bot",
+            "/482139075/chats/42?from=decisions#tool_call_7",
+            "/482139075/chats/43?from=chat"
+        )
+            .forEach { path ->
+                properties(path).let {
+                    assertWithMessage(path).that(it["context"]).isEqualTo("default")
+                    assertWithMessage(path).that(it["presentation"]).isEqualTo("default")
+                }
+            }
+        assertThat(properties("/482139075/chats/42?message=7")["presentation"]).isEqualTo("replace_root")
+    }
+
+    @Test
     fun `a Settings tab is pushed over the Settings list it shares a path with`() {
         properties("/482139075/settings?tab=connectors").let {
             assertThat(it["context"]).isEqualTo("default")

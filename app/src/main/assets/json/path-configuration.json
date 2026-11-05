@@ -53,6 +53,17 @@
     },
     {
       "patterns": [
+        "/chats/\\d+\\?(.*&)?from="
+      ],
+      "properties": {
+        "context": "default",
+        "presentation": "default",
+        "pull_to_refresh_enabled": false,
+        "uri": "hotwire://fragment/web"
+      }
+    },
+    {
+      "patterns": [
         "^/shared/"
       ],
       "properties": {
