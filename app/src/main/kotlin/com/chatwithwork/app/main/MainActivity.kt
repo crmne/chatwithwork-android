@@ -77,8 +77,10 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
+import dev.hotwire.core.config.Hotwire
 import dev.hotwire.core.turbo.config.context
 import dev.hotwire.core.turbo.nav.PresentationContext
+import dev.hotwire.core.turbo.visit.VisitAction
 import dev.hotwire.core.turbo.visit.VisitOptions
 import dev.hotwire.core.turbo.visit.VisitProposal
 import dev.hotwire.core.turbo.webview.WebViewInfo
@@ -94,9 +96,10 @@ import kotlinx.coroutines.launch
 
 /**
  * The app's one activity: the sidebar shell. One navigator, whose root is
- * always a chat (a new one, or one picked in the sidebar: the path
- * configuration replaces the root with every chat), with Bots, projects and
- * other pages pushed over it and Settings and forms as modals. The sidebar is
+ * the place on screen: a chat (a new one, or one picked in the sidebar),
+ * Decisions, Bots, Settings, or whatever else the sidebar opened (Places).
+ * Drill-downs from it (a bot from Bots) are pushed over it with back, and
+ * forms are modals. Back at the root leaves the app. The sidebar is
  * Material 3's modal navigation drawer, drawn natively from the server's JSON
  * (SidebarDrawer). The welcome screen covers it all when nobody is signed in.
  *
@@ -131,7 +134,6 @@ class MainActivity :
 
     private lateinit var drawer: DrawerLayout
 
-    private val sidebarOpening = SidebarOpening()
     private lateinit var root: View
     private lateinit var welcome: View
     private lateinit var sidebar: SidebarDrawer
@@ -503,13 +505,22 @@ class MainActivity :
 
     private fun userAgent(): String? = navigator?.session?.webView?.settings?.userAgentString
 
+    /**
+     * What the sidebar opens is a place: the root screen, never pushed over
+     * what was there (Places). A Turbo replace on the root takes its place.
+     */
     override fun openPath(path: String) {
         closeSidebarNow()
-        sidebarOpening.opening(AppUrls.absolute(path))
-        navigator?.route(AppUrls.absolute(path))
-    }
+        val navigator = navigator ?: return
+        val location = AppUrls.absolute(path)
+        when (Places.opening(Hotwire.config.pathConfiguration.properties(location))) {
+            Places.Opening.ROUTE -> navigator.route(location)
 
-    override fun takeSidebarOpening(location: String): Boolean = sidebarOpening.take(location)
+            Places.Opening.REPLACE_ROOT -> navigator.clearAll {
+                navigator.route(location, VisitOptions(action = VisitAction.REPLACE))
+            }
+        }
+    }
 
     /**
      * Starts a new chat in the list the sidebar shows, as the web's New chat

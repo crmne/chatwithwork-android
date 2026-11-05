@@ -129,13 +129,50 @@ class PathConfigurationTest {
     }
 
     @Test
-    fun `Settings is a modal, its sections pushed inside it`() {
-        listOf("/482139075/settings", "/482139075/settings?tab=connectors").forEach { path ->
+    fun `every place replaces the root, so nothing stacks under it`() {
+        listOf(
+            "/482139075/decisions",
+            "/482139075/decisions?decision=t7&view=now",
+            "/482139075/bots",
+            "/482139075/bots?list=mine",
+            "/482139075/chats",
+            "/482139075/chats?list=recent",
+            "/482139075/projects",
+            "/482139075/settings"
+        ).forEach { path ->
             properties(path).let {
-                assertWithMessage(path).that(it["context"]).isEqualTo("modal")
-                assertWithMessage(path).that(it["uri"]).isEqualTo("hotwire://fragment/web/modal")
-                assertWithMessage(path).that(it["query_string_presentation"]).isNull()
+                assertWithMessage(path).that(it["context"]).isEqualTo("default")
+                assertWithMessage(path).that(it["presentation"]).isEqualTo("replace_root")
+                assertWithMessage(path).that(it["uri"]).isEqualTo("hotwire://fragment/web")
+                assertWithMessage(path).that(it["pull_to_refresh_enabled"]).isEqualTo(true)
             }
+        }
+    }
+
+    @Test
+    fun `a drill-down is pushed, and another query on it replaces it`() {
+        listOf(
+            "/482139075/bots/7",
+            "/482139075/bots/7?tab=setup",
+            "/482139075/projects/3",
+            "/482139075/triggers/4",
+            "/482139075/settings/connected_services"
+        ).forEach { path ->
+            properties(path).let {
+                assertWithMessage(path).that(it["context"]).isEqualTo("default")
+                assertWithMessage(path).that(it["presentation"]).isNull()
+                assertWithMessage(path).that(it["query_string_presentation"]).isEqualTo("replace")
+            }
+        }
+    }
+
+    @Test
+    fun `a Settings tab is pushed over the Settings list it shares a path with`() {
+        properties("/482139075/settings?tab=connectors").let {
+            assertThat(it["context"]).isEqualTo("default")
+            assertThat(it["uri"]).isEqualTo("hotwire://fragment/web")
+            assertThat(it["presentation"]).isNull()
+            assertThat(it["query_string_presentation"]).isEqualTo("default")
         }
     }
 

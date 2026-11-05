@@ -9,6 +9,7 @@
         "context": "default",
         "page_under_top_bar": true,
         "pull_to_refresh_enabled": true,
+        "query_string_presentation": "replace",
         "uri": "hotwire://fragment/web"
       }
     },
@@ -62,22 +63,26 @@
     },
     {
       "patterns": [
-        "/settings(\\?|$)"
+        "/settings\\?"
       ],
       "properties": {
-        "context": "modal",
+        "context": "default",
         "pull_to_refresh_enabled": true,
-        "uri": "hotwire://fragment/web/modal"
+        "query_string_presentation": "default",
+        "uri": "hotwire://fragment/web"
       }
     },
     {
       "patterns": [
+        "/decisions(\\?|$)",
+        "/bots(\\?|$)",
         "/chats(\\?|$)",
         "/projects(\\?|$)",
-        "/bots(\\?|$)"
+        "/settings$"
       ],
       "properties": {
         "context": "default",
+        "presentation": "replace_root",
         "pull_to_refresh_enabled": true,
         "uri": "hotwire://fragment/web"
       }

@@ -69,16 +69,22 @@ Everything in the iOS contract's section 2 applies (`data-native-app` on
 document scrolls, no environment label, `bridge--confirm` on `<body>`,
 flashes as toasts). What differs on Android:
 
-- **No tabs: one chat screen and a sidebar.** The app opens on a chat (a
-  new one, or one the person left answering under ten minutes ago), and
-  every chat replaces that one screen (the path configuration's
-  `replace_root`), so chats never stack. Bots, projects and the other pages
-  are pushed over it; Settings and forms are modals. The sidebar, Material
-  3's modal navigation drawer, opens from the menu button on the chat or a
-  swipe from the edge, and the app draws it from the server's JSON
-  (section 11). A page the sidebar opened keeps the menu button in its top
-  app bar, and what you reach from it gets back. Every screen but a modal
-  has New chat in its top app bar.
+- **No tabs: one root screen and a sidebar.** The app opens on a chat (a
+  new one, or one the person left answering under ten minutes ago).
+  Everything reached from the sidebar is a place, never a step: a chat, New
+  chat, Decisions, Bots, a bot, Projects, a project, Settings,
+  Instructions. A place replaces the one root screen, which has the
+  sidebar's menu button and never back, so places never stack and there's
+  no history of them to walk back through (Carmine, 2026-11-05). Only a
+  drill-down is pushed over a place, with back to it (a bot from Bots, a
+  Settings tab from the Settings list); forms and pickers are modals
+  (section 5). The system back at a place leaves the app, as at any root:
+  a drawer's start destination here would be an empty new chat, one more
+  stop on the way out, and the app keeps no history of places. The
+  sidebar, Material 3's modal navigation drawer, opens from the menu
+  button on the root or a swipe from the edge, and the app draws it from
+  the server's JSON (section 11). Every screen but a modal has New chat in
+  its top app bar.
   Earlier builds had tabs (Chats, Bots and Settings in a floating
   toolbar) and read `android_v1.json`, the `native-tabs` meta tag and
   `data-native-tab-root`; keep serving those for them.
@@ -183,13 +189,13 @@ written with `^`):
 
 | Pattern | Context | Presentation | Pull to refresh | Notes |
 |---|---|---|---|---|
-| `.*` | default | push | on | `uri: hotwire://fragment/web` |
+| `.*` | default | push | on | `uri: hotwire://fragment/web`; `query_string_presentation: replace`, so a visit to the page on screen with another query (a bot's tabs, a form redirecting back) replaces it rather than stacking a copy |
 | `/new(\?\|$)`, `/edit(\?\|$)` | modal | | off | every new and edit form; `uri: hotwire://fragment/web/modal` |
 | `^/users/sign_in`, `^/users/sign_up`, `^/users(\?\|$)`, `^/users/password...`, `^/users/confirmation...`, `^/users/unlock...` | modal | | off | the sign-in pages |
 | `/chats/new(\?\|$)`, `/chats/\d+(\?\|#\|$)` | default | `replace_root` | off | a chat is always the one screen |
 | `^/shared/` | default | push | off | |
-| `/settings(\?\|$)` | modal | | on | a section (`?tab=`) pushes inside the modal |
-| `/chats(\?\|$)`, `/projects(\?\|$)`, `/bots(\?\|$)` | default | push | on | pushed over the chat |
+| `/settings\?` | default | push | on | a Settings tab, pushed over the Settings list (`query_string_presentation: default`, since the list and its tabs share `/settings`) |
+| `/decisions(\?\|$)`, `/bots(\?\|$)`, `/chats(\?\|$)`, `/projects(\?\|$)`, `/settings$` | default | `replace_root` | on | the places: Decisions, Bots, the chat lists, Projects, the Settings list |
 | `/chats/\d+/files/` | modal | | off | a chat's file in its viewer, a full-screen modal over the chat (iOS contract, "A file") |
 | files and the marketing site | | `none` | | `open_in_browser: true`: a Chrome Custom Tab |
 
@@ -291,15 +297,23 @@ the apps. On Android:
   including "Offensive or harmful", the in-app report Play's AI-Generated
   Content policy asks for.
 - **The chat list** (`chats/index`) and **projects** (`projects/index`,
-  from the sidebar's "All projects..."): pushed over the chat, when a link
-  leads there. The sidebar is the app's list, so the app opens neither by
+  from the sidebar's "All projects..."): places, replacing the root. The
+  sidebar is the app's list, so the app opens neither by itself. A project
+  from the list is pushed with back to it.
+- **Decisions** (`decisions/index`, the sidebar's Decisions and its items):
+  a place. Deciding never leaves it: approvals answer with Turbo Streams,
+  and a form that leaves the board's frame redirects back to the page's
+  own address, which the board keeps in Turbo's history, so Hotwire
+  Native's adapter refreshes it in place (a morph) instead of proposing a
+  screen. A decision's chat replaces the root, as any chat does.
+- **Bots** (`bots/index`, from the sidebar): a place, New bot (`add`) in
+  the top app bar. A bot, its triggers and its conversations push on top,
+  with back to Bots; a bot opened from the sidebar's Bots view is a place
   itself.
-- **Bots** (`bots/index`, from the sidebar): pushed over the chat, New bot
-  (`add`) in the top app bar. A bot, its triggers and its conversations
-  push on top.
-- **Settings** (from the person at the sidebar's foot): a modal. `/settings`
-  is the list of sections and `/settings?tab=...` pushes inside it with a
-  back arrow. Its organization switcher still works (a link into another
+- **Settings** (from the person at the sidebar's foot): a place. `/settings`
+  is the list of sections and `/settings?tab=...` pushes over it with a
+  back arrow (from the sidebar's Instructions, `/settings?tab=assistant` is
+  the place itself). Its organization switcher still works (a link into another
   organization starts the app over there), but the sidebar's person menu
   is the usual way to switch.
 - **Forms in modals** (every `new` and `edit`): the `form` component puts
@@ -341,8 +355,8 @@ Links the app handles itself:
   `mailto:`, `tel:`, `sms:`, `geo:` and Play Store links go to their apps.
 - Files and the marketing site open in a Custom Tab (the path
   configuration's last rule).
-- A link to a chat replaces the one screen; a link to any other page
-  pushes it over the chat.
+- A link to a place replaces the root screen; a link to any other page
+  pushes it over the screen it's on, with back.
 - A link into another organization starts the app over there: on that
   chat, or on its new chat with the page on top.
 - `notice` and `alert` on `/recede_historical_location`,

@@ -23,29 +23,16 @@ import dev.hotwire.navigation.destinations.HotwireDestinationDeepLink
 import dev.hotwire.navigation.fragments.HotwireWebFragment
 
 /**
- * A page: the native top app bar over the shared web view. The root (a chat)
- * has the sidebar's button where back would be; every screen but a modal has
+ * A page: the native top app bar over the shared web view. The root (the
+ * place on screen: a chat, Decisions, Bots...) has the sidebar's button where
+ * back would be, and a drill-down pushed over it has back; every screen but a modal has
  * New chat in its bar. Every screen's bar is the same TopBar: no surface of
  * its own, its title and buttons over a fade into the page.
  */
 @HotwireDestinationDeepLink(uri = "hotwire://fragment/web")
 open class WebFragment : HotwireWebFragment() {
-    /** This screen is where the sidebar went, so its bar offers the sidebar rather than back. */
-    private var openedFromSidebar = false
-
     /** The bar every screen shares (TopBar), from the view's creation on. */
     private var topBar: TopBar? = null
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        openedFromSidebar = savedInstanceState?.getBoolean(OPENED_FROM_SIDEBAR)
-            ?: (host?.takeSidebarOpening(location) == true)
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putBoolean(OPENED_FROM_SIDEBAR, openedFromSidebar)
-    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
         inflater.inflate(R.layout.fragment_web, container, false)
@@ -95,9 +82,9 @@ open class WebFragment : HotwireWebFragment() {
         PageScripts.setTopBarHeight(navigator.session.webView, topBar?.covered ?: 0)
     }
 
-    /** The sidebar's button on the root and on what the sidebar opened, and New chat on every screen but a modal. */
+    /** The sidebar's button on the root, and New chat on every screen but a modal. */
     private fun addShellActions(toolbar: Toolbar) {
-        if (navigator.isAtStartDestination() || openedFromSidebar) {
+        if (navigator.isAtStartDestination()) {
             toolbar.setNavigationIcon(R.drawable.ic_menu)
             toolbar.navigationContentDescription = getString(R.string.sidebar_open)
             toolbar.setNavigationOnClickListener { host?.openSidebar() }
@@ -201,9 +188,6 @@ interface WebScreenHost {
 
     fun openSidebar()
 
-    /** Asked once by each new screen: whether the sidebar opened it, at [location]. */
-    fun takeSidebarOpening(location: String): Boolean
-
     fun startNewChat()
 }
 
@@ -212,8 +196,6 @@ interface WebScreenHost {
  * which WebView.zoomBy clamps to; it refuses 0.01 and below.
  */
 private const val MIN_ZOOM_FACTOR = 0.02f
-
-private const val OPENED_FROM_SIDEBAR = "opened_from_sidebar"
 
 private const val GROUP_SHELL = 0x0C0
 private const val ITEM_NEW_CHAT = 0x0C001
