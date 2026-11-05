@@ -76,6 +76,11 @@
     <color name="composer_stop_disabled_icon">#330A0D14</color>
     <color name="composer_listening">#1F1E8FE6</color>
     <color name="composer_listening_edge">#661E8FE6</color>
+    <!-- The globe switched on (.chat-prompt__web-search-toggle[aria-pressed=true]): ink at 10%, and its inset
+         shadow of ink at 12%, blurred to about 5% round the edge. -->
+    <color name="composer_toggle_on">#1A0A0D14</color>
+    <color name="composer_toggle_shadow">#1F0A0D14</color>
+    <color name="composer_toggle_shadow_edge">#0D0A0D14</color>
     <!-- A file chip's remove button pressed, as the web's hovered .attachment__remove: ink at 8%. -->
     <color name="composer_remove_pressed">#140A0D14</color>
 </resources>

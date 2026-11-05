@@ -350,16 +350,19 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         val search = state.webSearch
         webSearchButton.isVisible = !on && search != null && ComposerBar.Control.WEB_SEARCH in bar
         if (search != null) {
-            webSearchButton.isSelected = search.on
-            webSearchButton.alpha = if (search.disabled) DISABLED_ALPHA else 1f
+            // The web's globe (.chat-prompt__web-search-toggle): Phosphor's, muted on nothing when off, ink on a
+            // pressed square when on (composer_toggle_button), and faint on nothing when the model can't search.
+            webSearchButton.isSelected = search.on && !search.disabled
             webSearchButton.setImageDrawable(
-                SymbolDrawable(
-                    context,
-                    "language",
-                    sizeDp = ICON_DP,
-                    filled = search.on,
-                    color = if (search.on) ink else muted()
-                )
+                ContextCompat.getDrawable(context, R.drawable.ic_globe)?.mutate()?.apply {
+                    setTint(
+                        when {
+                            search.disabled -> ContextCompat.getColor(context, R.color.lw_ink_faint)
+                            search.on -> ink
+                            else -> muted()
+                        }
+                    )
+                }
             )
             ViewCompat.setStateDescription(
                 webSearchButton,

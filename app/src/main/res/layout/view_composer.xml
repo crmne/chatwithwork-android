@@ -156,8 +156,9 @@
                 android:id="@+id/composer_web_search"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:background="@drawable/composer_ghost_button"
+                android:background="@drawable/composer_toggle_button"
                 android:contentDescription="@string/composer_web_search_button"
+                android:scaleType="center"
                 android:visibility="gone"
                 tools:visibility="visible" />
 

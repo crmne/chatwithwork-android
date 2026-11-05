@@ -1114,9 +1114,11 @@ What the app does with it:
   one checked) and answers `model {index}`.
 - **The bar's own controls (2026-10-28)**, one tap away while there's
   room, as on the web's folding bar: the microphone when `dictation` is
-  set, and the web search globe when `webSearch` is set (selected while
-  `on`, sending `webSearch {on}`; faint while `disabled`, when a tap shows
-  its `note`). They fold into "+" as the bar narrows, web search first and
+  set, and the web search globe when `webSearch` is set (sending
+  `webSearch {on}`; faint while `disabled`, when a tap shows its `note`).
+  The globe is the web's `.chat-prompt__web-search-toggle`: Phosphor's
+  bold globe, muted on nothing when off, and while `on` ink on a pressed
+  square (ink at 10%, inside the web's inset shadow). They fold into "+" as the bar narrows, web search first and
   dictation after it, so the model chip keeps room for a short name; on a
   360dp phone both fit. Nothing new comes from the server.
 - **"+"** opens a sheet: Camera, Photos (Android's photo picker, no
