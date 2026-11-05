@@ -6,6 +6,29 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.3
+
+Version 1.2.3 (10203) shows an answer left running as Android 16's own Live
+Update: a promoted `ProgressStyle` notification with the bot mark's face and
+a short word in the status bar chip, and the step, the clock and the road on
+the lock screen and in the shade, from
+[#45](https://github.com/crmne/chatwithwork-android/pull/45). Below Android
+16 the drawn card stays. It also makes everything the sidebar opens a place
+at the root, with no back to a decision already made, from
+[#44](https://github.com/crmne/chatwithwork-android/pull/44). Tag `v1.2.3`.
+
+The signed, Firebase-enabled bundle became available to Internal testers on
+2026-11-05 at 14:43 Europe/Berlin, with the What's new in
+`changelogs/10203.txt`. Only Internal testing was updated: 1.2.1 stayed in
+review for Production and Open testing. Play's preview showed no change in
+supported devices and only the usual warning about native debug symbols.
+
+Validation: CI passed on the pull requests (unit tests, lint, formatting and
+every build variant), and the promoted template was checked on the API 36.1
+emulator (`docs/push-notifications.md`). The release bundle wasn't tried on a
+device yet; it goes to Carmine's OnePlus first, to see OxygenOS 16's Live
+Alerts take it.
+
 ## Release 1.2.2
 
 Version 1.2.2 (10202) reads each decision's `family` and `label` and shows
