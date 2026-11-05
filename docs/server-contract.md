@@ -697,8 +697,9 @@ letter each (`s l r u p x a w`, in the order of `step`'s kinds with `x` for
 `pace` is one digit per `trail` letter, how long that step took: 1 under 2
 seconds, 2 under 10, 3 under 60, 4 a minute or more; without exactly that, every
 tick is the same height. `agents`, from 2, forks the road into two lanes or three
-bots and a count. Every Android version draws the iOS card as a custom
-notification (`docs/push-notifications.md`), and upper-case letters show faded.
+bots and a count. Below Android 16 the app draws the iOS card as a custom
+notification, and from 16 the road is the template's segments
+(`docs/push-notifications.md`); upper-case letters show faded or grey.
 
 An `end` message carries only `phase`, `message`, `run`, `revision`,
 `started_at` and `heard_at`: the card keeps its last steps, trail and services
@@ -718,10 +719,10 @@ when the end payload omits it, stop the timer, and use Review or Reply when
 waiting and Open when failed; finished and stopped cards have no button.
 Every action opens the
 authenticated chat; none approves a change from the notification. There is
-no percentage or ETA because the amount of work is not known. It's a custom
-RemoteViews notification on every version, which Android's
-[Live Updates API](https://developer.android.com/develop/ui/views/notifications/live-update)
-never promotes, so it has no status bar chip.
+no percentage or ETA because the amount of work is not known. From Android 16 it's
+Android's own [Live Update](https://developer.android.com/develop/ui/views/notifications/live-update)
+(`ProgressStyle`, promoted, with a status bar chip); below, a custom
+RemoteViews card. The payload is the same for both.
 
 When to send is the iOS contract's "When", unchanged. The app files
 approvals and questions under the "Approvals and questions" channel, and

@@ -242,4 +242,55 @@ class LivePresentationTest {
         assertThat(shown.split("Thinking")).isNull()
         assertThat(LivePresentation("answering", "use", 1, service = "mcp").split("Using a tool")).isNull()
     }
+
+    @Test
+    fun `android's template shows the bot mark's faces, and failed is flat`() {
+        assertThat(LivePresentation("answering", "answer").mark).isEqualTo(LivePresentation.Mark.THINKING)
+        assertThat(LivePresentation("answering", "search", steps = 2).mark).isEqualTo(LivePresentation.Mark.THINKING)
+        assertThat(LivePresentation("answering", "read", steps = 2).mark).isEqualTo(LivePresentation.Mark.WRITING)
+        assertThat(LivePresentation("answering", "write", steps = 2).mark).isEqualTo(LivePresentation.Mark.WRITING)
+        assertThat(LivePresentation("approval_waiting").mark).isEqualTo(LivePresentation.Mark.WAITING)
+        assertThat(LivePresentation("input_requested").mark).isEqualTo(LivePresentation.Mark.WAITING)
+        assertThat(LivePresentation("answered").mark).isEqualTo(LivePresentation.Mark.HAPPY)
+        assertThat(LivePresentation("failed").mark).isEqualTo(LivePresentation.Mark.FLAT)
+        assertThat(LivePresentation("stopped").mark).isEqualTo(LivePresentation.Mark.FLAT)
+    }
+
+    @Test
+    fun `the status bar chip says what it's doing or what it needs, and nothing once it's over`() {
+        assertThat(LivePresentation("answering", "answer").chip).isEqualTo(R.string.live_update_chip_think)
+        assertThat(LivePresentation("answering", "search", steps = 1).chip).isEqualTo(R.string.live_update_chip_search)
+        assertThat(LivePresentation("answering", "write", steps = 1).chip).isEqualTo(R.string.live_update_chip_write)
+        assertThat(LivePresentation("answering", "search", agents = 3).chip).isEqualTo(R.string.live_update_chip_agents)
+        assertThat(LivePresentation("approval_waiting").chip).isEqualTo(R.string.live_update_chip_review)
+        assertThat(LivePresentation("input_requested").chip).isEqualTo(R.string.live_update_chip_reply)
+        for (phase in listOf("answered", "failed", "stopped")) assertThat(LivePresentation(phase).chip).isNull()
+        // A phase this build doesn't know claims no work, whatever its step.
+        assertThat(LivePresentation("future_state", "run").chip).isNull()
+        assertThat(LivePresentation("future_state", "run").mark).isEqualTo(LivePresentation.Mark.FLAT)
+    }
+
+    @Test
+    fun `the template's road is time spent per step, never a share of a whole`() {
+        assertThat(LivePresentation("answering", "answer").stretches).isEmpty()
+        val road = LivePresentation("answering", "search", trail = "srR", pace = "142").stretches
+        assertThat(road).containsExactly(
+            LivePresentation.Stretch(6, false),
+            LivePresentation.Stretch(29, false),
+            LivePresentation.Stretch(13, true)
+        ).inOrder()
+        // An older server sends only a count: even stretches.
+        assertThat(LivePresentation("answering", "search", steps = 3).stretches.map { it.length }.distinct()).hasSize(1)
+    }
+
+    @Test
+    fun `a long road joins its oldest steps into the first stretch, keeping its whole time`() {
+        val trail = "s".repeat(14)
+        val pace = "1".repeat(5) + "4".repeat(9)
+        val shown = LivePresentation("answering", "search", trail = trail, pace = pace)
+        val road = shown.stretches
+        assertThat(road).hasSize(10)
+        assertThat(road.first()).isEqualTo(LivePresentation.Stretch(5 * 6, false))
+        assertThat(road.sumOf { it.length }).isEqualTo(shown.ticks.sumOf { it.height.toInt() })
+    }
 }
