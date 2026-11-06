@@ -16,7 +16,9 @@ data class LivePresentation(
     val service: String? = null,
     val services: List<String> = emptyList(),
     val agents: Int? = null,
-    val pace: String? = null
+    val pace: String? = null,
+    /** Who's at work, as the server says it: `chat` draws the logo, anything else the bot. */
+    val assistant: String? = null
 ) {
     enum class State { STARTING, WORKING, AGENTS, WRITING, DECISION, INPUT, FINISHED, FAILED, STOPPED, QUIET }
 
@@ -106,6 +108,18 @@ data class LivePresentation(
 
         State.STOPPED -> Face.FLAT
     }
+
+    /** In a person's chat it's Chat with Work's logo, which has no faces, and the words say the state. */
+    val isChat: Boolean get() = assistant == "chat"
+
+    /** The status bar's alpha mask below Android 16: the logo's silhouette, or the bot's face. */
+    val cardIcon: Int get() = if (isChat) R.drawable.ic_notification else face.chip
+
+    /** The status bar's mask in Android 16's template. */
+    val templateIcon: Int get() = if (isChat) R.drawable.ic_notification else mark.chip
+
+    /** The head of the road in Android 16's template. */
+    val templateTracker: Int get() = if (isChat) R.drawable.ic_mark else mark.sticker
 
     val mark: Mark get() = when (state) {
         State.STARTING, State.AGENTS, State.WORKING -> if (step == "read") Mark.WRITING else Mark.THINKING

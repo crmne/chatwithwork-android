@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12 and later play the splash icon: the mark writes itself. Earlier versions keep ic_splash, still. -->
+    <style name="Theme.ChatWithWork.Starting" parent="Theme.SplashScreen.IconBackground">
+        <item name="windowSplashScreenBackground">@color/lw_canvas</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/icon_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_draw</item>
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+        <item name="postSplashScreenTheme">@style/Theme.ChatWithWork</item>
+    </style>
+</resources>

@@ -28,6 +28,8 @@ data class LiveProgress(
     val run: String? = null,
     val revision: Long = 0,
     val startedAt: Long? = null,
+    /** Who's at work: `chat`, the logo, or `bot`; absent from older servers, which means the bot. */
+    val assistant: String? = null,
     val waitingSince: Long? = null,
     val service: String? = null,
     val services: List<String> = emptyList(),
@@ -96,6 +98,7 @@ data class LiveProgress(
                 run = data["run"]?.takeIf { it.isNotBlank() },
                 revision = data["revision"]?.toLongOrNull() ?: 0,
                 startedAt = data["started_at"]?.toLongOrNull()?.let { it * 1000 },
+                assistant = data["mark"]?.takeIf { it.isNotBlank() },
                 waitingSince = data["waiting_since"]?.toLongOrNull()?.let { it * 1000 },
                 service = data["service"]?.takeIf { it.isNotBlank() },
                 services = stringList(data["services"]),

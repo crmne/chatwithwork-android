@@ -30,7 +30,7 @@ class DebugPushReceiver : BroadcastReceiver() {
         if (data["kind"] == "live_preview") {
             val progress = LiveProgress.from(data + ("kind" to "progress")) ?: return
             PushNotifications.optIn(context)
-            LiveUpdates.show(context, progress.url, "Northwind Studio", progress.runRef)
+            LiveUpdates.show(context, progress.url, "Northwind Studio", progress.runRef, progress.assistant)
             LiveUpdates.progress(
                 context,
                 progress.copy(sentAt = System.currentTimeMillis(), revision = progress.revision + 1)

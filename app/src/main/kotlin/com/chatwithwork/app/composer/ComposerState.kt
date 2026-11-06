@@ -27,6 +27,8 @@ data class ComposerState(
     val run: String? = null,
     val revision: Long? = null,
     val startedAt: Long? = null,
+    /** Who's at work on that answer, for the card this app starts itself: `chat` or `bot`. */
+    val mark: String? = null,
     val models: List<Model> = emptyList(),
     val permissionModes: PermissionModes? = null,
     val webSearch: WebSearch? = null,

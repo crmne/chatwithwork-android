@@ -42,7 +42,7 @@ object LiveTemplate {
         val stretches = shown.stretches
         val style =
             NotificationCompat.ProgressStyle()
-                .setProgressTrackerIcon(IconCompat.createWithResource(context, shown.mark.sticker))
+                .setProgressTrackerIcon(IconCompat.createWithResource(context, shown.templateTracker))
         if (stretches.isEmpty()) {
             style.setProgressIndeterminate(shown.isWorking)
         } else {
@@ -56,7 +56,7 @@ object LiveTemplate {
         shown.chip?.let { builder.setShortCriticalText(context.getString(it)) }
         shown.action?.let { builder.addAction(0, context.getString(it), open) }
         return builder
-            .setSmallIcon(shown.mark.chip)
+            .setSmallIcon(shown.templateIcon)
             .setStyle(style)
     }
 
