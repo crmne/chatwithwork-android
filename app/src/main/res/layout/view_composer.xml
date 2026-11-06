@@ -43,6 +43,7 @@
         android:id="@+id/composer_box"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:clipChildren="false"
         android:orientation="vertical"
         android:padding="8dp">
 
@@ -130,9 +131,11 @@
             android:textColor="?attr/colorOnSurface"
             android:textColorHint="@color/lw_ink_faint" />
 
+        <!-- The bar: "+"'s web search badge reaches 1dp past it, as the web's does, so nothing here clips. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clipChildren="false"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -156,8 +159,9 @@
                 android:id="@+id/composer_web_search"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:background="@drawable/composer_ghost_button"
+                android:background="@drawable/composer_toggle_button"
                 android:contentDescription="@string/composer_web_search_button"
+                android:scaleType="center"
                 android:visibility="gone"
                 tools:visibility="visible" />
 
@@ -192,19 +196,19 @@
                 tools:text="GPT-6 Luna" />
 
             <ImageButton
+                android:id="@+id/composer_send"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/composer_send_background"
+                android:contentDescription="@string/composer_send" />
+
+            <ImageButton
                 android:id="@+id/composer_stop"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
                 android:background="@drawable/composer_stop_background"
                 android:contentDescription="@string/composer_stop"
                 android:visibility="gone" />
-
-            <ImageButton
-                android:id="@+id/composer_send"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="@drawable/composer_send_background"
-                android:contentDescription="@string/composer_send" />
 
             <FrameLayout
                 android:id="@+id/composer_dictation_stop_frame"

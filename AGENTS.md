@@ -50,8 +50,9 @@ Live Wire design system and the chat UI. Read the README here first, then
   at launch. Change both, keep the rules in step with iOS's, and keep
   `PathConfigurationTest` passing.
 - Colors come from Live Wire's tokens in `res/values/colors.xml` (and
-  `values-night`), type is Geist, icons are Material Symbols. No dynamic
-  color. Check UI changes in light and dark mode.
+  `values-night`), type is Geist, icons are Material Symbols (the
+  composer's web search globe is the web's own Phosphor globe,
+  `ic_globe`). No dynamic color. Check UI changes in light and dark mode.
 - The launcher icons stay in `mipmap-anydpi-v26`: bridge-components ships
   its demo app's icons there, and only the same folder overrides them.
 - Pin dependencies to exact releases in `gradle/libs.versions.toml`, never
