@@ -50,7 +50,7 @@ class ButtonComponent(name: String, delegate: BridgeDelegate<HotwireDestination>
         if (data.nativeAction == NEW_CHAT) return
 
         toolbar.menu.add(menuGroup, ITEM_ID, ORDER_BUTTON, data.title).apply {
-            val symbol = SymbolDrawable.from(toolbar.context, data.image)
+            val symbol = BarSymbol.from(toolbar.context, data.image)
             if (symbol != null) {
                 icon = symbol
                 tint(iconColor(toolbar, data.color))

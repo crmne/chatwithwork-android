@@ -65,7 +65,7 @@ class FileComponent(name: String, delegate: BridgeDelegate<HotwireDestination>) 
         val share = context.getString(R.string.share)
 
         toolbar.menu.add(menuGroup, ITEM_SHARE, ORDER_FILE, share).apply {
-            icon = SymbolDrawable(context, "share")
+            icon = BarSymbol.from(context, "share")
             tint(iconColor(toolbar, null))
             setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
             describe(share)

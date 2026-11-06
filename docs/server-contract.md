@@ -254,7 +254,10 @@ Material Symbols names go in `androidImage` (`data-bridge-android-image`):
 `edit_square`, `keep`, `keep_off`, `link`, `edit`, `drive_file_move`,
 `delete`, `content_copy`, `refresh`, `call_split`, `add`, the names the iOS
 contract's page-by-page notes use. A `.fill` suffix (`keep.fill`) draws the
-filled symbol.
+filled symbol. A new symbol for a `button` in the top app bar also gets a
+vector in `BarSymbol`, so it matches the bar's own icons (Rounded, weight 300,
+22dp). Until it has one it draws from the Outlined font, at the same size and
+thickness but with square corners.
 
 Two rules both apps rely on (Cluster Headache Tracker learned them the hard
 way):

@@ -53,10 +53,10 @@ abstract class ToolbarComponent(name: String, private val bridgeDelegate: Bridge
 
     override fun onDestroyView() {}
 
-    /** The color of toolbar icons: the page's choice if it sent one, else Material's. */
+    /** The color of toolbar icons: the page's choice if it sent one, else the ink of the bar's own icons. */
     @ColorInt
     protected fun iconColor(toolbar: Toolbar, hex: String?): Int =
-        parseColor(hex) ?: MaterialColors.getColor(toolbar, MaterialR.attr.colorOnSurfaceVariant)
+        parseColor(hex) ?: MaterialColors.getColor(toolbar, MaterialR.attr.colorOnSurface)
 
     protected fun MenuItem.describe(title: String): MenuItem = apply {
         MenuItemCompat.setContentDescription(this, title)
