@@ -6,6 +6,45 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.4
+
+Version 1.2.4 (10204) keeps "+" on the composer's left and shows the
+permission mode as a pill
+([#52](https://github.com/crmne/chatwithwork-android/pull/52)), makes New chat
+and New bot the web's quiet card and marks chats that make a bot
+([#53](https://github.com/crmne/chatwithwork-android/pull/53)), draws the logo
+from the outside in
+([#50](https://github.com/crmne/chatwithwork-android/pull/50)), and thins the
+top bar's server-named icons
+([#51](https://github.com/crmne/chatwithwork-android/pull/51)). Tag `v1.2.4`.
+
+![The sidebar, with New chat as a quiet card and a chat that makes a bot marked](https://github.com/user-attachments/assets/cb8c96b0-670c-44b9-8db2-b084c1c344b8)
+
+![The composer, with "+" on the left and the Everything pill](https://github.com/user-attachments/assets/2305b82f-2260-418a-84ad-927739e402cf)
+
+Both pictures are the debug build of this commit on an emulator against the
+playground, so everything in them is made up.
+
+On 2026-11-06, 1.2.1 had gone live on Production and Open testing at 11:04
+Europe/Berlin, with nothing left in review. The signed, Firebase-enabled bundle
+went to Internal testing at 20:09, and was promoted to Production (replacing
+1.2.1) and Open testing (replacing 1.2.1), full rollout, same countries, in one
+submission sent at about 20:13. Managed publishing is off, so each track
+publishes as soon as Google approves it. It's the first time 1.2.2 and 1.2.3's
+work reaches those tracks, the Live Update among it. The review demo login was
+refreshed with `script/store/seed production review` just before. No devices
+were lost, and the only warning was the usual one about native debug symbols.
+
+What's new for both tracks is `changelogs/10204.txt`, covering what people
+will notice since 1.2.1.
+
+Validation: `testDebugUnitTest lintDebug spotlessCheck assembleDebug` passed on
+this commit (207 tests, on the Mac mini). The release code, re-signed with a
+debug key, launched on an Android 16 emulator and reached production's welcome
+screen; signed in, it wasn't run. The debug build ran against the playground
+for the pictures above. The release bundle wasn't tried on a phone, so OxygenOS
+16's Live Alerts are still unchecked.
+
 ## Release 1.2.3
 
 Version 1.2.3 (10203) shows an answer left running as Android 16's own Live
