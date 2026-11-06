@@ -1054,7 +1054,8 @@ new chats submit that choice with the first question. A returned choice
 is rechecked against the latest state, so closing access while a sheet is
 open cannot retain the older choice. The page and server remain the policy
 authority for defaults, organization caps, drivers, guests and bot runs.
-The selected Allow edits or Allow everything mode uses its normal-ink icon in the existing + control, with an accessible state description. It adds no warning row or color treatment. Existing chats keep the saved choice until the server returns its updated state.
+The selected mode shows on the bar as a pill unless it's `ask` (see "The
+mode pill" below). Existing chats keep the saved choice until the server returns its updated state.
 Older servers omit these optional fields and retain the existing controls.
 
 The native composer uses the web’s exact surface/ink tokens and all five
@@ -1095,8 +1096,8 @@ applies to connector search, model consent and any other web modal.
 
 Builds that register the `composer` component draw the composer
 themselves, floating over the page above the keyboard and the gesture bar:
-"+", the microphone and the web search globe, the field, the model, Stop
-while an answer runs, and Send, on the composer's rainbow
+"+", the microphone and the web search globe, the mode pill unless the mode
+is `ask`, the field, the model, Stop while an answer runs, and Send, on the composer's rainbow
 edge. The web composer (`#new_message`, with `bridge--composer`) stays in
 the page out of sight (native.css, once `data-bridge-components` lists
 `composer`), and the app drives it, so every rule it carries holds: locks,
@@ -1128,8 +1129,8 @@ What the app does with it:
   one, and Stop
   wears `.chat-prompt__ring`: a turning 2dp rainbow, grey at half strength
   and slower while `stopping`, standing still with animations off.
-- **Locked**: the field and "+" are disabled and `lockReason` shows above
-  the composer.
+- **Locked**: the field, "+", the microphone and the mode pill are disabled
+  and dimmed, and `lockReason` shows above the composer.
 - **The model**: a chip with the selected model's name, hidden while locked
   or working, which opens a sheet of `models` (name and rate, the selected
   one checked) and answers `model {index}`.
@@ -1142,17 +1143,32 @@ What the app does with it:
   square (ink at 10%, inside the web's inset shadow). They fold into "+" as
   the bar narrows: web search on a screen under 408dp, where the web's bar
   (the box, the screen less 24px) drops below 24rem, and dictation when the model chip would lose its room for a short
-  name. While web search is on and its switch is in "+", "+" carries the
+  name, or its logo and chevron while the mode pill shows. While web search is on and its switch is in "+", "+" carries the
   web's small globe (`.chat-prompt__attach-badge`), never while `disabled`.
   Nothing new comes from the server.
 - **"+"** opens a sheet: Camera, Photos (Android's photo picker, no
   permission needed), Files, Scan (ML Kit's document scanner, one PDF), and
   whatever the bar had no room for: Dictate, and Web search as a switch with
-  its `note`. It always uses "+", matching iOS and the web; when it
-  holds nothing it goes. Files go to the page
+  its `note`, then a "Changes" heading with `permissionModes`' options
+  (the selected one checked, disabled ones dimmed with the description saying
+  why; Allow everything's icon in `--negative-ink`). It's always there at the
+  bar's left and always the plain add icon, never the mode's icon or a
+  paperclip, disabled while locked or holding nothing. Files go to the page
   as `attach`, base64, at most 25 MB each (larger ones are named in a
   snackbar and left out). Each attachment shows as a chip with its name, its
   size or upload progress, and remove (`remove {id}`).
+- **The mode pill (2026-11-06)**, after the globe, only when the selected
+  option's `value` isn't `ask`, hidden while dictating: a 34dp fully rounded
+  pill in a 44dp target, read from `permissionModes` alone. `edits` is the
+  `edit` symbol and "Edits" in `--ink-muted` with a 1dp `--line-strong`
+  outline and no fill; `everything` is the `report` symbol and "Everything" in
+  `--negative-ink` on `--negative-wash` with a `--negative-edge` outline; any
+  other value shows the server's full `label` in the quiet look. TalkBack reads
+  "Changes: " and the server's `label`. A tap opens the "+" sheet with only
+  Changes. The bar measures the pill and keeps its room: the globe still folds
+  at the same width, dictation folds if it must, and the model chip's name gives
+  way first, down to its logo and chevron (56dp, only while the pill shows), so
+  Send and the pill stay on the bar. Nothing new comes from the server.
 - **Dictation**: Android 10 and later record OGG/Opus (at most five
   minutes), never Android's speech recognizer. While it listens, and while
   it transcribes, its line takes the field's place, as the web composer's

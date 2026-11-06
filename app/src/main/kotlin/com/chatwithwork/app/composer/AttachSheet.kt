@@ -2,6 +2,7 @@ package com.chatwithwork.app.composer
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ImageView
@@ -10,6 +11,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.isNotEmpty
 import androidx.core.view.isVisible
+import androidx.core.widget.ImageViewCompat
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.SymbolDrawable
 import com.chatwithwork.app.bridge.dismissWithActivity
@@ -21,9 +23,10 @@ import com.google.android.material.materialswitch.MaterialSwitch
 /**
  * The composer's "+" sheet: Camera, Photos (Android's photo picker, which
  * needs no permission), Files, Scan (ML Kit's document scanner, one PDF),
- * and what the bar had no room for ([ComposerBar.Sheet.folded]): Dictate
+ * what the bar had no room for ([ComposerBar.Sheet.folded]): Dictate
  * when the page offers dictation, and Web search as a switch when the page
- * offers it.
+ * offers it; and Changes, the modes the page offers. The mode pill opens it
+ * with Changes alone ([ComposerBar.Sheet.CHANGES]).
  */
 object AttachSheet {
     interface Choices {
@@ -95,8 +98,8 @@ object AttachSheet {
         }
 
         val permissions = content.findViewById<LinearLayout>(R.id.attach_permissions)
-        permissions.isVisible = state.permissionModes != null
-        state.permissionModes?.options?.forEach { option ->
+        permissions.isVisible = sheet.permissions && state.permissionModes != null
+        state.permissionModes?.options?.takeIf { sheet.permissions }?.forEach { option ->
             val item = inflater.inflate(R.layout.action_sheet_item, permissions, false)
             item.findViewById<TextView>(R.id.action_sheet_item_label).text = option.label
             item.findViewById<TextView>(R.id.action_sheet_item_subtitle).apply {
@@ -110,6 +113,13 @@ object AttachSheet {
                     else -> "back_hand"
                 }
                 setImageDrawable(SymbolDrawable(context, symbol, color = ink))
+                // The row's own tint draws the others muted; Allow everything reads as the bar's pill does.
+                if (option.value == "everything") {
+                    ImageViewCompat.setImageTintList(
+                        this,
+                        ColorStateList.valueOf(ContextCompat.getColor(context, R.color.lw_negative_ink))
+                    )
+                }
             }
             item.findViewById<ImageView>(R.id.action_sheet_item_check).isVisible = option.selected
             item.isSelected = option.selected

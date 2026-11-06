@@ -37,6 +37,9 @@
     <color name="scrim">#470A0D14</color>
     <color name="ripple">#1A0A0D14</color>
     <color name="lw_negative_ink">#C93A17</color>
+    <!-- Allow everything's pill (tokens.css: negative-wash, negative-edge, their color-mix computed in oklab). -->
+    <color name="lw_negative_wash">#FFEFEB</color>
+    <color name="lw_negative_edge">#EAA59A</color>
 
     <!-- The canvas of each theme, for browser tabs that pick their own. -->
     <!-- Ink at 3%, the Chats | Bots track. -->
