@@ -92,6 +92,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private var glowOpacity = look.glowOpacity
     private var glowFade: ValueAnimator? = null
     private var flow: ValueAnimator? = null
+    private val stopRing = StopRing(context)
+    private var ringSpin: ValueAnimator? = null
+    private val webSearchBadge = WebSearchBadge(context)
     private var onScreen = false
     private val model by lazy { findViewById<TextView>(R.id.composer_model) }
     private val stop by lazy { findViewById<ImageButton>(R.id.composer_stop) }
@@ -158,7 +161,6 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         input.setOnFocusChangeListener { _, _ -> updateLook() }
         val ink = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface)
         plus.setOnClickListener { actions?.openSheet() }
-        dictateButton.setImageDrawable(SymbolDrawable(context, "mic", sizeDp = ICON_DP, color = ink))
         dictateButton.setOnClickListener { actions?.dictate() }
         webSearchButton.setOnClickListener {
             val search = state.webSearch ?: return@setOnClickListener
@@ -177,6 +179,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         )
         model.setOnClickListener { actions?.chooseModel() }
         stop.setOnClickListener { onStop() }
+        stop.foreground = stopRing
         send.setOnClickListener { onSend() }
         dictationCancel.setImageDrawable(SymbolDrawable(context, "close", sizeDp = ICON_DP, color = ink))
         dictationCancel.setOnClickListener { cancelDictation() }
@@ -207,7 +210,6 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         input.hint = state.placeholder.ifBlank { context.getString(R.string.composer_placeholder) }
         input.isEnabled = !state.locked
         plus.isEnabled = !state.locked
-        plus.alpha = if (state.locked) DISABLED_ALPHA else 1f
 
         lock.isVisible = state.locked && !state.lockReason.isNullOrBlank()
         lock.text = state.lockReason
@@ -303,10 +305,36 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         }
     }
 
+    /**
+     * Stop's rainbow turns while it shows on screen, once in 2.4 seconds, and
+     * once in 6 while the answer stops (the web's .chat-prompt__ring). With
+     * animations off, the system's reduced motion, it stands still.
+     */
+    private fun updateRing() {
+        val spinning = stop.isVisible && onScreen && ValueAnimator.areAnimatorsEnabled()
+        val duration = if (stopRing.stopping) RING_STOPPING_MS else RING_MS
+        if (!spinning) {
+            ringSpin?.cancel()
+            ringSpin = null
+            stopRing.turn = 0f
+        } else if (ringSpin?.duration != duration) {
+            val from = stopRing.turn
+            ringSpin?.cancel()
+            ringSpin = ValueAnimator.ofFloat(from, from + 1f).apply {
+                this.duration = duration
+                interpolator = LinearInterpolator()
+                repeatCount = ValueAnimator.INFINITE
+                addUpdateListener { stopRing.turn = (it.animatedValue as Float) % 1f }
+                start()
+            }
+        }
+    }
+
     override fun onVisibilityAggregated(isVisible: Boolean) {
         super.onVisibilityAggregated(isVisible)
         onScreen = isVisible
         updateFlow()
+        updateRing()
     }
 
     // Behind every child, and past this view's bounds: see onAttachedToWindow.
@@ -338,26 +366,33 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             "everything" -> "report"
             else -> "add"
         }
-        plus.setImageDrawable(SymbolDrawable(context, symbol, sizeDp = ICON_DP, color = ink))
+        // A locked button dims once, as the web's disabled ones do: ink at 20% in the icon, and no opacity on top.
+        val buttonInk = if (state.locked) ContextCompat.getColor(context, R.color.composer_stop_disabled_icon) else ink
+        plus.setImageDrawable(SymbolDrawable(context, symbol, sizeDp = ICON_DP, color = buttonInk))
         ViewCompat.setStateDescription(plus, permission?.label)
+        // While web search is on and its switch waits in "+", "+" carries the web's small globe.
+        val searching = state.webSearch?.let { it.on && !it.disabled } == true
+        webSearchBadge.rtl = layoutDirection == LAYOUT_DIRECTION_RTL
+        plus.foreground = webSearchBadge.takeIf { searching && ComposerBar.Control.WEB_SEARCH in sheet.folded }
         plus.contentDescription =
             context.getString(if (sheet.attachOnly) R.string.composer_attach else R.string.composer_add)
 
         dictateButton.isVisible = !on && ComposerBar.Control.DICTATE in bar
         dictateButton.isEnabled = !state.locked
-        dictateButton.alpha = if (state.locked) DISABLED_ALPHA else 1f
+        dictateButton.setImageDrawable(SymbolDrawable(context, "mic", sizeDp = ICON_DP, color = buttonInk))
 
         val search = state.webSearch
         webSearchButton.isVisible = !on && search != null && ComposerBar.Control.WEB_SEARCH in bar
         if (search != null) {
             // The web's globe (.chat-prompt__web-search-toggle): Phosphor's, muted on nothing when off, ink on a
-            // pressed square when on (composer_toggle_button), and faint on nothing when the model can't search.
+            // pressed square when on (composer_toggle_button), and ink at 20% on nothing when it can't be switched,
+            // as the web's disabled button (measured while an answer runs).
             webSearchButton.isSelected = search.on && !search.disabled
             webSearchButton.setImageDrawable(
                 ContextCompat.getDrawable(context, R.drawable.ic_globe)?.mutate()?.apply {
                     setTint(
                         when {
-                            search.disabled -> ContextCompat.getColor(context, R.color.lw_ink_faint)
+                            search.disabled -> ContextCompat.getColor(context, R.color.composer_stop_disabled_icon)
                             search.on -> ink
                             else -> muted()
                         }
@@ -474,6 +509,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     override fun onDetachedFromWindow() {
         onScreen = false
         updateFlow()
+        updateRing()
         // Leaving the page, or the app closing, ends the recording, unsent.
         if (dictation != null) cancelDictation()
         super.onDetachedFromWindow()
@@ -554,8 +590,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         clear()
     }
 
-    // As the web's: while an answer runs, Stop is the ink square, and once there are words or files Send joins it as
-    // the subtle one (chats/_submit_button). Both sit flush, as the touch bar's buttons do.
+    // As the web's: while an answer runs, Stop is the ink square at the bar's end, and once there are words or files
+    // Send joins it on its left as the subtle one (chats/_submit_button). Both sit flush, as the touch bar's do.
     private fun renderButtons() {
         val showsSend = state.showsSend(text) && !dictating
         val showsStop = state.showsStop() && !dictating
@@ -563,6 +599,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         send.isVisible = showsSend
 
         stop.isEnabled = state.canStop
+        stopRing.stopping = !state.canStop
+        updateRing()
         val stopColor = if (stop.isEnabled) R.color.lw_ink_inverted else R.color.composer_stop_disabled_icon
         stop.setImageDrawable(
             SymbolDrawable(
@@ -624,12 +662,15 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     }
 
     private companion object {
-        const val DISABLED_ALPHA = 0.38f
         const val TRANSCRIBING_ALPHA = 0.5f
 
         // --duration-base, and rainbow-flow's 5s.
         const val LOOK_FADE_MS = 220L
         const val FLOW_MS = 5000L
+
+        // .chat-prompt__ring's spin, and its slower one while the answer stops.
+        const val RING_MS = 2400L
+        const val RING_STOPPING_MS = 6000L
 
         // The box's padding around the bar (view_composer.xml).
         const val BOX_PADDING_DP = 8

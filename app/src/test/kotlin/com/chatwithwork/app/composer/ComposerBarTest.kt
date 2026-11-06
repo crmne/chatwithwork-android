@@ -13,9 +13,9 @@ class ComposerBarTest {
         )
 
     @Test
-    fun `a phone's bar has room for the microphone and the globe, and + only attaches`() {
-        // A 360dp phone: 12dp gutters and the box's 8dp padding leave 320dp.
-        val bar = ComposerBar.inBar(320, everything, dictationSupported = true)
+    fun `a 408dp phone has room for the microphone and the globe, and + only attaches`() {
+        // The screen less 16dp gutters and the box's 8dp padding, where the web's own bar reaches 24rem.
+        val bar = ComposerBar.inBar(360, everything, dictationSupported = true)
         assertThat(bar).containsExactly(Control.DICTATE, Control.WEB_SEARCH)
         val sheet = ComposerBar.inSheet(everything, bar, dictationSupported = true)
         assertThat(sheet.folded).isEmpty()
@@ -24,7 +24,11 @@ class ComposerBarTest {
 
     @Test
     fun `web search folds first, then dictation, as the bar narrows`() {
-        assertThat(ComposerBar.inBar(279, everything, dictationSupported = true)).containsExactly(Control.DICTATE)
+        // Web search folds on the phones the web's does (a 390dp one here), into "+" as a switch.
+        val narrow = ComposerBar.inBar(342, everything, dictationSupported = true)
+        assertThat(narrow).containsExactly(Control.DICTATE)
+        assertThat(ComposerBar.inSheet(everything, narrow, dictationSupported = true).folded)
+            .containsExactly(Control.WEB_SEARCH)
         assertThat(ComposerBar.inBar(236, everything, dictationSupported = true)).containsExactly(Control.DICTATE)
         assertThat(ComposerBar.inBar(235, everything, dictationSupported = true)).isEmpty()
 
@@ -37,17 +41,18 @@ class ComposerBarTest {
     fun `only what the page offers shows`() {
         val plain = ComposerState()
         assertThat(ComposerBar.inBar(400, plain, dictationSupported = true)).isEmpty()
-        // Before the yes to models, or on Android 9, there's no microphone; the globe moves up into its place.
+        // Before the yes to models, or on Android 9, there's no microphone; the globe keeps its own width.
         val searchOnly = everything.copy(dictation = null)
-        assertThat(ComposerBar.inBar(240, searchOnly, dictationSupported = true)).containsExactly(Control.WEB_SEARCH)
-        assertThat(ComposerBar.inBar(320, everything, dictationSupported = false))
+        assertThat(ComposerBar.inBar(360, searchOnly, dictationSupported = true)).containsExactly(Control.WEB_SEARCH)
+        assertThat(ComposerBar.inBar(359, searchOnly, dictationSupported = true)).isEmpty()
+        assertThat(ComposerBar.inBar(360, everything, dictationSupported = false))
             .containsExactly(Control.WEB_SEARCH)
     }
 
     @Test
     fun `+ goes when it would hold nothing`() {
         val locked = everything.copy(acceptsFiles = false)
-        val bar = ComposerBar.inBar(320, locked, dictationSupported = true)
+        val bar = ComposerBar.inBar(360, locked, dictationSupported = true)
         assertThat(ComposerBar.inSheet(locked, bar, dictationSupported = true).empty).isTrue()
         assertThat(ComposerBar.inSheet(locked, emptySet(), dictationSupported = true).empty).isFalse()
     }

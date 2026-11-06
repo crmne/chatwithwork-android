@@ -43,6 +43,7 @@
     <color name="composer_listening">#1F44B0FF</color>
     <color name="composer_listening_edge">#6644B0FF</color>
     <color name="composer_toggle_on">#1AE9ECF4</color>
+    <color name="composer_toggle_on_pressed">#2BE9ECF4</color>
     <color name="composer_toggle_shadow">#1FE9ECF4</color>
     <color name="composer_toggle_shadow_edge">#0DE9ECF4</color>
     <!-- A file chip's remove button pressed, as the web's hovered .attachment__remove: ink at 8%. -->

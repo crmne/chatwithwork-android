@@ -1106,7 +1106,11 @@ What the app does with it:
   there are words or a file, Send shows beside it, so either can be
   pressed: Stop sends `stop`, and Send sends `send` and the web decides
   whether the words steer the answer or wait for it. Emptying the field
-  leaves Stop alone again. Not working, Send stands alone.
+  leaves Stop alone again. Not working, Send stands alone. As on the web,
+  Stop is the solid ink square at the bar's end, Send on its left the subtle
+  one, and Stop
+  wears `.chat-prompt__ring`: a turning 2dp rainbow, grey at half strength
+  and slower while `stopping`, standing still with animations off.
 - **Locked**: the field and "+" are disabled and `lockReason` shows above
   the composer.
 - **The model**: a chip with the selected model's name, hidden while locked
@@ -1115,12 +1119,15 @@ What the app does with it:
 - **The bar's own controls (2026-10-28)**, one tap away while there's
   room, as on the web's folding bar: the microphone when `dictation` is
   set, and the web search globe when `webSearch` is set (sending
-  `webSearch {on}`; faint while `disabled`, when a tap shows its `note`).
+  `webSearch {on}`; ink at 20% while `disabled`, when a tap shows its `note`).
   The globe is the web's `.chat-prompt__web-search-toggle`: Phosphor's
   bold globe, muted on nothing when off, and while `on` ink on a pressed
-  square (ink at 10%, inside the web's inset shadow). They fold into "+" as the bar narrows, web search first and
-  dictation after it, so the model chip keeps room for a short name; on a
-  360dp phone both fit. Nothing new comes from the server.
+  square (ink at 10%, inside the web's inset shadow). They fold into "+" as
+  the bar narrows: web search on a screen under 408dp, where the web's bar
+  (the box, the screen less 24px) drops below 24rem, and dictation when the model chip would lose its room for a short
+  name. While web search is on and its switch is in "+", "+" carries the
+  web's small globe (`.chat-prompt__attach-badge`), never while `disabled`.
+  Nothing new comes from the server.
 - **"+"** opens a sheet: Camera, Photos (Android's photo picker, no
   permission needed), Files, Scan (ML Kit's document scanner, one PDF), and
   whatever the bar had no room for: Dictate, and Web search as a switch with

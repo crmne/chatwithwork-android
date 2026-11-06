@@ -102,7 +102,7 @@
     <string name="composer_files">Files</string>
     <string name="composer_scan">Scan</string>
     <string name="composer_dictate">Dictate</string>
-    <string name="composer_web_search">Web search</string>
+    <string name="composer_web_search">Search the web</string>
     <string name="composer_file_too_big">%1$s is over 25 MB, too big to attach here.</string>
     <string name="composer_file_unreadable">That file couldn\'t be read.</string>
     <string name="composer_scan_unavailable">Scanning needs Google Play services, which this phone doesn\'t have.</string>

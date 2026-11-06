@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.isNotEmpty
 import androidx.core.view.isVisible
 import com.chatwithwork.app.R
@@ -78,7 +79,10 @@ object AttachSheet {
         if (search != null) {
             content.findViewById<ImageView>(
                 R.id.attach_web_search_icon
-            ).setImageDrawable(SymbolDrawable(context, "language", color = ink))
+            ).setImageDrawable(
+                // The web menu's globe (icon_tag "globe"), as the bar's.
+                ContextCompat.getDrawable(context, R.drawable.ic_globe)?.mutate()?.apply { setTint(ink) }
+            )
             content.findViewById<TextView>(R.id.attach_web_search_note).apply {
                 text = search.note
                 isVisible = !search.note.isNullOrBlank()
