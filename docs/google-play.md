@@ -18,9 +18,9 @@ from the outside in
 top bar's server-named icons
 ([#51](https://github.com/crmne/chatwithwork-android/pull/51)). Tag `v1.2.4`.
 
-![The sidebar, with New chat as a quiet card and a chat that makes a bot marked](https://github.com/user-attachments/assets/cb8c96b0-670c-44b9-8db2-b084c1c344b8)
+![The sidebar, with New chat as a quiet card and a chat that makes a bot marked](release-images/1.2.4-sidebar.png)
 
-![The composer, with "+" on the left and the Everything pill](https://github.com/user-attachments/assets/2305b82f-2260-418a-84ad-927739e402cf)
+![The composer, with "+" on the left and the Everything pill](release-images/1.2.4-composer.png)
 
 Both pictures are the debug build of this commit on an emulator against the
 playground, so everything in them is made up.
