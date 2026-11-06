@@ -62,6 +62,7 @@ object LiveUpdates {
     private const val EXTRA_RUN = "com.chatwithwork.app.LIVE_UPDATE_RUN"
     private const val EXTRA_TRAIL = "com.chatwithwork.app.LIVE_UPDATE_TRAIL"
     private const val EXTRA_PACE = "com.chatwithwork.app.LIVE_UPDATE_PACE"
+    private const val EXTRA_ASSISTANT = "com.chatwithwork.app.LIVE_UPDATE_ASSISTANT"
     private const val EXTRA_SERVICES = "com.chatwithwork.app.LIVE_UPDATE_SERVICES"
     private const val EXTRA_STARTED_AT = "com.chatwithwork.app.LIVE_UPDATE_STARTED_AT"
     private const val PREFERENCES = "live_updates"
@@ -82,7 +83,13 @@ object LiveUpdates {
      * run's card, so nothing should follow it.
      */
     @Synchronized
-    fun show(context: Context, url: String, organization: String?, run: LiveRunRef? = null): Boolean {
+    fun show(
+        context: Context,
+        url: String,
+        organization: String?,
+        run: LiveRunRef? = null,
+        assistant: String? = null
+    ): Boolean {
         val thread = threadFor(url) ?: return true
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
@@ -101,7 +108,7 @@ object LiveUpdates {
                 context,
                 url,
                 organization ?: context.getString(R.string.app_name),
-                LivePresentation(LiveProgress.ANSWERING, step),
+                LivePresentation(LiveProgress.ANSWERING, step, assistant = assistant),
                 null,
                 startedAt,
                 startedAt
@@ -163,7 +170,8 @@ object LiveUpdates {
                 progress.service,
                 progress.services.ifEmpty { shown.extras.getStringArrayList(EXTRA_SERVICES).orEmpty() },
                 progress.agents,
-                if (progress.trail != null) progress.pace else shown.extras.getString(EXTRA_PACE)
+                if (progress.trail != null) progress.pace else shown.extras.getString(EXTRA_PACE),
+                progress.assistant ?: shown.extras.getString(EXTRA_ASSISTANT)
             )
         val notification =
             if (!progress.isEnd) {
@@ -421,6 +429,7 @@ object LiveUpdates {
                         putInt(EXTRA_STEPS, shown.steps)
                         putString(EXTRA_TRAIL, shown.trail)
                         putString(EXTRA_PACE, shown.pace)
+                        putString(EXTRA_ASSISTANT, shown.assistant)
                         putStringArrayList(EXTRA_SERVICES, ArrayList(shown.services))
                     }
                 )
@@ -428,7 +437,7 @@ object LiveUpdates {
         val view =
             LiveCard(context, shown, title, organization, stepsText(context, shown.walked), clock, open(context, url))
         return builder
-            .setSmallIcon(shown.face.chip)
+            .setSmallIcon(shown.cardIcon)
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setCustomContentView(view.collapsed())
             .setCustomBigContentView(view.expanded())

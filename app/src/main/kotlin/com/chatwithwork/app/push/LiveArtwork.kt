@@ -264,6 +264,14 @@ object LiveArtwork {
             }
         }
 
+        /** Chat with Work's logo where the bot would stand, in its own white and black. */
+        private fun logo(x: Float, top: Float, side: Float) {
+            ContextCompat.getDrawable(context, R.drawable.ic_mark)?.mutate()?.run {
+                setBounds(x.roundToInt(), top.roundToInt(), (x + side).roundToInt(), (top + side).roundToInt())
+                draw(canvas)
+            }
+        }
+
         /** Whole device pixels a square, so edges stay sharp. */
         private fun bot(
             x: Float,
@@ -276,8 +284,12 @@ object LiveArtwork {
             val top = bottom - size * 15 / 16
             val wasFiltered = fill.isAntiAlias
             fill.isAntiAlias = false
-            pixels(LiveBotPixels.body, square, x, top, Color.WHITE)
-            pixels(LiveBotPixels.face(face), square, x, top, canvasColor)
+            if (shown.isChat) {
+                logo(x, top, square * 16)
+            } else {
+                pixels(LiveBotPixels.body, square, x, top, Color.WHITE)
+                pixels(LiveBotPixels.face(face), square, x, top, canvasColor)
+            }
             tool?.let {
                 val drawing = LiveBotPixels.tool(it)
                 pixels(
@@ -449,11 +461,8 @@ object LiveArtwork {
             drawTicks(head - 4, solid(positive))
             stops(head - 4)
             bot(head)
-            ContextCompat.getDrawable(context, R.drawable.ic_mark)?.mutate()?.run {
-                val top = (base - 35).roundToInt()
-                setBounds(destination.roundToInt(), top, destination.roundToInt() + 36, top + 36)
-                draw(canvas)
-            }
+            // The road ends at the logo: where the logo already walks it, once is enough.
+            if (!shown.isChat) logo(destination, base - 35, 36f)
         }
 
         private fun broken() {

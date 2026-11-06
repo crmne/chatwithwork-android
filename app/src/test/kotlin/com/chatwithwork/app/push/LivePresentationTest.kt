@@ -6,6 +6,23 @@ import org.junit.Test
 
 class LivePresentationTest {
     @Test
+    fun `a person's chat shows the logo, a bot's run and an older server the bot`() {
+        val chat = LivePresentation("answering", "search", assistant = "chat")
+        assertThat(chat.isChat).isTrue()
+        assertThat(chat.cardIcon).isEqualTo(R.drawable.ic_notification)
+        assertThat(chat.templateIcon).isEqualTo(R.drawable.ic_notification)
+        assertThat(chat.templateTracker).isEqualTo(R.drawable.ic_mark)
+
+        listOf("bot", null).forEach { assistant ->
+            val bot = LivePresentation("answering", "search", assistant = assistant)
+            assertThat(bot.isChat).isFalse()
+            assertThat(bot.cardIcon).isEqualTo(bot.face.chip)
+            assertThat(bot.templateIcon).isEqualTo(bot.mark.chip)
+            assertThat(bot.templateTracker).isEqualTo(bot.mark.sticker)
+        }
+    }
+
+    @Test
     fun `the current action survives a missing or blank activity label`() {
         val running = LivePresentation("answering", "run")
         val words: (Int) -> String = { id ->

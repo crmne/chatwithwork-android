@@ -636,8 +636,8 @@ chat (`collapse_key` `progress-<thread>`) and kept two minutes:
 
 **Runs (2026-10-31).** `run`, `revision` and `started_at` are optional and
 come on every `progress` message, and the composer's state carries them as
-`run`, `revision` and `startedAt` (numbers) while it says `working` or
-`waiting`, null otherwise. A run is one turn: a question until it's answered, through
+`run`, `revision` and `startedAt` (numbers), and `mark` (below), while it says
+`working` or `waiting`, null otherwise. A run is one turn: a question until it's answered, through
 steering and waits for the person. A new question or a retry is a new run.
 `run` is opaque and content-free, `revision` orders everything within it,
 and `started_at` (unix seconds) never changes within it. `follow` sends
@@ -684,6 +684,11 @@ kept across following the same chat again and cleared on sign-out, so an
 old end cannot replace new progress. A failed end can also carry
 `notification_id`: the app validates it using the same endpoint before
 ending the card, preserving current progress if the failure is suppressed.
+
+Optional `mark` says who's at work on the answer: `chat`, a person's chat, which
+draws Chat with Work's logo at the road's head and its silhouette in the status
+bar (`LivePresentation.isChat`); `bot`, a bot's chat or run, or nothing from an
+older server, which draws the bot and its faces.
 
 Optional `recent_steps`, which older app versions show, is ignored now: the
 road says the same thing.
