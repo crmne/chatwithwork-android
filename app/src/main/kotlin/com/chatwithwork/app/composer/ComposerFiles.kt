@@ -91,13 +91,14 @@ object ComposerFiles {
 
 /**
  * What waits for the next composer that connects: files shared in from
- * another app (into a new chat), and dictation asked for from the home screen
- * widget or the Quick Settings tile. Kept in the process, so nothing outside
- * the app can set it.
+ * another app (into a new chat), dictation asked for from the home screen
+ * widget, and the field's focus asked for by invoking the assistant. Kept in
+ * the process; an intent can only ask for the focus, which sends nothing.
  */
 object PendingShares {
     private var files: List<ComposerFile>? = null
     private var dictation = false
+    private var focus = false
 
     fun putFiles(files: List<ComposerFile>) {
         this.files = files
@@ -110,4 +111,10 @@ object PendingShares {
     }
 
     fun takeDictation(): Boolean = dictation.also { dictation = false }
+
+    fun askFocus() {
+        focus = true
+    }
+
+    fun takeFocus(): Boolean = focus.also { focus = false }
 }

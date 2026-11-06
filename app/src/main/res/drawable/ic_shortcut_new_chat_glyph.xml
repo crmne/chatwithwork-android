@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.05"
+        android:scaleY="0.05"
+        android:translateX="28"
+        android:translateY="28">
+        <group android:translateY="960">
+            <path
+                android:fillColor="@android:color/white"
+                android:pathData="M835.33-186.47q-3.02 7.7-13.35 9.54-10.33 1.85-18.75-6.61l-91.85-91.85H305.39q-23.17 0-39.66-16.49-16.5-16.5-16.5-39.66v-53.85h435.39q23.5 0 40.59-17.09 17.1-17.1 17.1-40.6V-720h53.84q23.17 0 39.66 16.5 16.5 16.49 16.5 39.65v460.08q0 8.23-5.47 12.77-5.46 4.53-11.51 4.53ZM153.08-419.23 230-496.15h389.23q5.39 0 8.85-3.47 3.46-3.46 3.46-8.84v-293.85q0-5.38-3.46-8.84t-8.85-3.46H165.39q-5.39 0-8.85 3.46t-3.46 8.84v383.08Zm-17 69.54q-10.15 0-19.27-7.62t-9.12-21.4v-423.6q0-23.5 17.1-40.59 17.1-17.1 40.6-17.1h453.84q23.5 0 40.6 17.1 17.09 17.09 17.09 40.59v293.85q0 23.5-17.09 40.59-17.1 17.1-40.6 17.1h-370l-92.46 92.46q-4.61 4.62-9.92 6.62t-10.77 2Zm17-158.77v-306.15V-508.46Z" />
+        </group>
+    </group>
+    <!-- The + on its corner, as the sidebar's card: a disc cut out of the mark by a ring of the canvas. -->
+    <path
+        android:fillColor="@color/icon_background"
+        android:pathData="M72,60a12,12 0 1,1 0,24a12,12 0 1,1 0,-24z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M72,62.5a9.5,9.5 0 1,1 0,19a9.5,9.5 0 1,1 0,-19z" />
+    <group
+        android:scaleX="0.0146"
+        android:scaleY="0.0146"
+        android:translateX="65"
+        android:translateY="65">
+        <group android:translateY="960">
+            <path
+                android:fillColor="@color/icon_background"
+                android:pathData="M433-433H222q-19.75 0-33.37-13.68Q175-460.35 175-480.18q0-19.82 13.63-33.32Q202.25-527 222-527h211v-211q0-19.75 13.68-33.88Q460.35-786 480.18-786q19.82 0 33.32 14.12Q527-757.75 527-738v211h211q19.75 0 33.88 13.68Q786-499.65 786-479.82q0 19.82-14.12 33.32Q757.75-433 738-433H527v211q0 19.75-13.68 33.37Q499.65-175 479.82-175q-19.82 0-33.32-13.63Q433-202.25 433-222v-211Z" />
+        </group>
+    </group>
+</vector>

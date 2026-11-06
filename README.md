@@ -14,7 +14,7 @@ drawer as a native sidebar (your chats, projects, what waits for you, bots),
 Material top app bars with the page's actions and overflow
 menu, a native composer (with the photo picker, camera, ML Kit's document
 scanner, and dictation recorded on the phone and transcribed on the server), full-screen modals, a welcome screen, native dialogs, snackbars,
-haptics, search, the share sheet (both ways: text and files shared into a new chat too), Live Updates that follow the steps of answers you leave running, a home screen widget and a Quick Settings tile, sign-in through Chrome's Auth Tab, push
+haptics, search, the share sheet (both ways: text and files shared into a new chat too), Live Updates that follow the steps of answers you leave running, a home screen widget, a Quick Settings tile, shortcuts on the icon (New chat, New bot, Decisions), Android's default digital assistant (a new chat with the composer focused), sign-in through Chrome's Auth Tab, push
 notifications that show the answer's start or what waits for you (fetched from the server as they arrive, never through Google), App Links, predictive back, edge to edge, and Live Wire's
 colors in light and dark.
 
@@ -116,7 +116,7 @@ app/src/main/kotlin/com/chatwithwork/app/
   main/        MainActivity (the sidebar shell, welcome screen, sign-in, links), view model
   sidebar/     the native sidebar: the server's JSON, its rows, the drawer's views
   composer/    the native composer: its state, view, "+" sheet, files, and dictation
-  shortcuts/   the home screen widget, the Quick Settings tile, and where they lead
+  shortcuts/   the home screen widget, the Quick Settings tile, and where they and the icon's shortcuts lead
   fragments/   the web screen (top app bar over the shared web view), page titles, error states
   bridge/      the bridge components (native halves) and the action sheet they share
   routing/     the app's URLs, Custom Tabs, route decisions for other sites and apps

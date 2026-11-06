@@ -30,6 +30,12 @@ object AppUrls {
     fun newChat(account: String?, project: String? = null): String =
         page("/chats/new", account) + (project?.let { "?project_id=$it" } ?: "")
 
+    /** New bot, inside [account] when it's known. */
+    fun newBot(account: String?): String = page("/bots/new", account)
+
+    /** The Decisions page, inside [account] when it's known. */
+    fun decisions(account: String?): String = page("/decisions", account)
+
     // Rails' AccountSlug::PATTERN: seven digits or more.
     private val accountPrefix = Regex("^/(\\d{7,})(?=/|$)")
 

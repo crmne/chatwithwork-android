@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="3"
+        android:scaleY="3"
+        android:translateX="28"
+        android:translateY="26">
+        <path
+            android:fillColor="@android:color/white"
+            android:pathData="M1,2h14v1h-14zM0,3h1v1h-1zM15,3h1v1h-1zM0,4h1v1h-1zM15,4h1v1h-1zM0,5h1v1h-1zM4,5h2v1h-2zM10,5h2v1h-2zM15,5h1v1h-1zM0,6h1v1h-1zM4,6h2v1h-2zM10,6h2v1h-2zM15,6h1v1h-1zM0,7h1v1h-1zM4,7h2v1h-2zM10,7h2v1h-2zM15,7h1v1h-1zM0,8h1v1h-1zM15,8h1v1h-1zM0,9h1v1h-1zM15,9h1v1h-1zM0,10h1v1h-1zM15,10h1v1h-1zM1,11h3v1h-3zM7,11h8v1h-8zM3,12h1v1h-1zM6,12h1v1h-1zM3,13h1v1h-1zM5,13h1v1h-1zM3,14h2v1h-2z" />
+    </group>
+    <!-- The + on its corner, as the sidebar's card: a disc cut out of the mark by a ring of the canvas. -->
+    <path
+        android:fillColor="@color/icon_background"
+        android:pathData="M72,60a12,12 0 1,1 0,24a12,12 0 1,1 0,-24z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M72,62.5a9.5,9.5 0 1,1 0,19a9.5,9.5 0 1,1 0,-19z" />
+    <group
+        android:scaleX="0.0146"
+        android:scaleY="0.0146"
+        android:translateX="65"
+        android:translateY="65">
+        <group android:translateY="960">
+            <path
+                android:fillColor="@color/icon_background"
+                android:pathData="M433-433H222q-19.75 0-33.37-13.68Q175-460.35 175-480.18q0-19.82 13.63-33.32Q202.25-527 222-527h211v-211q0-19.75 13.68-33.88Q460.35-786 480.18-786q19.82 0 33.32 14.12Q527-757.75 527-738v211h211q19.75 0 33.88 13.68Q786-499.65 786-479.82q0 19.82-14.12 33.32Q757.75-433 738-433H527v211q0 19.75-13.68 33.37Q499.65-175 479.82-175q-19.82 0-33.32-13.63Q433-202.25 433-222v-211Z" />
+        </group>
+    </group>
+</vector>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- New bot: the bot mark (the Rails app's BotMark, lines and eyes) with its +. On the launcher icon's canvas, in both themes, like the icon itself. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/icon_background" />
+    <foreground android:drawable="@drawable/ic_shortcut_new_bot_glyph" />
+</adaptive-icon>

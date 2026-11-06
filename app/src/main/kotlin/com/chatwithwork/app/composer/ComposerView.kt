@@ -22,6 +22,7 @@ import android.widget.ToggleButton
 import androidx.core.content.ContextCompat
 import androidx.core.view.AccessibilityDelegateCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
@@ -623,6 +624,24 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         if (!on) input.requestFocus()
     }
 
+    /**
+     * Puts the caret in the field and brings up the keyboard, unless the
+     * composer is hidden or locked. Android drops a request made while the
+     * window settles (the splash leaving on a cold start), so it asks again,
+     * a few times, until the keyboard shows or the field has lost the focus.
+     */
+    fun focusField(attempts: Int = KEYBOARD_ATTEMPTS) {
+        if (!isAttachedToWindow || !isVisible || !input.isEnabled) return
+        val keyboard = WindowInsetsCompat.Type.ime()
+        input.requestFocus()
+        ViewCompat.getWindowInsetsController(input)?.show(keyboard)
+        if (attempts <= 1) return
+        postDelayed({
+            val shown = ViewCompat.getRootWindowInsets(input)?.isVisible(keyboard) == true
+            if (!shown && input.hasFocus()) focusField(attempts - 1)
+        }, KEYBOARD_RETRY_MS)
+    }
+
     /** Adds dictated (or shared) words to what's typed. */
     fun append(words: String) {
         val current = text
@@ -721,6 +740,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     private companion object {
         const val TRANSCRIBING_ALPHA = 0.5f
+        const val KEYBOARD_ATTEMPTS = 8
+        const val KEYBOARD_RETRY_MS = 400L
 
         // The server's values for the modes the pill has a look and a short label for.
         const val MODE_EDITS = "edits"
