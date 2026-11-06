@@ -546,10 +546,11 @@ class MainActivity :
         return path?.let(AppUrls::absolute) ?: AppUrls.newChat(account)
     }
 
-    /** New bot in the list the sidebar shows; the server's rule for who may make one stands. */
+    /** New bot in the list the sidebar's Bots view shows; the server's rule for who may make one stands. */
     private fun newBotUrl(): String {
         val account = viewModel.account ?: memory.lastAccount
-        val path = viewModel.sidebar?.takeIf { it.organization.id == account }?.bots?.newUrl
+        val bots = viewModel.sidebar?.takeIf { it.organization.id == account }?.bots
+        val path = bots?.chosenList(account?.let(memory::botListKey))?.newUrl ?: bots?.newUrl
         return path?.let(AppUrls::absolute) ?: AppUrls.newBot(account)
     }
 

@@ -86,13 +86,15 @@ class ShortcutsTest {
     }
 
     @Test
-    fun `asking for the focus lasts one composer and never asks for dictation`() {
+    fun `asking for the focus waits for a new chat, lasts one composer, and never asks for dictation`() {
+        val newChat = "$base/482139075/chats/new"
         PendingShares.takeDictation()
-        PendingShares.takeFocus()
+        PendingShares.takeFocus(newChat)
         PendingShares.askFocus()
 
         assertThat(PendingShares.takeDictation()).isFalse()
-        assertThat(PendingShares.takeFocus()).isTrue()
-        assertThat(PendingShares.takeFocus()).isFalse()
+        assertThat(PendingShares.takeFocus("$base/482139075/chats/42")).isFalse()
+        assertThat(PendingShares.takeFocus(newChat)).isTrue()
+        assertThat(PendingShares.takeFocus(newChat)).isFalse()
     }
 }

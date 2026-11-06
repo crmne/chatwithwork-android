@@ -11,6 +11,7 @@ import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.animation.LinearInterpolator
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -575,6 +576,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         updateRing()
         // Leaving the page, or the app closing, ends the recording, unsent.
         if (dictation != null) cancelDictation()
+        stopAskingForKeyboard()
         super.onDetachedFromWindow()
     }
 
@@ -628,18 +630,42 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
      * Puts the caret in the field and brings up the keyboard, unless the
      * composer is hidden or locked. Android drops a request made while the
      * window settles (the splash leaving on a cold start), so it asks again,
-     * a few times, until the keyboard shows or the field has lost the focus.
+     * a few times, until the keyboard first shows or the field has lost the
+     * focus. Once shown it never asks again, so a keyboard the person swipes
+     * away stays away.
      */
-    fun focusField(attempts: Int = KEYBOARD_ATTEMPTS) {
-        if (!isAttachedToWindow || !isVisible || !input.isEnabled) return
-        val keyboard = WindowInsetsCompat.Type.ime()
+    fun focusField() {
+        if (!isVisible || !input.isEnabled) return
         input.requestFocus()
-        ViewCompat.getWindowInsetsController(input)?.show(keyboard)
-        if (attempts <= 1) return
-        postDelayed({
-            val shown = ViewCompat.getRootWindowInsets(input)?.isVisible(keyboard) == true
-            if (!shown && input.hasFocus()) focusField(attempts - 1)
-        }, KEYBOARD_RETRY_MS)
+        stopAskingForKeyboard()
+        keyboardAsks = KEYBOARD_ATTEMPTS
+        viewTreeObserver.addOnGlobalLayoutListener(keyboardWatch)
+        askForKeyboard.run()
+    }
+
+    private var keyboardAsks = 0
+
+    private val keyboardShowing
+        get() = ViewCompat.getRootWindowInsets(input)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+
+    private val askForKeyboard: Runnable =
+        object : Runnable {
+            override fun run() {
+                if (keyboardShowing || !input.hasFocus() || keyboardAsks-- <= 0) {
+                    stopAskingForKeyboard()
+                    return
+                }
+                ViewCompat.getWindowInsetsController(input)?.show(WindowInsetsCompat.Type.ime())
+                postDelayed(this, KEYBOARD_RETRY_MS)
+            }
+        }
+
+    private val keyboardWatch =
+        ViewTreeObserver.OnGlobalLayoutListener { if (keyboardShowing) stopAskingForKeyboard() }
+
+    private fun stopAskingForKeyboard() {
+        removeCallbacks(askForKeyboard)
+        viewTreeObserver.removeOnGlobalLayoutListener(keyboardWatch)
     }
 
     /** Adds dictated (or shared) words to what's typed. */

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Base64
+import com.chatwithwork.app.routing.AppUrls
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -116,5 +117,6 @@ object PendingShares {
         focus = true
     }
 
-    fun takeFocus(): Boolean = focus.also { focus = false }
+    /** The focus is for the new chat the assistant opened, not a chat on screen that connects first as its answer ends. */
+    fun takeFocus(location: String): Boolean = AppUrls.isNewChat(location) && focus.also { focus = false }
 }
