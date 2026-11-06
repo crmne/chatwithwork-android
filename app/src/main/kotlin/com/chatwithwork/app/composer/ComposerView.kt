@@ -419,7 +419,10 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         val modelMaxDp = ComposerBar.modelMaxWidthDp(barWidthDp, buttons, modeWidthDp)
         model.maxWidth = (modelMaxDp * density).toInt()
         val modelChromeDp = ((model.compoundPaddingStart + model.compoundPaddingEnd) / density).toInt()
-        model.text = state.selectedModel?.name?.takeIf { ComposerBar.modelNameFits(modelMaxDp, modelChromeDp) }
+        // Without a logo to say which model it is, its name stays, cut short if it must.
+        val hasLogo = model.compoundDrawablesRelative[0] != null
+        model.text =
+            state.selectedModel?.name?.takeIf { !hasLogo || ComposerBar.modelNameFits(modelMaxDp, modelChromeDp) }
     }
 
     /**
