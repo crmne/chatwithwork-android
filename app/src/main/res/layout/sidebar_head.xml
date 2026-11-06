@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   A view's head, the same row in Chats and Bots, so switching moves nothing, as
-  the web's (.sidebar__head): the list selector, and a square plus beside it,
-  New chat or New bot, raised on that page. It's 44dp to the eye (SidebarDrawer's
-  gaps take back 2dp each way), and reaches the sidebar's edge, for the plus's
+  the web's (.sidebar__head): the list selector, and beside it a quiet card as
+  tall, New chat or New bot, holding what it makes with a small + disc on its
+  corner, its edge stronger on that page. It's 44dp to the eye (SidebarDrawer's
+  gaps take back 2dp each way), and reaches the sidebar's edge, for the card's
   48dp target.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -96,12 +97,21 @@
         android:focusable="true">
 
         <ImageView
-            android:id="@+id/sidebar_head_plus"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:scaleType="center"
+            android:id="@+id/sidebar_head_mark"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
             android:layout_gravity="center"
-            android:importantForAccessibility="no" />
+            android:importantForAccessibility="no"
+            android:scaleType="center" />
+
+        <ImageView
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_gravity="end|bottom"
+            android:layout_marginEnd="2.5dp"
+            android:layout_marginBottom="2.5dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/sidebar_new_plus" />
 
     </FrameLayout>
 

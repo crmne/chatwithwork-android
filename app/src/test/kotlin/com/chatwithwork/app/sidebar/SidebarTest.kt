@@ -149,6 +149,23 @@ class SidebarTest {
     }
 
     @Test
+    fun `reads that a chat makes a bot, which older servers leave out`() {
+        val chats = Sidebar.parse(
+            """
+            {"organization": {"id": "1", "name": "N", "initials": "N"},
+             "person": {"name": "M", "initials": "M"},
+             "list": {"key": "recent", "name": "My chats", "kind": "recent"},
+             "links": {},
+             "waiting": {"count": 0, "items": []},
+             "chats": [{"number": 2, "title": "Front desk", "url": "/1/chats/2", "state": "idle", "builds_bot": true},
+                       {"number": 1, "title": "Budget", "url": "/1/chats/1", "state": "idle"}]}
+            """.trimIndent()
+        ).chats
+
+        assertThat(chats.map { it.buildsBot }).containsExactly(true, false).inOrder()
+    }
+
+    @Test
     fun `reads a chat's long-press actions and the Decisions page, which older servers leave out`() {
         val actions =
             """

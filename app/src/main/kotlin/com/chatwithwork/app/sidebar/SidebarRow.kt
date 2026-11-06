@@ -8,7 +8,7 @@ package com.chatwithwork.app.sidebar
 sealed interface SidebarRow {
     /**
      * A view's head, one row for Chats and Bots as on the web (`.sidebar__head`):
-     * what the [list] is, and the square plus beside it, starting a chat or
+     * what the [list] is, and the card with a + beside it, starting a chat or
      * opening [newUrl], which guests don't get ([canAdd]). [adding] while
      * that page shows; [waiting] says how many decisions wait in the Bots
      * view's list.

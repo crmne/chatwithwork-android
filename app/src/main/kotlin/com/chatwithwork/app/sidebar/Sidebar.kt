@@ -214,6 +214,8 @@ data class Sidebar(
         /** `idle`, `processing`, or `error`. */
         val state: String = "idle",
         val waiting: Boolean = false,
+        /** It makes a bot, so its row wears the bot mark; older servers leave it out. */
+        @SerialName("builds_bot") val buildsBot: Boolean = false,
         val project: String? = null,
         @SerialName("asked_at") val askedAt: String? = null,
         val group: String? = null,
