@@ -35,6 +35,25 @@
 
     </com.chatwithwork.app.composer.KeyboardSwipeLayout>
 
+    <!-- A chat before its page paints: over the page, under the bar (ChatSkeletonOverlay). -->
+    <com.chatwithwork.app.fragments.ChatSkeletonView
+        android:id="@+id/skeleton_body"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="?android:colorBackground"
+        android:contentDescription="@string/chat_loading"
+        android:importantForAccessibility="yes"
+        android:screenReaderFocusable="true"
+        android:visibility="gone" />
+
+    <!-- Stays a little longer than the rest, until the real composer can show under it. -->
+    <com.chatwithwork.app.fragments.ChatSkeletonView
+        android:id="@+id/skeleton_composer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
     <!-- Reaches past the bar: the last of the fade softens the page's edge. -->
     <View
         android:id="@+id/top_fade"
@@ -58,5 +77,13 @@
             android:layout_height="@dimen/top_bar_height" />
 
     </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- The title's bone, in the bar, until the page names the chat. -->
+    <com.chatwithwork.app.fragments.ChatSkeletonView
+        android:id="@+id/skeleton_title"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
 
 </RelativeLayout>

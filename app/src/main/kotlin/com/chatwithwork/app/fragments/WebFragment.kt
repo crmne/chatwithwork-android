@@ -34,6 +34,12 @@ open class WebFragment : HotwireWebFragment() {
     /** The bar every screen shares (TopBar), from the view's creation on. */
     private var topBar: TopBar? = null
 
+    /** A chat's skeleton, while this view lasts (ChatSkeletonOverlay). */
+    private var skeleton: ChatSkeletonOverlay? = null
+
+    /** It shows the first time this screen appears, never when coming back to a page already there. */
+    private var skeletonShown = false
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
         inflater.inflate(R.layout.fragment_web, container, false)
 
@@ -42,7 +48,9 @@ open class WebFragment : HotwireWebFragment() {
         OfflineCopies.install(navigator.session.webView)
         pathProperties.title?.let(fragmentViewModel::setTitle)
         fragmentViewModel.title.observe(viewLifecycleOwner) { title ->
-            toolbarForNavigation()?.title = PageTitles.clean(title)
+            val clean = PageTitles.clean(title)
+            toolbarForNavigation()?.title = clean
+            if (clean.isNotBlank()) skeleton?.titleKnown()
         }
 
         // Hotwire Native closes every modal screen with an X. A screen pushed
@@ -70,9 +78,33 @@ open class WebFragment : HotwireWebFragment() {
         topBar = TopBar(view, under = AppUrls.isChat(location) || pathProperties.pageUnderTopBar).apply {
             onCoveredChanged(::tellPageItsTop)
         }
+
+        if (ChatSkeleton.shows(location) && !skeletonShown) {
+            val toolbar = toolbarForNavigation() ?: return
+            skeletonShown = true
+            skeleton = ChatSkeletonOverlay(view, toolbar, view.findViewById(R.id.app_bar)).apply { show() }
+            FirstPaint.listener = firstPaint
+            host?.onChatSkeletonShown()
+        }
+    }
+
+    /** A fresh document painted (a cold boot; a Turbo visit has no such thing, only its render). */
+    private val firstPaint: () -> Unit = {
+        stopHearingFirstPaint()
+        val current = skeleton
+        // Painted in the page's process: wait until the frame holding it can be drawn here.
+        if (current != null) FirstPaint.afterNextFrame(navigator.session.webView) { current.pagePainted() }
+    }
+
+    /** The next screen may already be listening as this one goes. */
+    private fun stopHearingFirstPaint() {
+        if (FirstPaint.listener === firstPaint) FirstPaint.listener = null
     }
 
     override fun onDestroyView() {
+        skeleton?.remove()
+        skeleton = null
+        stopHearingFirstPaint()
         topBar = null
         super.onDestroyView()
     }
@@ -113,7 +145,9 @@ open class WebFragment : HotwireWebFragment() {
     }
 
     @SuppressLint("InflateParams") // Hotwire Native adds it to its own container.
-    override fun createProgressView(location: String): View = layoutInflater.inflate(R.layout.view_progress, null)
+    override fun createProgressView(location: String): View =
+        // The skeleton already covers the page; Hotwire Native still wants a view to show.
+        if (skeleton?.covering == true) View(requireContext()) else layoutInflater.inflate(R.layout.view_progress, null)
 
     override fun createErrorView(error: VisitError): View = ScreenStates.view(
         inflater = layoutInflater,
@@ -155,9 +189,20 @@ open class WebFragment : HotwireWebFragment() {
         if (webView.settings.builtInZoomControls) webView.zoomBy(MIN_ZOOM_FACTOR)
     }
 
+    override fun onVisitErrorReceivedWithCachedSnapshotAvailable(location: String, error: VisitError) {
+        skeleton?.remove()
+        super.onVisitErrorReceivedWithCachedSnapshotAvailable(location, error)
+    }
+
     override fun onVisitErrorReceived(location: String, error: VisitError) {
+        skeleton?.remove()
         super.onVisitErrorReceived(location, error)
         if (error is HttpError.ClientError.Unauthorized) host?.onSignedOut(this)
+    }
+
+    override fun onVisitRendered(location: String) {
+        super.onVisitRendered(location)
+        skeleton?.settle()
     }
 
     override fun onColdBootPageCompleted(location: String) {
@@ -189,6 +234,9 @@ interface WebScreenHost {
     fun openSidebar()
 
     fun startNewChat()
+
+    /** A chat's skeleton is up: something chat-shaped is on screen. */
+    fun onChatSkeletonShown()
 }
 
 /**

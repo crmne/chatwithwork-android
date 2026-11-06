@@ -7,6 +7,7 @@
     <color name="lw_surface_raised">#141824</color>
     <color name="lw_surface_hover">#161B27</color>
     <color name="lw_surface_selected">#1A2030</color>
+    <color name="skeleton_highlight">@color/lw_line_strong</color>
     <color name="lw_ink">#E9ECF4</color>
     <color name="lw_ink_muted">#AAB2C3</color>
     <color name="lw_ink_faint">#979FB2</color>

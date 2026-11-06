@@ -5,6 +5,7 @@ import android.content.Context
 import android.webkit.CookieManager
 import androidx.core.content.ContextCompat
 import com.chatwithwork.app.bridge.BridgeComponents
+import com.chatwithwork.app.fragments.FirstPaint
 import com.chatwithwork.app.fragments.WebFragment
 import com.chatwithwork.app.fragments.WebModalFragment
 import com.chatwithwork.app.push.PushNotifications
@@ -67,6 +68,7 @@ class ChatWithWorkApplication : Application() {
      * bottom edge.
      */
     private fun makeWebView(context: Context): HotwireWebView = HotwireWebView(context).apply {
+        FirstPaint.install(this)
         setBackgroundColor(ContextCompat.getColor(context, R.color.lw_canvas))
         isVerticalScrollBarEnabled = false
         isHorizontalScrollBarEnabled = false

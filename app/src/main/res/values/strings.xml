@@ -128,6 +128,7 @@
     <string name="copied">Copied</string>
     <string name="selected">Selected</string>
     <string name="close">Close</string>
+    <string name="chat_loading">Loading chat</string>
     <string name="menu">Menu</string>
 
     <!-- Signed out -->

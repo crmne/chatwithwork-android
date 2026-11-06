@@ -30,6 +30,20 @@ class NotificationTapTest {
     }
 
     @Test
+    fun `a cold start from a push begins at its chat, never New chat first`() {
+        val push = Push.from(mapOf("kind" to "approval_waiting", "path" to path))!!
+
+        assertThat(LaunchLinks.startsAt(tap(push.url), restored = false)).isEqualTo("$base$path")
+    }
+
+    @Test
+    fun `a cold start only begins at a chat, and not when restored`() {
+        assertThat(LaunchLinks.startsAt("$base/482139075/decisions", restored = false)).isNull()
+        assertThat(LaunchLinks.startsAt("$base$path", restored = true)).isNull()
+        assertThat(LaunchLinks.startsAt(null, restored = false)).isNull()
+    }
+
+    @Test
     fun `pushes without a path, or with a path to another host, never make a notification`() {
         assertThat(Push.from(mapOf("kind" to "approval_waiting"))).isNull()
         assertThat(Push.from(mapOf("kind" to "approval_waiting", "path" to ""))).isNull()

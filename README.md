@@ -142,6 +142,16 @@ docs/                    the server contract and design notes
   overflow menu) over the web view. Modals are full-screen fragments, not
   Hotwire's bottom sheets, where bridge components that need a top app bar
   crash.
+- **A chat before its page paints** shows a skeleton, not a blank screen
+  (`fragments/ChatSkeleton.kt` for its shape, `ChatSkeletonView.kt` for the
+  views): two questions and answers as bones in Live Wire's colors, with one
+  shimmer sweeping across them, still under Remove animations, read as "Loading
+  chat" by screen readers. The body crossfades to the page at its first paint: a
+  cold boot's first contentful paint (`FirstPaint`), or a Turbo visit's render.
+  The title's bone stays until the page names the chat, and the composer's until
+  the page has rendered and the real one can show under it. An error removes it
+  all, and a timeout of 10 seconds does too. New chat has none: it has nothing to
+  sketch.
 - **Bridge components**: the app's own `button`, `menu`, `form`, `share`,
   `alert`, `toast`, `haptic`, `theme`, `context-menu`, `auth-session`,
   `notification-token`, `sidebar` and `composer`, with Joe Masilotti's

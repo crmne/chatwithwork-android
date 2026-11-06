@@ -11,6 +11,8 @@
     <color name="lw_surface_raised">#FFFFFF</color>
     <color name="lw_surface_hover">#F1F4F8</color>
     <color name="lw_surface_selected">#E7EBF2</color>
+    <!-- The shimmer over a loading chat's bones (lw_surface_selected): one step lighter than them. -->
+    <color name="skeleton_highlight">@color/lw_surface</color>
     <color name="lw_ink">#0A0D14</color>
     <color name="lw_ink_muted">#5A6374</color>
     <color name="lw_ink_faint">#616A7E</color>

@@ -243,9 +243,9 @@ class MainActivity :
         enableEdgeToEdge()
         val link = takeLink(intent, restored = savedInstanceState != null)
         // A chat linked on a cold start (a notification) is where the navigator starts.
-        if (link != null && savedInstanceState == null && AppUrls.isChat(link)) {
-            viewModel.startLocation = link
-            AppUrls.account(link)?.let { viewModel.account = it }
+        LaunchLinks.startsAt(link, restored = savedInstanceState != null)?.let { chat ->
+            viewModel.startLocation = chat
+            AppUrls.account(chat)?.let { viewModel.account = it }
         }
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -937,6 +937,11 @@ class MainActivity :
     // endregion
 
     // region What pages do
+
+    override fun onChatSkeletonShown() {
+        // The skeleton is better to look at than the splash, which needn't wait for the page.
+        viewModel.firstPageShown = true
+    }
 
     override fun onVisitCompleted(destination: HotwireDestination, location: String) {
         viewModel.firstPageShown = true

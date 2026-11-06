@@ -48,6 +48,13 @@ object LaunchLinks {
     }
 
     /**
+     * Where a cold start begins because of [link]: at the chat itself, so the
+     * app never loads New chat just to replace it. Anything else opens once
+     * the first page has.
+     */
+    fun startsAt(link: String?, restored: Boolean): String? = link?.takeIf { !restored && AppUrls.isChat(it) }
+
+    /**
      * What another app shared (ACTION_SEND, text/plain): its text and,
      * if it gave one, its subject, which the new chat page joins into the
      * composer (`title`, `text`). Null when there's nothing to share.
