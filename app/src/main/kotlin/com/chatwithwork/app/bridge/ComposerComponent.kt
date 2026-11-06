@@ -5,6 +5,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.chatwithwork.app.R
 import com.chatwithwork.app.composer.AttachSheet
+import com.chatwithwork.app.composer.ComposerBar
 import com.chatwithwork.app.composer.ComposerFile
 import com.chatwithwork.app.composer.ComposerFiles
 import com.chatwithwork.app.composer.ComposerState
@@ -92,13 +93,19 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
     }
 
     override fun openSheet() {
+        showSheet(view?.sheet ?: return)
+    }
+
+    override fun openChanges() = showSheet(ComposerBar.Sheet.CHANGES)
+
+    private fun showSheet(sheet: ComposerBar.Sheet) {
         val activity = activity ?: return
         val view = view ?: return
         val host = activity as? ComposerHost ?: return
         AttachSheet.show(
             activity,
             view.state,
-            view.sheet,
+            sheet,
             object : AttachSheet.Choices {
                 override fun camera() = host.takePhoto { it?.let { uri -> attachUris(listOf(uri)) } }
 

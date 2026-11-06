@@ -33,12 +33,14 @@ import androidx.lifecycle.lifecycleScope
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.SymbolDrawable
 import com.google.android.material.color.MaterialColors
+import kotlin.math.ceil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 
 /**
  * The native composer: "+", the microphone and the web search globe while
- * there's room (ComposerBar), the field, the model, Stop while an answer runs, and Send. It only
+ * there's room (ComposerBar), the mode pill unless the mode is Ask first, the
+ * field, the model, Stop while an answer runs, and Send. It only
  * draws a [ComposerState] and says what the person did ([Actions]); the
  * composer component turns that into replies to the web composer, which keeps
  * every rule. Words stay here until they're sent.
@@ -56,6 +58,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         fun stop()
 
         fun openSheet()
+
+        /** The mode pill: the same sheet, showing only Changes. */
+        fun openChanges()
 
         /** The bar's microphone. */
         fun dictate()
@@ -84,6 +89,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private val plus by lazy { findViewById<ImageButton>(R.id.composer_plus) }
     private val dictateButton by lazy { findViewById<ImageButton>(R.id.composer_dictate) }
     private val webSearchButton by lazy { findViewById<ImageButton>(R.id.composer_web_search) }
+    private val mode by lazy { findViewById<TextView>(R.id.composer_mode) }
     private val composerBackground = ComposerBackground(context)
     private val composerGlow = ComposerGlow(context)
     private val box by lazy { findViewById<View>(R.id.composer_box) }
@@ -122,10 +128,13 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     // How wide the bar is, in dp, from the last measure; the controls that fit in it follow (ComposerBar).
     private var barWidthDp = 0
 
-    /** What "+" holds now: attaching, and whatever didn't fit in the bar. */
+    // How wide the mode pill measures, in dp, 0 without one; the bar makes room for it.
+    private var modeWidthDp = 0
+
+    /** What "+" holds now: attaching, whatever didn't fit in the bar, and the modes. */
     val sheet: ComposerBar.Sheet get() = ComposerBar.inSheet(state, bar())
 
-    private fun bar(): Set<ComposerBar.Control> = ComposerBar.inBar(barWidthDp, state)
+    private fun bar(): Set<ComposerBar.Control> = ComposerBar.inBar(barWidthDp, state, modeDp = modeWidthDp)
 
     val text: String get() = input.text?.toString().orEmpty()
 
@@ -161,6 +170,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         input.setOnFocusChangeListener { _, _ -> updateLook() }
         val ink = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface)
         plus.setOnClickListener { actions?.openSheet() }
+        mode.setOnClickListener { actions?.openChanges() }
         dictateButton.setOnClickListener { actions?.dictate() }
         webSearchButton.setOnClickListener {
             val search = state.webSearch ?: return@setOnClickListener
@@ -209,7 +219,6 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         if (state.locked && dictation != null) cancelDictation()
         input.hint = state.placeholder.ifBlank { context.getString(R.string.composer_placeholder) }
         input.isEnabled = !state.locked
-        plus.isEnabled = !state.locked
 
         lock.isVisible = state.locked && !state.lockReason.isNullOrBlank()
         lock.text = state.lockReason
@@ -224,7 +233,6 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
         val selected = state.selectedModel
         model.isVisible = selected != null && !state.locked && !state.working && !dictating
-        model.text = selected?.name
         model.contentDescription = selected?.let { context.getString(R.string.composer_model_description, it.name) }
         model.setCompoundDrawablesRelative(
             selected?.let { ModelLogo.drawable(context, it, 16) },
@@ -349,33 +357,29 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private fun muted() = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant)
 
     /**
-     * "+", the microphone and the globe: what fits in the bar shows there,
-     * the rest waits in "+", which is the paperclip when it only attaches
-     * and goes when it holds nothing.
+     * "+", the microphone, the globe and the mode pill: what fits in the bar
+     * shows there, and the rest waits in "+", which is always there, disabled
+     * while locked or holding nothing.
      */
     private fun renderBar() {
+        renderMode()
         val bar = bar()
         val sheet = sheet
         val ink = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface)
         val on = dictating
 
-        plus.isVisible = !on && !sheet.empty
-        val permission = state.permissionModes?.options?.firstOrNull { it.selected }
-        val symbol = when (permission?.value) {
-            "edits" -> "edit"
-            "everything" -> "report"
-            else -> "add"
-        }
+        plus.isVisible = !on
+        plus.isEnabled = !state.locked && !sheet.empty
         // A locked button dims once, as the web's disabled ones do: ink at 20% in the icon, and no opacity on top.
-        val buttonInk = if (state.locked) ContextCompat.getColor(context, R.color.composer_stop_disabled_icon) else ink
-        plus.setImageDrawable(SymbolDrawable(context, symbol, sizeDp = ICON_DP, color = buttonInk))
-        ViewCompat.setStateDescription(plus, permission?.label)
+        val dimmed = ContextCompat.getColor(context, R.color.composer_stop_disabled_icon)
+        val buttonInk = if (state.locked) dimmed else ink
+        plus.setImageDrawable(
+            SymbolDrawable(context, "add", sizeDp = ICON_DP, color = if (plus.isEnabled) ink else dimmed)
+        )
         // While web search is on and its switch waits in "+", "+" carries the web's small globe.
         val searching = state.webSearch?.let { it.on && !it.disabled } == true
         webSearchBadge.rtl = layoutDirection == LAYOUT_DIRECTION_RTL
         plus.foreground = webSearchBadge.takeIf { searching && ComposerBar.Control.WEB_SEARCH in sheet.folded }
-        plus.contentDescription =
-            context.getString(if (sheet.attachOnly) R.string.composer_attach else R.string.composer_add)
 
         dictateButton.isVisible = !on && ComposerBar.Control.DICTATE in bar
         dictateButton.isEnabled = !state.locked
@@ -411,7 +415,62 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         }
 
         val buttons = listOf(plus, dictateButton, webSearchButton).count { it.isVisible }
-        model.maxWidth = (ComposerBar.modelMaxWidthDp(barWidthDp, buttons) * resources.displayMetrics.density).toInt()
+        val density = resources.displayMetrics.density
+        val modelMaxDp = ComposerBar.modelMaxWidthDp(barWidthDp, buttons, modeWidthDp)
+        model.maxWidth = (modelMaxDp * density).toInt()
+        val modelChromeDp = ((model.compoundPaddingStart + model.compoundPaddingEnd) / density).toInt()
+        model.text = state.selectedModel?.name?.takeIf { ComposerBar.modelNameFits(modelMaxDp, modelChromeDp) }
+    }
+
+    /**
+     * The pill says the mode isn't Ask first, on the bar and from the server's
+     * value alone: Allow everything is hard to miss, in the negative tint, and
+     * a mode this build doesn't know shows the server's own label.
+     */
+    private fun renderMode() {
+        val selected = ComposerBar.selectedMode(state)
+        mode.isVisible = selected != null && !dictating
+        if (selected == null) {
+            modeWidthDp = 0
+            return
+        }
+        val everything = selected.value == MODE_EVERYTHING
+        val color = ContextCompat.getColor(context, if (everything) R.color.lw_negative_ink else R.color.lw_ink_muted)
+        val symbol = when (selected.value) {
+            MODE_EDITS -> "edit"
+            MODE_EVERYTHING -> "report"
+            else -> "tune"
+        }
+        mode.text = when (selected.value) {
+            MODE_EDITS -> context.getString(R.string.composer_mode_edits)
+            MODE_EVERYTHING -> context.getString(R.string.composer_mode_everything)
+            else -> selected.label
+        }
+        mode.setTextColor(color)
+        // A new background can reset the view's padding to the drawable's own, its top and bottom insets.
+        val paddingStart = mode.paddingStart
+        val paddingEnd = mode.paddingEnd
+        mode.setBackgroundResource(if (everything) R.drawable.composer_mode_everything else R.drawable.composer_mode)
+        mode.setPaddingRelative(paddingStart, 0, paddingEnd, 0)
+        mode.setCompoundDrawablesRelative(
+            SymbolDrawable(context, symbol, sizeDp = MODE_ICON_DP, color = color).apply {
+                setBounds(0, 0, intrinsicWidth, intrinsicHeight)
+            },
+            null,
+            null,
+            null
+        )
+        mode.contentDescription = context.getString(R.string.composer_mode_description, selected.label)
+        mode.isEnabled = !state.locked
+        mode.alpha = if (state.locked) MODE_LOCKED_ALPHA else 1f
+
+        val density = resources.displayMetrics.density
+        mode.maxWidth = (ComposerBar.modeMaxWidthDp(barWidthDp) * density).toInt()
+        mode.measure(
+            MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
+            MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+        )
+        modeWidthDp = ceil(mode.measuredWidth / density).toInt()
     }
 
     /**
@@ -659,6 +718,14 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     private companion object {
         const val TRANSCRIBING_ALPHA = 0.5f
+
+        // The server's values for the modes the pill has a look and a short label for.
+        const val MODE_EDITS = "edits"
+        const val MODE_EVERYTHING = "everything"
+        const val MODE_ICON_DP = 16f
+
+        // The pill keeps its words readable while dimmed, so it says which mode a locked chat holds.
+        const val MODE_LOCKED_ALPHA = 0.4f
 
         // --duration-base, and rainbow-flow's 5s.
         const val LOOK_FADE_MS = 220L

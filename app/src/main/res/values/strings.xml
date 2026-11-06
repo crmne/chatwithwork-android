@@ -88,7 +88,6 @@
     <!-- The composer -->
     <string name="composer_placeholder">Ask anything…</string>
     <string name="composer_add">Add files and more</string>
-    <string name="composer_attach">Attach photos, files, or a scan</string>
     <string name="composer_web_search_button">Search the web</string>
     <string name="composer_web_search_on">On</string>
     <string name="composer_web_search_off">Off</string>
@@ -214,5 +213,8 @@
     <string name="notifications_offer_continue">Continue</string>
     <string name="notifications_offer_not_now">Not now</string>
     <string name="composer_permissions">Changes</string>
+    <string name="composer_mode_edits">Edits</string>
+    <string name="composer_mode_everything">Everything</string>
+    <string name="composer_mode_description">Changes: %1$s</string>
     <string name="loading">Loading</string>
 </resources>

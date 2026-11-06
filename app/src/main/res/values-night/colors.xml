@@ -31,6 +31,9 @@
     <color name="scrim">#99000000</color>
     <color name="ripple">#1FE9ECF4</color>
     <color name="lw_negative_ink">#FF7F61</color>
+    <!-- Allow everything's pill (tokens.css: negative-wash, negative-edge, their color-mix computed in oklab). -->
+    <color name="lw_negative_wash">#241B20</color>
+    <color name="lw_negative_edge">#7C4340</color>
     <!-- The composer's buttons, as the web composer's on touch screens (composer.css, buttons.css): a ghost or
          subtle button pressed is ink at 7% or the hover surface, ink pressed is mixed lighter; Send with nothing
          to send (.btn-disabled-visual) is ink at 5% under an icon at 14%, and Stopping is ink at 10% under 20%;
