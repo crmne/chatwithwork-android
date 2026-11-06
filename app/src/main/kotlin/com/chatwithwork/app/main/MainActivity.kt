@@ -546,6 +546,21 @@ class MainActivity :
         return path?.let(AppUrls::absolute) ?: AppUrls.newChat(account)
     }
 
+    /** New bot in the list the sidebar's Bots view shows; the server's rule for who may make one stands. */
+    private fun newBotUrl(): String {
+        val account = viewModel.account ?: memory.lastAccount
+        val bots = viewModel.sidebar?.takeIf { it.organization.id == account }?.bots
+        val path = bots?.chosenList(account?.let(memory::botListKey))?.newUrl ?: bots?.newUrl
+        return path?.let(AppUrls::absolute) ?: AppUrls.newBot(account)
+    }
+
+    private fun decisionsUrl(): String {
+        val account = viewModel.account ?: memory.lastAccount
+        val sidebar = viewModel.sidebar?.takeIf { it.organization.id == account }
+        val path = sidebar?.waiting?.url ?: sidebar?.links?.decisions
+        return path?.let(AppUrls::absolute) ?: AppUrls.decisions(account)
+    }
+
     override fun openBots() {
         val path =
             viewModel.sidebar?.let { it.bots?.url ?: it.links.bots } ?: viewModel.account?.let { "/$it/bots" } ?: return
@@ -1108,9 +1123,29 @@ class MainActivity :
     private fun takeLink(intent: Intent?, restored: Boolean = false): String? {
         intent ?: return null
         val fresh = !restored && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0
-        if (fresh && intent.action == LaunchLinks.ACTION_NEW_CHAT) {
-            intent.action = Intent.ACTION_MAIN
-            return newChatUrl()
+        if (fresh) {
+            val place =
+                when (intent.action) {
+                    LaunchLinks.ACTION_NEW_CHAT -> newChatUrl()
+
+                    LaunchLinks.ACTION_NEW_BOT -> newBotUrl()
+
+                    LaunchLinks.ACTION_DECISIONS -> decisionsUrl()
+
+                    // The assistant: a new chat to type in, or to dictate in with a
+                    // tap. What Android attaches about the screen goes unread.
+                    Intent.ACTION_ASSIST -> {
+                        PendingShares.askFocus()
+                        intent.replaceExtras(Bundle())
+                        newChatUrl()
+                    }
+
+                    else -> null
+                }
+            if (place != null) {
+                intent.action = Intent.ACTION_MAIN
+                return place
+            }
         }
         if (fresh) {
             val streams = LaunchLinks.sharedStreams(intent)

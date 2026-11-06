@@ -75,6 +75,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- What the icon's long press offers: New chat, New bot, Decisions. -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+
+            <!--
+              Android's default digital assistant: this filter is what lists
+              the app there, and the long press of the power button or the
+              corner swipe arrives here as a new chat, composer focused. No
+              VoiceInteractionService, so no wake word and nothing read off
+              the screen; what Android attaches to this intent is never read.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
             <!--
               App links: the app's own pages open here instead of the
               browser, once the site's assetlinks.json names this app. Only
@@ -159,8 +176,12 @@
         </activity>
 
         <!--
-          The home screen widget and the Quick Settings tile lead here; it
-          isn't exported, so only their PendingIntents reach it.
+          The home screen widget, the Quick Settings tile, and the icon's
+          shortcuts lead here; it isn't exported, so only their PendingIntents
+          and the launcher, for shortcuts this app published, reach it. The
+          launcher clears the task a shortcut starts, which would take the
+          whole app with it if they named MainActivity: this one's task is
+          its own.
         -->
         <activity
             android:name=".shortcuts.ShortcutActivity"

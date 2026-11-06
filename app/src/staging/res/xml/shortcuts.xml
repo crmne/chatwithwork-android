@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The icon's long press. The iOS app offers the same three, under the same names.
+  Android reads targetPackage as written, never a resource or placeholder, so
+  each build type's application id has its own copy (src/debug/res/xml,
+  src/staging/res/xml), and ShortcutsTest keeps them the same otherwise.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:icon="@drawable/ic_shortcut_new_chat"
+        android:shortcutId="new_chat"
+        android:shortcutShortLabel="@string/new_chat">
+        <intent
+            android:action="com.chatwithwork.app.action.NEW_CHAT"
+            android:targetClass="com.chatwithwork.app.shortcuts.ShortcutActivity"
+            android:targetPackage="com.chatwithwork.app.staging" />
+    </shortcut>
+    <shortcut
+        android:icon="@drawable/ic_shortcut_new_bot"
+        android:shortcutId="new_bot"
+        android:shortcutShortLabel="@string/new_bot">
+        <intent
+            android:action="com.chatwithwork.app.action.NEW_BOT"
+            android:targetClass="com.chatwithwork.app.shortcuts.ShortcutActivity"
+            android:targetPackage="com.chatwithwork.app.staging" />
+    </shortcut>
+    <shortcut
+        android:icon="@drawable/ic_shortcut_decisions"
+        android:shortcutId="decisions"
+        android:shortcutShortLabel="@string/sidebar_waiting">
+        <intent
+            android:action="com.chatwithwork.app.action.DECISIONS"
+            android:targetClass="com.chatwithwork.app.shortcuts.ShortcutActivity"
+            android:targetPackage="com.chatwithwork.app.staging" />
+    </shortcut>
+</shortcuts>

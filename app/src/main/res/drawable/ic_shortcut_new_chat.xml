@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- New chat: the chats icon (Material Symbols Rounded "forum", weight 300, Apache License 2.0) with its +. On the launcher icon's canvas, in both themes, like the icon itself. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/icon_background" />
+    <foreground android:drawable="@drawable/ic_shortcut_new_chat_glyph" />
+</adaptive-icon>

@@ -58,10 +58,14 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
         }
     }
 
-    /** Files shared into a new chat, and dictation from the widget, wait for the composer that takes them. */
+    /**
+     * Files shared into a new chat, dictation from the widget, and the
+     * assistant's focus wait for the composer that takes them.
+     */
     private fun onConnected(state: ComposerState) {
         if (state.acceptsFiles) PendingShares.takeFiles()?.let(::attachFiles)
         if (PendingShares.takeDictation() && state.dictation != null) dictate()
+        if (PendingShares.takeFocus(bridgeDelegate.destination.location)) view?.focusField()
     }
 
     override fun send(text: String) = reply("send") { put("text", text) }

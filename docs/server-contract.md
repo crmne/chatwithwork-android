@@ -372,6 +372,32 @@ the apps. On Android:
   the sidebar's list; the widget's microphone also starts dictation in its
   composer once it connects. They carry no content and need nothing from
   the server.
+- **The icon's shortcuts** (a long press, `xml/shortcuts.xml`): New chat, New
+  bot and Decisions, the same three names as on iOS. They open what the
+  sidebar's own do: the new chat in its list, `bots.new_url` (a modal, by the
+  `/new` rule) and `waiting.url` (the root, by the `/decisions` rule), or,
+  before the sidebar's JSON has answered, `/<organization>/chats/new`,
+  `/<organization>/bots/new` and `/<organization>/decisions` in the
+  organization used last. Signed out, the app remembers the page and opens it
+  once the person is in. The server's rules stand: a guest's New bot opens
+  nothing, and leaves the page on screen. They need nothing new from the
+  server.
+- **The default digital assistant** (Android's Settings, Default apps, Digital
+  assistant app): `MainActivity` handles `android.intent.action.ASSIST`, which
+  is all that lists the app there. Invoking it (a long press of the power
+  button, or the corner swipe, where the phone offers them) opens a new chat,
+  as the tile does, with the app's composer focused and the keyboard up, and
+  dictation in its usual place. It never records by itself, and has no wake
+  word and no live voice. The app has no `VoiceInteractionService`, and never
+  reads what Android attaches to the intent about the screen, so nothing about
+  the screen reaches the app or the server. Words reach a model only from the
+  composer, so the yes before the first question (section 12) stands as it
+  is: until the yes there's no microphone, and Send brings up the dialog. A
+  guest, who has no new chat, gets the Projects page the server sends them
+  to. It needs nothing from the server. Android's own confirmation, when the
+  person picks the app, says an assistant "will be able to access info"; that
+  is its wording for every assistant, and the screen's "Use screen and app
+  data" switch changes nothing here, since the app reads none of it.
 
 Links the app handles itself:
 

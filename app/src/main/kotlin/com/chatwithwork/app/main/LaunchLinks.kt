@@ -12,6 +12,10 @@ object LaunchLinks {
     /** The widget's and the tile's way in: a new chat (ShortcutActivity). Anyone may send it; it only opens one. */
     const val ACTION_NEW_CHAT = "com.chatwithwork.app.action.NEW_CHAT"
 
+    /** The icon's New bot and Decisions (ShortcutActivity). Like New chat, they only open a page. */
+    const val ACTION_NEW_BOT = "com.chatwithwork.app.action.NEW_BOT"
+    const val ACTION_DECISIONS = "com.chatwithwork.app.action.DECISIONS"
+
     /** The files another app shared (ACTION_SEND's or ACTION_SEND_MULTIPLE's streams), if any. */
     fun sharedStreams(intent: Intent): List<android.net.Uri> = when (intent.action) {
         Intent.ACTION_SEND ->
