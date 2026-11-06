@@ -603,13 +603,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         updateRing()
         val stopColor = if (stop.isEnabled) R.color.lw_ink_inverted else R.color.composer_stop_disabled_icon
         stop.setImageDrawable(
-            SymbolDrawable(
-                context,
-                "stop",
-                sizeDp = STOP_ICON_DP,
-                filled = true,
-                color = ContextCompat.getColor(context, stopColor)
-            )
+            ContextCompat.getDrawable(context, R.drawable.ic_stop_fill)?.mutate()?.apply {
+                setTint(ContextCompat.getColor(context, stopColor))
+            }
         )
 
         send.isEnabled = state.canSend(text)
@@ -675,8 +671,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         // The box's padding around the bar (view_composer.xml).
         const val BOX_PADDING_DP = 8
 
-        // The web's touch bar draws Phosphor icons at 20px and Stop's at 15px; Material Symbols leave more room
-        // around their glyphs, so 24dp and 18dp draw them as large (the microphone measured 16.4dp tall in both).
+        // The web's touch bar draws Phosphor icons at 20px; Material Symbols leave more room around their glyphs, so
+        // 24dp draws them as large (the microphone measured 16.4dp tall in both). An answer's Stop is Phosphor's own
+        // (ic_stop_fill); this size is dictation's Stop, which the web has no glyph for: its microphone stays.
         const val ICON_DP = 24f
         const val STOP_ICON_DP = 18f
 
