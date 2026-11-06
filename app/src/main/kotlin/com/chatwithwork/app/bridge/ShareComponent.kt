@@ -60,7 +60,7 @@ class ShareComponent(name: String, delegate: BridgeDelegate<HotwireDestination>)
         val title = toolbar.context.getString(R.string.share)
 
         toolbar.menu.add(menuGroup, ITEM_ID, ORDER_SHARE, title).apply {
-            icon = SymbolDrawable(toolbar.context, "share")
+            icon = BarSymbol.from(toolbar.context, "share")
             tint(iconColor(toolbar, data.color))
             setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
             describe(title)

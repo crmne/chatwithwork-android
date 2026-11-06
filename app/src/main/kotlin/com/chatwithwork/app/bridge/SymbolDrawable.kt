@@ -27,7 +27,8 @@ class SymbolDrawable(
     filled: Boolean = false,
     sizeDp: Float = 24f,
     @ColorInt color: Int = android.graphics.Color.BLACK,
-    weight: Int = 300
+    weight: Int = 300,
+    opticalSize: Float = sizeDp
 ) : Drawable() {
     private val sizePx = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP,
@@ -42,7 +43,7 @@ class SymbolDrawable(
         textSize = sizePx.toFloat()
         textAlign = Paint.Align.CENTER
         fontFeatureSettings = "'liga'"
-        fontVariationSettings = "'FILL' ${if (filled) 1 else 0}, 'wght' $weight, 'GRAD' 0, 'opsz' $sizeDp"
+        fontVariationSettings = "'FILL' ${if (filled) 1 else 0}, 'wght' $weight, 'GRAD' 0, 'opsz' $opticalSize"
         this.color = color
     }
 
