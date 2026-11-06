@@ -16,6 +16,7 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.TextView
 import androidx.core.content.ContextCompat
@@ -562,12 +563,19 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                 } else {
                     name
                 }
-            view.findViewById<ImageView>(R.id.sidebar_head_plus)
-                .setImageDrawable(symbol("add", ink(R.color.lw_ink), sizeDp = 24f))
+            view.findViewById<ImageView>(R.id.sidebar_head_mark).apply {
+                if (bots) {
+                    scaleType = ImageView.ScaleType.CENTER
+                    setImageDrawable(botMark(ink(R.color.lw_ink), sizeDp = 18f, blinks = false))
+                } else {
+                    scaleType = ImageView.ScaleType.FIT_CENTER
+                    setImageResource(R.drawable.ic_forum)
+                }
+            }
             add.setOnClickListener {
                 if (bots) row.newUrl?.let(actions::openPath) else actions.startNewChat()
             }
-            // The square is the web's 36dp; a thumb gets 48dp from the row around it.
+            // The card is the web's 36dp; a thumb gets 48dp from the row around it.
             view.post {
                 val target = Rect()
                 add.getHitRect(target)
@@ -700,7 +708,14 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                     chat.isProcessing -> R.color.lw_live
                     else -> null
                 }
-            bindRow(view, CHAT_ICON.takeIf { row.pinned }, chat.title, null, dot, row.selected)
+            // A chat that makes a bot wears the bot mark before its title, as on the web, and in a pin's own place.
+            val icon =
+                when {
+                    chat.buildsBot -> if (row.pinned) BOT_MARK_PIN else BOT_MARK_CHAT
+                    row.pinned -> CHAT_ICON
+                    else -> null
+                }
+            bindRow(view, icon, chat.title, null, dot, row.selected)
             // A pin is the web's plain row; a chat's row is a little taller.
             view.updateLayoutParams<RecyclerView.LayoutParams> { height = dp(if (row.pinned) 35 else 38) }
             val state =
@@ -709,7 +724,8 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                     chat.isProcessing -> context.getString(R.string.sidebar_chat_answering)
                     else -> null
                 }
-            view.contentDescription = listOfNotNull(chat.title, chat.project, state).joinToString(", ")
+            val makesBot = context.getString(R.string.sidebar_chat_makes_bot).takeIf { chat.buildsBot }
+            view.contentDescription = listOfNotNull(chat.title, makesBot, chat.project, state).joinToString(", ")
             view.setOnClickListener { actions.openPath(chat.url) }
             if (chat.actions.isEmpty()) {
                 view.setOnLongClickListener(null)
@@ -726,11 +742,24 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         private fun bindRow(view: View, icon: String?, label: String, meta: String?, dot: Int?, selected: Boolean) {
             val iconView = view.findViewById<ImageView>(R.id.sidebar_row_icon)
             iconView.isVisible = icon != null
+            // The mark before a chat's title is smaller, and closer to it, than a row's icon.
+            iconView.updateLayoutParams<LinearLayout.LayoutParams> {
+                val small = icon == BOT_MARK_CHAT
+                width = dp(if (small) 14 else 18)
+                marginEnd = dp(if (small) 6 else 10)
+            }
             icon?.let {
-                iconView.scaleType = if (it == BOT_MARK) ImageView.ScaleType.CENTER else ImageView.ScaleType.FIT_CENTER
+                iconView.scaleType =
+                    if (it in setOf(BOT_MARK, BOT_MARK_PIN, BOT_MARK_CHAT)) {
+                        ImageView.ScaleType.CENTER
+                    } else {
+                        ImageView.ScaleType.FIT_CENTER
+                    }
                 iconView.setImageDrawable(
                     when (it) {
                         BOT_MARK -> botMark()
+                        BOT_MARK_PIN -> botMark(ink(R.color.lw_ink_muted), sizeDp = 16f, blinks = false)
+                        BOT_MARK_CHAT -> botMark(ink(R.color.lw_ink_faint), sizeDp = 14f, blinks = false)
                         CHAT_ICON -> symbol(it, ink(R.color.lw_ink_muted))
                         else -> symbol(it)
                     }
@@ -798,6 +827,8 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         private const val TYPE_SEE_ALL = 11
         private const val LOAD_MORE_AHEAD = 8
         private const val BOT_MARK = "bot"
+        private const val BOT_MARK_PIN = "bot_pin"
+        private const val BOT_MARK_CHAT = "bot_chat"
         private const val CHAT_ICON = "chat_bubble"
         private const val SYMBOL_WEIGHT = 400
         private const val GAP_DP = 8

@@ -84,6 +84,7 @@
     <string name="sidebar_no_matches">No chats match.</string>
     <string name="sidebar_chat_waiting">waiting for a decision</string>
     <string name="sidebar_chat_answering">answering</string>
+    <string name="sidebar_chat_makes_bot">makes a bot</string>
 
     <!-- The composer -->
     <string name="composer_placeholder">Ask anything…</string>

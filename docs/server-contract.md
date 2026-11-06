@@ -809,6 +809,20 @@ older builds, and Instructions stays in Settings. New, all optional:
 A server without `bots.lists` keeps the card and New bot in the Bots view
 (described below), with no search there.
 
+**New chat and New bot's card, and chats that make a bot (2026-11-06).** As on
+the web (`.sidebar__new`), the head's `+` is a quiet card beside the list
+selector, exactly as tall, on the same surface with the same hairline, never
+solid, holding what it makes with a small + disc of ink on its corner:
+`ic_forum` (Rounded, weight 300, like the bar's vectors, the web's
+`chats-circle`) for New chat, the bot mark for New bot, holding still. On its
+own page its edge is stronger. The top bar's New chat keeps `edit_square`,
+Android's compose button. Each `CHAT` has `builds_bot`, that it's a chat
+making a bot: its row wears the bot mark before its title, or in a pin's
+icon's place, and says "makes a bot" to screen readers. A server without the
+key means false. Tries with such a chat, or a bot made from one, aren't in
+`chats` or `sections` (the server's `Chat.listed`), so the app does nothing for
+them; a pin stays until its person takes it off, as on the web.
+
 Builds that draw the sidebar themselves register the `sidebar` bridge
 component, so the user agent's `bridge-components` lists `sidebar`
 (`native_app.supports?(:sidebar)`). The server shows those builds Connect,
@@ -843,7 +857,7 @@ following page. A 401 means the session is gone.
   "next": "/482139075/native/sidebar?list=recent&before=41&asked=2026-10-24T09:00:00.000000Z"
 }
 CHAT = {"number": 42, "title": "Launch date in #launch", "url": "/482139075/chats/42", "state": "idle",
-        "waiting": false, "project": "Website relaunch", "asked_at": "2026-10-25T08:12:00Z", "group": "Today",
+        "waiting": false, "builds_bot": false, "project": "Website relaunch", "asked_at": "2026-10-25T08:12:00Z", "group": "Today",
         "actions": [ACTION]}
 SECTION = {"id": 7, "name": "Customers", "collapsed": false, "chats": [CHAT],
            "edit_url": "/482139075/sidebar/sections/7/edit", "collapse_url": "/482139075/sidebar/sections/7/collapse",
