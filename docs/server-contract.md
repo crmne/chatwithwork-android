@@ -331,10 +331,14 @@ the apps. On Android:
 - **Beside the chat** (`chats/panels/show`, `/chats/<n>/beside`, server
   2026-11-05): the web's side panel as a page of its own, since the chat
   screen has no room beside it. The `.*` rule pushes it over the chat with
-  back to it, a drill-down. It shows the panel's tabs one at a time
-  (`?tab=`: Agents once the chat has some, Side chats, Details; another
-  tab replaces the page through `query_string_presentation: replace`),
-  kept live by the chat's broadcasts, never for guests. Its rows open
+  back to it, a drill-down. It shows the panel's tabs (Details, Agents
+  once the chat has some, Side chats), all drawn on the page and switched
+  in place, never as a visit (server 2026-11-07: a visit per tab was a new
+  screen each, and lagged); each tab keeps its `?tab=` address through
+  `replaceState`, and the page restores the tab chosen last when Back
+  brings it again. It's kept live by the chat's broadcasts, never for
+  guests. The `composer` shows on Side chats only: the bridge sends
+  `visible: false` on the other tabs. Its rows open
   their chats with `?from=chat`, pushed over it with back to it; New side
   chat is a form that goes to the new side chat. In sidebar builds the
   chat's bar `button` opens it (the app draws New chat itself). Bar
@@ -1143,7 +1147,8 @@ The conversation has that height plus 1.5rem of bottom padding; older apps
 leave the variable unset and keep their previous clearance.
 
 An optional `visible` state flag defaults to true. While a web modal
-dialog or a popover is open, the bridge sends false: native hides the composer, releases
+dialog or a popover is open, or the web composer is in a hidden tab (the
+side chats tab of `/chats/<n>/beside`), the bridge sends false: native hides the composer, releases
 its inset and reports layout height 0, while keeping the draft. Closing it
 restores the composer without taking focus from the page. This
 applies to connector search, model consent and any other web modal.
