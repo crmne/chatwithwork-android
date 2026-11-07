@@ -1,0 +1,1 @@
+Make Chat with Work your phone's digital assistant: Android's Settings now offers it, and invoking it opens a new chat ready to type. A long press on the app's icon offers New chat, New bot and Decisions.
