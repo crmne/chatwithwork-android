@@ -1206,8 +1206,13 @@ What the app does with it:
   `audio` to `{base}{dictation.url}`
   with the web view's cookies, `X-CSRF-Token: csrfToken` and `Accept:
   application/json`. `200 {text}` puts the words in the field and sends
-  `text {text}`; an empty text says nothing was heard; `{error}` (403 for no
-  credits, 413, 415, 429, 502) shows the server's words. Earlier versions
+  `text {text}`; an empty text says nothing was heard. A recording the
+  server refuses for itself (400, 413, 415) is dropped and its `{error}`
+  shown. Anything else (no connection, the proxy's own 504 after 30
+  seconds, 403, 429, 502) keeps the recording on the phone: the line says
+  "Couldn't transcribe." (or the server's `{error}`) in negative ink, with
+  Discard where "+" is and Try again where Send is, until one is pressed.
+  Going to the background or a lock leaves it; leaving the page drops it. Earlier versions
   leave Dictate out. Recordings shorter than half a second or without a
   measured signal above 0.02 for 300 ms are deleted without uploading.
   The gate uses Android's peak meter, conservatively admitting quieter

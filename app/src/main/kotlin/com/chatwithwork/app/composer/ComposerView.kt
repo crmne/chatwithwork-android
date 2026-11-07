@@ -122,6 +122,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     /** The dictation running now, listening or transcribing, if any. */
     private var dictation: Dictation.Session? = null
 
+    /** Why the recording [dictation] holds couldn't be transcribed, while it [Dictation.Session.failed]. */
+    private var dictationFailure: String? = null
+
     // The screen's lifecycle while a recording runs, watched for the app stopping.
     private var stopWatch: Pair<Lifecycle, DefaultLifecycleObserver>? = null
 
@@ -193,9 +196,11 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         stop.setOnClickListener { onStop() }
         stop.foreground = stopRing
         send.setOnClickListener { onSend() }
-        dictationCancel.setImageDrawable(SymbolDrawable(context, "close", sizeDp = ICON_DP, color = ink))
         dictationCancel.setOnClickListener { cancelDictation() }
-        dictationStop.setOnClickListener { dictation?.stop() }
+        dictationStop.setOnClickListener {
+            val session = dictation
+            if (session?.failed == true) session.retry() else session?.stop()
+        }
         input.addTextChangedListener(
             object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -217,8 +222,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         }
         isVisible = state.visible
         if (!state.visible) input.clearFocus()
-        // A lock (out of credits, a failed answer) ends dictation, unsent, as the web's does.
-        if (state.locked && dictation != null) cancelDictation()
+        // A lock (out of credits, a failed answer) ends dictation, unsent, as the web's does; a recording that
+        // couldn't be transcribed stays, to send again once it can.
+        if (state.locked && dictation != null && dictation?.kept != true) cancelDictation()
         input.hint = state.placeholder.ifBlank { context.getString(R.string.composer_placeholder) }
         input.isEnabled = !state.locked
 
@@ -509,6 +515,12 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
                     override fun onTranscribing() = renderDictation()
 
                     override fun onResult(result: Dictation.Result) {
+                        if (result.retryable) {
+                            // The line says so, with Try again and Discard, and keeps the recording until one's pressed.
+                            dictationFailure = result.error
+                            renderDictation()
+                            return
+                        }
                         unwatchStop()
                         dictation = null
                         renderDictation()
@@ -536,7 +548,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         val observer =
             object : DefaultLifecycleObserver {
                 override fun onStop(owner: LifecycleOwner) {
-                    if (dictation?.transcribing == false) cancelDictation()
+                    if (dictation?.listening == true) cancelDictation()
                 }
             }
         lifecycle.addObserver(observer)
@@ -584,6 +596,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         val session = dictation
         val on = session != null
         val transcribing = session?.transcribing == true
+        val failed = session?.failed == true
+        if (!failed) dictationFailure = null
         dictationLine.isVisible = on
         input.isVisible = !on
         if (on && input.hasFocus()) {
@@ -591,25 +605,54 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             context.getSystemService(android.view.inputmethod.InputMethodManager::class.java)
                 ?.hideSoftInputFromWindow(input.windowToken, 0)
         }
-        dictationStatus.setText(if (transcribing) R.string.dictation_transcribing else R.string.dictation_listening)
+        dictationStatus.text =
+            when {
+                failed -> dictationFailure ?: context.getString(R.string.dictation_not_transcribed)
+                transcribing -> context.getString(R.string.dictation_transcribing)
+                else -> context.getString(R.string.dictation_listening)
+            }
         dictationStatus.setTextColor(
-            ContextCompat.getColor(context, if (transcribing) R.color.lw_ink_muted else R.color.lw_live_ink)
+            ContextCompat.getColor(
+                context,
+                when {
+                    failed -> R.color.lw_negative_ink
+                    transcribing -> R.color.lw_ink_muted
+                    else -> R.color.lw_live_ink
+                }
+            )
         )
-        dictationDot.isVisible = !transcribing
+        dictationStatus.maxLines = if (failed) 2 else 1
+        dictationDot.isVisible = !transcribing && !failed
+        waveform.isVisible = !failed
+        dictationTime.isVisible = !failed
         waveform.frozen = transcribing
         dictationTime.alpha = if (transcribing) TRANSCRIBING_ALPHA else 1f
 
         renderBar()
+        val ink = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface)
         dictationCancel.isVisible = on
+        // Cancel while it listens or transcribes; Discard for a recording that couldn't be transcribed.
+        dictationCancel.setImageDrawable(
+            SymbolDrawable(context, if (failed) "delete" else "close", sizeDp = ICON_DP, color = ink)
+        )
+        dictationCancel.contentDescription =
+            context.getString(
+                if (failed) R.string.dictation_discard_description else R.string.dictation_cancel_description
+            )
         dictationStopFrame.isVisible = on
         dictationStop.isEnabled = !transcribing
-        // As the web's microphone: live while it listens, a ghost with a spinner while the words come back.
+        dictationStop.contentDescription =
+            context.getString(if (failed) R.string.dictation_retry_description else R.string.dictation_stop_description)
+        // As the web's microphone: live while it listens, a ghost with a spinner while the words come back, and a
+        // ghost to try again with when they couldn't.
         dictationStop.setBackgroundResource(
-            if (transcribing) R.drawable.composer_ghost_button else R.drawable.composer_listening_button
+            if (transcribing || failed) R.drawable.composer_ghost_button else R.drawable.composer_listening_button
         )
         dictationStop.setImageDrawable(
             if (transcribing) {
                 null
+            } else if (failed) {
+                SymbolDrawable(context, "refresh", sizeDp = ICON_DP, color = ink)
             } else {
                 SymbolDrawable(
                     context,
