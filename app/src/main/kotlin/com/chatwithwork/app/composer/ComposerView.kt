@@ -224,7 +224,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         if (!state.visible) input.clearFocus()
         // A lock (out of credits, a failed answer) ends dictation, unsent, as the web's does; a recording that
         // couldn't be transcribed stays, to send again once it can.
-        if (state.locked && dictation != null && dictation?.failed != true) cancelDictation()
+        if (state.locked && dictation != null && dictation?.kept != true) cancelDictation()
         input.hint = state.placeholder.ifBlank { context.getString(R.string.composer_placeholder) }
         input.isEnabled = !state.locked
 

@@ -155,6 +155,7 @@ class DictationSessionTest {
         dictation.stop()
         assertThat(sent).hasSize(1)
 
+        assertThat(dictation.kept).isTrue()
         dictation.retry()
         assertThat(sent).containsExactly(true, true).inOrder()
         assertThat(heard.last()).isEqualTo("Find the Q3 budget.")

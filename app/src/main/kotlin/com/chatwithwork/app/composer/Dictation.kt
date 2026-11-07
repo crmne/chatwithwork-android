@@ -118,6 +118,10 @@ object Dictation {
         var failed = false
             private set
 
+        /** The recording failed once and is kept until it's transcribed or [cancel]led, through a [retry] too. */
+        var kept = false
+            private set
+
         /** The microphone is open. */
         val listening: Boolean get() = recorder != null
 
@@ -182,6 +186,7 @@ object Dictation {
                     if (result.retryable) {
                         // Kept on the phone, so nothing said is lost.
                         failed = true
+                        kept = true
                     } else {
                         file.delete()
                         finished = true
@@ -334,8 +339,12 @@ object Dictation {
  */
 internal fun result(code: Int, text: String?, error: String?): Dictation.Result = when {
     code in 200..299 && text != null && text.isNotBlank() -> Dictation.Result(text, null)
+
     code in 200..299 && text != null -> Dictation.Result(null, null, nothingHeard = true)
-    code in Dictation.UNSENDABLE -> Dictation.Result(null, error)
+
+    // Only the app's own refusal, with its words: a proxy's page with the same status keeps the recording.
+    code in Dictation.UNSENDABLE && error != null -> Dictation.Result(null, error)
+
     else -> Dictation.Result(null, error, retryable = true)
 }
 

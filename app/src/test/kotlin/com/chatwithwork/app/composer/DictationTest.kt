@@ -32,6 +32,8 @@ class DictationTest {
         assertThat(result(429, null, "Too fast.").retryable).isTrue()
         assertThat(result(403, null, "Out of credits.").retryable).isTrue()
         listOf(400, 413, 415).forEach { assertThat(result(it, null, "No.").retryable).isFalse() }
+        // A proxy's own page with one of those statuses
+        listOf(400, 413, 415).forEach { assertThat(result(it, null, null).retryable).isTrue() }
     }
 
     @Test
