@@ -582,6 +582,8 @@ class SidebarTest {
         val unchosen = Sidebar.parse("""{"organization": {"id": "482139075", "name": "Northwind"}}""")
         assertThat(unchosen.listPage(SidebarRow.View.CHATS, null)).isEqualTo("/482139075/chats")
         assertThat(unchosen.listPage(SidebarRow.View.BOTS, null)).isNull()
+        val queried = listed.copy(bots = listed.bots!!.copy(url = "/482139075/bots?list=recent&tab=all#top"))
+        assertThat(queried.listPage(SidebarRow.View.BOTS, "3")).isEqualTo("/482139075/bots?tab=all&list=3#top")
     }
 
     @Test

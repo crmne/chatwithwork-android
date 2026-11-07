@@ -382,6 +382,21 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                             info.className = RadioButton::class.java.name
                             info.isCheckable = true
                             info.isChecked = host.isSelected
+                            // Chosen, a tap opens its page (actions.openListPage), so say that, not "select".
+                            if (host.isSelected) {
+                                val open =
+                                    if (choice == SidebarRow.View.CHATS) {
+                                        R.string.sidebar_views_open_chats
+                                    } else {
+                                        R.string.sidebar_views_open_bots
+                                    }
+                                info.addAction(
+                                    AccessibilityNodeInfoCompat.AccessibilityActionCompat(
+                                        AccessibilityNodeInfoCompat.ACTION_CLICK,
+                                        context.getString(open)
+                                    )
+                                )
+                            }
                         }
                     }
                 )

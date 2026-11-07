@@ -289,8 +289,14 @@ data class Sidebar(
         SidebarRow.View.BOTS -> (bots?.url ?: links.bots)?.let { withList(it, bots?.chosenList(botListKey)) }
     }
 
-    private fun withList(path: String, list: ChatList?): String =
-        list?.let { "$path?list=" + java.net.URLEncoder.encode(it.key, "UTF-8") } ?: path
+    private fun withList(path: String, list: ChatList?): String {
+        list ?: return path
+        val fragment = path.substringAfter('#', "").let { if (it.isEmpty()) "" else "#$it" }
+        val base = path.substringBefore('#')
+        val others = base.substringAfter('?', "").split('&').filter { it.isNotEmpty() && !it.startsWith("list=") }
+        val query = others + ("list=" + java.net.URLEncoder.encode(list.key, "UTF-8"))
+        return base.substringBefore('?') + "?" + query.joinToString("&") + fragment
+    }
 
     /** Whether anything in it (a chat, or a bot's) is answering right now, to keep it fresh while the sidebar is open. */
     val anyProcessing: Boolean
