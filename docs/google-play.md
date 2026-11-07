@@ -6,6 +6,29 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.6
+
+Version 1.2.6 (10206) brings the default digital assistant and the icon's
+shortcuts, from [#54](https://github.com/crmne/chatwithwork-android/pull/54),
+and the Live Update work after it: a moving bar in the live colour while an
+answer works, posted as the person starts to leave, and on OnePlus and OPPO
+from Android 16 a one-time offer to turn on Live Alerts
+([#56](https://github.com/crmne/chatwithwork-android/pull/56)). Tag `v1.2.6`.
+1.2.5 (10205, tag `v1.2.5`) was built but never published: its upload broke
+off when the browser quit, and its draft was discarded.
+
+The signed, Firebase-enabled bundle became available to Internal testers on
+2026-11-07 at 13:34 Europe/Berlin, with the What's new in
+`changelogs/10206.txt`. Only Internal testing was updated: Publishing overview
+showed nothing waiting beyond 1.2.4's review for Production and Open testing,
+before and after, and the release published at once with no review. Play's
+preview showed no change in supported devices and only the usual warning about
+native debug symbols.
+
+Validation: the release build's features match the list under Permissions,
+and the upload signature was verified. The bundle wasn't tried on a device
+yet; it goes to Carmine's OnePlus first.
+
 ## Release 1.2.4
 
 Version 1.2.4 (10204) keeps "+" on the composer's left and shows the
