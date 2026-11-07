@@ -97,18 +97,21 @@ that chat, in Chats, inside the right organization.
   custom views, not colorized, not a group summary, a channel above MIN, and
   `POST_PROMOTED_NOTIFICATIONS` in the manifest). So from API 36 the card
   isn't drawn: `LiveTemplate` dresses the same notification in
-  `ProgressStyle`, and the system promotes it to the status bar chip, the top
+  Android's own template (`ProgressStyle` while it works), and the system promotes it to the status bar chip, the top
   of the lock screen and shade, and what phone makers build on it (OxygenOS 16
   and ColorOS 16's Live Alerts and Fluid Cloud, One UI's Now Bar). The chip is
   the bot mark's face (`BotMark::FACES`, `live_mark_*`) and a word of seven
   letters at most (`LivePresentation.chip`: Think, Search, Write, Review,
-  Reply...). The bar is the road, never progress: a segment per step, as long
-  as its `pace` tick is tall, refused steps and failed or stopped roads flat
-  grey, the sticker face (`live_sticker_*`) at its head; the system's moving
-  bar before the first step. Android draws at most 10 segments, so the oldest
-  steps join into the first. The header's clock is the system chronometer. An
-  end isn't ongoing, so it isn't promoted, and says its steps and time in
-  words. Checked on the API 36.1 emulator (BE4B.251210.005): `PROMOTED_ONGOING`,
+  Reply...). While it works the bar is the live wire, the system's moving
+  bar in the live colour: work happening now, never how far along it is. No
+  segments per step: a bar that fills or grows reads as progress, and the
+  head of a road of time already spent only ever sits at its right end. A
+  wait for the person and an end have no bar; the words, the face and the colour say
+  it, and a wait carries Review or Reply. A bot's sticker face
+  (`live_sticker_*`) sits beside the words; a person's chat shows none, as
+  the header already has the logo. The header's clock is the system
+  chronometer. An end isn't ongoing, so it isn't promoted, and says its steps
+  and time in words. Checked on the API 36.1 emulator (BE4B.251210.005): `PROMOTED_ONGOING`,
   the chip, lock screen and shade. The 36.0 image (BE2A) never promotes.
   On OxygenOS 16 each person turns on "Show Live Updates on Live Alerts" for
   the app (Notifications & Quick Settings > Live Alerts), off by default.

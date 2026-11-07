@@ -11,14 +11,14 @@ class LivePresentationTest {
         assertThat(chat.isChat).isTrue()
         assertThat(chat.cardIcon).isEqualTo(R.drawable.ic_notification)
         assertThat(chat.templateIcon).isEqualTo(R.drawable.ic_notification)
-        assertThat(chat.templateTracker).isEqualTo(R.drawable.ic_mark)
+        assertThat(chat.sticker).isNull()
 
         listOf("bot", null).forEach { assistant ->
             val bot = LivePresentation("answering", "search", assistant = assistant)
             assertThat(bot.isChat).isFalse()
             assertThat(bot.cardIcon).isEqualTo(bot.face.chip)
             assertThat(bot.templateIcon).isEqualTo(bot.mark.chip)
-            assertThat(bot.templateTracker).isEqualTo(bot.mark.sticker)
+            assertThat(bot.sticker).isEqualTo(bot.mark.sticker)
         }
     }
 
@@ -288,26 +288,13 @@ class LivePresentationTest {
     }
 
     @Test
-    fun `the template's road is time spent per step, never a share of a whole`() {
-        assertThat(LivePresentation("answering", "answer").stretches).isEmpty()
-        val road = LivePresentation("answering", "search", trail = "srR", pace = "142").stretches
-        assertThat(road).containsExactly(
-            LivePresentation.Stretch(6, false),
-            LivePresentation.Stretch(29, false),
-            LivePresentation.Stretch(13, true)
-        ).inOrder()
-        // An older server sends only a count: even stretches.
-        assertThat(LivePresentation("answering", "search", steps = 3).stretches.map { it.length }.distinct()).hasSize(1)
-    }
-
-    @Test
-    fun `a long road joins its oldest steps into the first stretch, keeping its whole time`() {
-        val trail = "s".repeat(14)
-        val pace = "1".repeat(5) + "4".repeat(9)
-        val shown = LivePresentation("answering", "search", trail = trail, pace = pace)
-        val road = shown.stretches
-        assertThat(road).hasSize(10)
-        assertThat(road.first()).isEqualTo(LivePresentation.Stretch(5 * 6, false))
-        assertThat(road.sumOf { it.length }).isEqualTo(shown.ticks.sumOf { it.height.toInt() })
+    fun `android's template shows a bot's face beside its words, and a person's chat none`() {
+        assertThat(LivePresentation("answering", "search", assistant = "bot").sticker)
+            .isEqualTo(R.drawable.live_sticker_thinking)
+        assertThat(LivePresentation("approval_waiting", assistant = "bot").sticker)
+            .isEqualTo(R.drawable.live_sticker_waiting)
+        assertThat(LivePresentation("answered").sticker).isEqualTo(R.drawable.live_sticker_happy)
+        assertThat(LivePresentation("failed").sticker).isEqualTo(R.drawable.live_sticker_flat)
+        assertThat(LivePresentation("answering", "search", assistant = "chat").sticker).isNull()
     }
 }

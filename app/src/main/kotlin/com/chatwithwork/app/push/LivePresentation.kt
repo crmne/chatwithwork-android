@@ -46,7 +46,7 @@ data class LivePresentation(
     /**
      * The bot mark's face as the Rails app draws it (`BotMark::FACES`), for
      * Android 16's own template ([LiveTemplate]): its status bar chip and the
-     * head of its road. Failed is always flat, never crossed-out eyes.
+     * sticker beside its words. Failed is always flat, never crossed-out eyes.
      */
     enum class Mark(@param:DrawableRes val chip: Int, @param:DrawableRes val sticker: Int) {
         THINKING(R.drawable.live_mark_thinking, R.drawable.live_sticker_thinking),
@@ -55,9 +55,6 @@ data class LivePresentation(
         HAPPY(R.drawable.live_mark_happy, R.drawable.live_sticker_happy),
         FLAT(R.drawable.live_mark_flat, R.drawable.live_sticker_flat)
     }
-
-    /** One stretch of the road in Android's template: as long as the time its steps took, never a share of a whole. */
-    data class Stretch(val length: Int, val refused: Boolean)
 
     val isWorking: Boolean get() = phase == LiveProgress.ANSWERING
 
@@ -118,8 +115,8 @@ data class LivePresentation(
     /** The status bar's mask in Android 16's template. */
     val templateIcon: Int get() = if (isChat) R.drawable.ic_notification else mark.chip
 
-    /** The head of the road in Android 16's template. */
-    val templateTracker: Int get() = if (isChat) R.drawable.ic_mark else mark.sticker
+    /** The bot's face beside the words in Android 16's template; a person's chat has the logo in its header. */
+    val sticker: Int? get() = if (isChat) null else mark.sticker
 
     val mark: Mark get() = when (state) {
         State.STARTING, State.AGENTS, State.WORKING -> if (step == "read") Mark.WRITING else Mark.THINKING
@@ -159,19 +156,6 @@ data class LivePresentation(
             "write" -> R.string.live_update_chip_write
             else -> R.string.live_update_chip_think
         }
-    }
-
-    /**
-     * The road as Android's template draws it, oldest first: a stretch per
-     * step, as long as its tick is tall, so length is time spent. Android
-     * draws at most [MAX_STRETCHES], so the oldest steps join into the first,
-     * which keeps the whole road's time. Empty before the first step.
-     */
-    val stretches: List<Stretch> get() {
-        val all = ticks.map { Stretch(it.height.toInt(), it.refused) }
-        if (all.size <= MAX_STRETCHES) return all
-        val older = all.dropLast(MAX_STRETCHES - 1)
-        return listOf(Stretch(older.sumOf { it.length }, older.all { it.refused })) + all.takeLast(MAX_STRETCHES - 1)
     }
 
     /** What the bot holds up while it works on a step. */
@@ -283,8 +267,6 @@ data class LivePresentation(
     private companion object {
         const val MAX_TICKS = 48
 
-        /** Android 16 draws one plain bar in place of more segments than this. */
-        const val MAX_STRETCHES = 10
         const val DEEP_AFTER = 24
         const val MAX_STOPS = 5
         const val MAX_AGENT_BOTS = 3

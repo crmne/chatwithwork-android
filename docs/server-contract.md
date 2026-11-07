@@ -715,8 +715,8 @@ old end cannot replace new progress. A failed end can also carry
 ending the card, preserving current progress if the failure is suppressed.
 
 Optional `mark` says who's at work on the answer: `chat`, a person's chat, which
-draws Chat with Work's logo at the road's head and its silhouette in the status
-bar (`LivePresentation.isChat`); `bot`, a bot's chat or run, or nothing from an
+draws Chat with Work's logo (at the road's head below Android 16) and its
+silhouette in the status bar (`LivePresentation.isChat`); `bot`, a bot's chat or run, or nothing from an
 older server, which draws the bot and its faces.
 
 Optional `recent_steps`, which older app versions show, is ignored now: the
