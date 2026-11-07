@@ -10,6 +10,7 @@
         "page_under_top_bar": true,
         "pull_to_refresh_enabled": true,
         "query_string_presentation": "replace",
+        "skeleton": "page",
         "uri": "hotwire://fragment/web"
       }
     },
@@ -21,6 +22,7 @@
       "properties": {
         "context": "modal",
         "pull_to_refresh_enabled": false,
+        "skeleton": "form",
         "uri": "hotwire://fragment/web/modal"
       }
     },
@@ -36,6 +38,7 @@
       "properties": {
         "context": "modal",
         "pull_to_refresh_enabled": false,
+        "skeleton": "none",
         "uri": "hotwire://fragment/web/modal"
       }
     },
@@ -48,7 +51,16 @@
         "context": "default",
         "presentation": "replace_root",
         "pull_to_refresh_enabled": false,
+        "skeleton": "chat",
         "uri": "hotwire://fragment/web"
+      }
+    },
+    {
+      "patterns": [
+        "/chats/new(\\?|$)"
+      ],
+      "properties": {
+        "skeleton": "new_chat"
       }
     },
     {
@@ -80,6 +92,7 @@
         "context": "default",
         "pull_to_refresh_enabled": true,
         "query_string_presentation": "default",
+        "skeleton": "settings",
         "uri": "hotwire://fragment/web"
       }
     },
@@ -95,7 +108,16 @@
         "context": "default",
         "presentation": "replace_root",
         "pull_to_refresh_enabled": true,
+        "skeleton": "list",
         "uri": "hotwire://fragment/web"
+      }
+    },
+    {
+      "patterns": [
+        "/settings$"
+      ],
+      "properties": {
+        "skeleton": "settings"
       }
     },
     {
@@ -105,6 +127,7 @@
       "properties": {
         "context": "modal",
         "pull_to_refresh_enabled": false,
+        "skeleton": "none",
         "uri": "hotwire://fragment/web/modal"
       }
     },
