@@ -116,7 +116,7 @@ that chat, in Chats, inside the right organization.
   On OxygenOS 16 each person turns on "Show Live Updates on Live Alerts" for
   the app (Notifications & Quick Settings > Live Alerts), off by default.
   So on OnePlus and OPPO phones from Android 16 (`LiveAlertsTip`), coming
-  back from the first chat left answering offers it once: "Follow answers
+  back from the first chat left answering, with notifications on, offers it once: "Follow answers
   in Live Alerts?", with Open settings (the app's notification settings,
   where the switch is) and Not now. Never on other phones: stock Android
   shows the chip unasked, and Samsung's Now Bar switch is in its lock screen
@@ -130,7 +130,8 @@ that chat, in Chats, inside the right organization.
   saves what's ours: on the API 36.1 emulator against the playground, the
   chip went from about 630 ms after the app began to leave to 480 ms. A
   pause that never leaves (a system dialog over the app) takes it away
-  again in `onResume`. Below Android 16 the drawn card waits for `onStop`,
+  again in `onResume`, and `onStop` still posts it when `onPause` found no
+  answer running yet (one sent just before leaving). Below Android 16 the drawn card waits for `onStop`,
   as encoding its pictures in `onPause` would hold the animation up.
   Below Android 16 the drawn card stays.
   To keep it visible the channel is `live_update` at default importance with no

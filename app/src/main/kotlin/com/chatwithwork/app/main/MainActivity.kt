@@ -320,7 +320,9 @@ class MainActivity :
     override fun onStop() {
         super.onStop()
         rememberAnsweringChat()
-        if (!LiveTemplate.promotes) showLiveUpdate()
+        // Also from Android 16 when onPause found nothing: an answer that started
+        // as the person left says it's working only after the pause.
+        if (!LiveTemplate.promotes || liveUpdate == null) showLiveUpdate()
     }
 
     /** The chat whose Live Update is showing, to take it away when the person comes back. */
@@ -342,7 +344,9 @@ class MainActivity :
      * settings, where that switch is.
      */
     private fun offerLiveAlerts() {
-        if (isFinishing || !LiveAlertsTip.shouldOffer(this)) return
+        // Only once a Live Update could show: the switch is no use without notifications.
+        val notifying = PushNotifications.permission(this) == PushNotifications.Permission.GRANTED
+        if (isFinishing || !notifying || !LiveAlertsTip.shouldOffer(this)) return
         LiveAlertsTip.markOffered(this)
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.live_alerts_tip_title)
