@@ -1,0 +1,1 @@
+Make Chat with Work your phone's digital assistant: Android's Settings now offers it, and invoking it opens a new chat ready to type. A long press on the app's icon offers New chat, New bot and Decisions. An answer you leave running shows as a Live Update sooner, with a moving bar while it works, and on OnePlus and OPPO phones the app offers once to turn on Live Alerts.
