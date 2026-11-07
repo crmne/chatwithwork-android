@@ -62,6 +62,8 @@ import com.chatwithwork.app.composer.ComposerFiles
 import com.chatwithwork.app.composer.ComposerView
 import com.chatwithwork.app.composer.PendingShares
 import com.chatwithwork.app.fragments.WebScreenHost
+import com.chatwithwork.app.push.LiveAlertsTip
+import com.chatwithwork.app.push.LiveTemplate
 import com.chatwithwork.app.push.LiveUpdates
 import com.chatwithwork.app.push.PushNotifications
 import com.chatwithwork.app.routing.AppUrls
@@ -287,6 +289,8 @@ class MainActivity :
 
     override fun onResume() {
         super.onResume()
+        // Paused without leaving (a system dialog over the app): its Live Update goes again.
+        takeLiveUpdateAway()
         if (awaitingReturn) {
             awaitingReturn = false
             val actions = returnActions.toList()
@@ -299,24 +303,54 @@ class MainActivity :
         super.onStart()
         // Back in the foreground: what's answering may have finished meanwhile.
         if (!viewModel.signedOut) refreshSidebar()
-        liveUpdate?.let { LiveUpdates.cancel(this, it) }
-        liveUpdate = null
+        if (takeLiveUpdateAway()) offerLiveAlerts()
     }
 
     override fun onPause() {
         super.onPause()
         // Anything that asked to hear about the return is waiting on a browser tab.
         if (returnActions.isNotEmpty()) awaitingReturn = true
+        // Android shows an app's status bar chip only once the app is off screen, so
+        // posting as the person starts to leave has it there the moment it can show,
+        // not after the leaving animation. Below Android 16 the drawn card waits for
+        // onStop, as encoding its pictures here would hold the animation up.
+        if (LiveTemplate.promotes) showLiveUpdate()
     }
 
     override fun onStop() {
         super.onStop()
         rememberAnsweringChat()
-        showLiveUpdate()
+        if (!LiveTemplate.promotes) showLiveUpdate()
     }
 
     /** The chat whose Live Update is showing, to take it away when the person comes back. */
     private var liveUpdate: String? = null
+
+    /** Takes the Live Update the app showed as the person left away; true if there was one. */
+    private fun takeLiveUpdateAway(): Boolean {
+        val thread = liveUpdate ?: return false
+        LiveUpdates.cancel(this, thread)
+        liveUpdate = null
+        return true
+    }
+
+    /**
+     * Back from leaving a chat that was answering, on a phone whose system can
+     * show Live Updates in its own status bar capsule only once the person
+     * allows it per app (OnePlus and OPPO's Live Alerts): once per install, a
+     * word on where to turn it on, and a button to the app's notification
+     * settings, where that switch is.
+     */
+    private fun offerLiveAlerts() {
+        if (isFinishing || !LiveAlertsTip.shouldOffer(this)) return
+        LiveAlertsTip.markOffered(this)
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.live_alerts_tip_title)
+            .setMessage(R.string.live_alerts_tip_body)
+            .setNegativeButton(R.string.live_alerts_tip_not_now, null)
+            .setPositiveButton(R.string.live_alerts_tip_open) { _, _ -> LiveAlertsTip.openSettings(this) }
+            .show()
+    }
 
     /** The chat on screen and its composer, when the composer says an answer is running. */
     private fun answeringChat(): Pair<String, ComposerView>? {

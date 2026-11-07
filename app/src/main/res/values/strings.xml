@@ -213,6 +213,10 @@
     <string name="notifications_offer_answer">Chat with Work can tell you when an answer is ready, so you can leave the app while it works.</string>
     <string name="notifications_offer_continue">Continue</string>
     <string name="notifications_offer_not_now">Not now</string>
+    <string name="live_alerts_tip_title">Follow answers in Live Alerts?</string>
+    <string name="live_alerts_tip_body">Turn on \"Show Live Updates on Live Alerts\".</string>
+    <string name="live_alerts_tip_open">Open settings</string>
+    <string name="live_alerts_tip_not_now">Not now</string>
     <string name="composer_permissions">Changes</string>
     <string name="composer_mode_edits">Edits</string>
     <string name="composer_mode_everything">Everything</string>

@@ -115,6 +115,23 @@ that chat, in Chats, inside the right organization.
   the chip, lock screen and shade. The 36.0 image (BE2A) never promotes.
   On OxygenOS 16 each person turns on "Show Live Updates on Live Alerts" for
   the app (Notifications & Quick Settings > Live Alerts), off by default.
+  So on OnePlus and OPPO phones from Android 16 (`LiveAlertsTip`), coming
+  back from the first chat left answering offers it once: "Follow answers
+  in Live Alerts?", with Open settings (the app's notification settings,
+  where the switch is) and Not now. Never on other phones: stock Android
+  shows the chip unasked, and Samsung's Now Bar switch is in its lock screen
+  settings, which no intent opens.
+  From Android 16 the Live Update is posted in `onPause`, as the person
+  starts to leave, not in `onStop`. Android shows an app's chip only once
+  the app is off screen, so the chip can't show before the leaving
+  animation ends, about half a second, whether the notification was posted
+  long before or as the app left, and there's no morph into the chip like
+  the Dynamic Island's. That part is the system's. Posting in `onPause`
+  saves what's ours: on the API 36.1 emulator against the playground, the
+  chip went from about 630 ms after the app began to leave to 480 ms. A
+  pause that never leaves (a system dialog over the app) takes it away
+  again in `onResume`. Below Android 16 the drawn card waits for `onStop`,
+  as encoding its pictures in `onPause` would hold the animation up.
   Below Android 16 the drawn card stays.
   To keep it visible the channel is `live_update` at default importance with no
   sound or vibration (it replaced `answering`, low, whose cards sat collapsed
