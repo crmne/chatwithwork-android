@@ -612,6 +612,12 @@ class MainActivity :
         showSidebar()
     }
 
+    /** The half of the switch already chosen, tapped again: its page, on the list the view shows (Sidebar.listPage). */
+    override fun openListPage(view: SidebarRow.View) {
+        val data = viewModel.sidebar ?: return
+        data.listPage(view, memory.botListKey(data.organization.id))?.let(::openPath)
+    }
+
     /** The switcher's menu, in the view showing, as the web's: My and All, the projects they're on, then the links. */
     override fun chooseList() {
         val data = viewModel.sidebar ?: return

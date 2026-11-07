@@ -1005,6 +1005,14 @@ so no switch; a server that sends no `items` keeps the Bots row. The sidebar
 keeps checking every 5 seconds while it's open and a bot is `working`, as it
 does for a chat.
 
+**The chosen half, tapped again (2026-11-07).** A tap on the half of the
+switch that's already chosen opens its page, as the web's switch does: Chats
+the chats page on the chosen list (`/:account/chats?list=<list.key>`), Bots
+the Bots page on the list the Bots view shows (`bots.url`, else `links.bots`,
+with `?list=<key>`, this install's choice, else the server's). Both pages
+take `list=`, since the app keeps its own choices, and both are places, so
+they replace the root. A tap on the other half only switches, as before.
+
 **Bots' colours and faces (server, 2026-11-04).** Each `BOT` also carries
 the line the web's row shows under its name (`bots/_sidebar_bot`,
 `BotsHelper#bot_sidebar_line`): `line`, its `line_tone` (`attention`,

@@ -575,6 +575,16 @@ class SidebarTest {
     }
 
     @Test
+    fun `the half already chosen opens its page, on the list its view shows`() {
+        assertThat(listed.listPage(SidebarRow.View.CHATS, null)).isEqualTo("/482139075/chats?list=3")
+        assertThat(listed.listPage(SidebarRow.View.BOTS, "3")).isEqualTo("/482139075/bots?list=3")
+        assertThat(listed.listPage(SidebarRow.View.BOTS, null)).isEqualTo("/482139075/bots?list=all")
+        val unchosen = Sidebar.parse("""{"organization": {"id": "482139075", "name": "Northwind"}}""")
+        assertThat(unchosen.listPage(SidebarRow.View.CHATS, null)).isEqualTo("/482139075/chats")
+        assertThat(unchosen.listPage(SidebarRow.View.BOTS, null)).isNull()
+    }
+
+    @Test
     fun `reads the new keys, which older servers leave out`() {
         assertThat(listed.bots!!.lists.last().url).isEqualTo("/482139075/projects/3")
         assertThat(withBots.bots!!.lists).isEmpty()
