@@ -16,8 +16,6 @@ import android.view.animation.LinearInterpolator
 import androidx.annotation.AttrRes
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import com.chatwithwork.app.R
 
@@ -232,9 +230,8 @@ class SkeletonOverlay(
         val width = body.width.toFloat()
         val height = body.height.toFloat()
         val density = body.resources.displayMetrics.density
-        val insets = ViewCompat.getRootWindowInsets(body)?.getInsets(WindowInsetsCompat.Type.systemBars())
-        val bottom = height - (insets?.bottom ?: 0)
-        val sketch = PageSkeleton.sketch(kind, width, height, bar.bottom.toFloat(), bottom, density, rtl)
+        // The activity already keeps the screen above the gesture bar (MainActivity.setUpInsets), so the view ends there.
+        val sketch = PageSkeleton.sketch(kind, width, height, bar.bottom.toFloat(), height, density, rtl)
         body.setBones(sketch.bones, sketch.boxes)
         // The composer's bone lasts longest.
         composer.setBones(listOfNotNull(sketch.composer))

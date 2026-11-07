@@ -42,7 +42,7 @@ object PageSkeleton {
 
     /**
      * The [kind]'s sketch for a [width] by [height] screen whose bar ends at
-     * [top] and whose system bars cover it from [bottom] down.
+     * [top] and where nothing may pass [bottom].
      */
     fun sketch(
         kind: Kind,
