@@ -110,6 +110,9 @@
     <string name="dictation_transcribing">Transcribing</string>
     <string name="dictation_stop_description">Stop dictating and write it down</string>
     <string name="dictation_cancel_description">Cancel dictation</string>
+    <string name="dictation_not_transcribed">Couldn\'t transcribe.</string>
+    <string name="dictation_retry_description">Try again</string>
+    <string name="dictation_discard_description">Discard recording</string>
     <string name="dictation_failed">Dictation didn\'t work. Try again.</string>
     <string name="dictation_no_speech">Nothing was heard. Try again a little closer.</string>
     <string name="dictation_needs_microphone">Dictation needs the microphone. Allow it in the app\'s settings.</string>

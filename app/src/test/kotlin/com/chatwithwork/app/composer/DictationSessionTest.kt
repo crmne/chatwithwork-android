@@ -37,7 +37,7 @@ class DictationSessionTest {
             }
 
             override fun onResult(result: Dictation.Result) {
-                heard += "result"
+                heard += if (result.retryable) "failed" else result.text ?: "result"
             }
         }
 
@@ -64,6 +64,33 @@ class DictationSessionTest {
         },
         // Too short to transcribe, so stopping never posts anything.
         clock = { 0L }
+    )
+
+    private var now = 0L
+    private val answers = ArrayDeque<Dictation.Result>()
+    private val sent = mutableListOf<Boolean>()
+
+    // A microphone that can't be metered, so what it records is sent, and a server that answers from [answers].
+    private fun sending() = Dictation.Session(
+        context,
+        scope,
+        "/dictations",
+        null,
+        null,
+        listener,
+        microphone = { file, _ ->
+            file.writeBytes(byteArrayOf(1, 2, 3))
+            object : Dictation.Microphone {
+                override val maxAmplitude: Int get() = throw IllegalStateException("not metered")
+
+                override fun close() = Unit
+            }
+        },
+        clock = { now },
+        post = { file, _ ->
+            sent += file.exists()
+            answers.removeFirst()
+        }
     )
 
     @After
@@ -109,5 +136,57 @@ class DictationSessionTest {
     fun `a microphone that will not open never holds the screen`() {
         assertThat(session(opens = false).start()).isFalse()
         assertThat(heard).isEmpty()
+    }
+
+    // On November 7, 2026 the proxy in front of the app answered three dictations with a 504 of its own after 30
+    // seconds, and each recording was lost.
+    @Test
+    fun `a recording that couldn't be transcribed is kept until it's sent again`() {
+        answers += result(504, null, null)
+        answers += Dictation.Result("Find the Q3 budget.", null)
+        val dictation = sending()
+        dictation.start()
+        now = 3_000
+        dictation.stop()
+
+        assertThat(heard).containsExactly("listening", "done listening", "transcribing", "failed").inOrder()
+        assertThat(dictation.failed).isTrue()
+        assertThat(dictation.finished).isFalse()
+        dictation.stop()
+        assertThat(sent).hasSize(1)
+
+        dictation.retry()
+        assertThat(sent).containsExactly(true, true).inOrder()
+        assertThat(heard.last()).isEqualTo("Find the Q3 budget.")
+        assertThat(dictation.finished).isTrue()
+        assertThat(dir.listFiles()).isEmpty()
+    }
+
+    @Test
+    fun `Discard throws a recording that couldn't be transcribed away`() {
+        answers += result(502, null, "Couldn't transcribe that. Try again in a moment.")
+        val dictation = sending()
+        dictation.start()
+        now = 3_000
+        dictation.stop()
+        assertThat(dir.listFiles()).hasLength(1)
+
+        dictation.cancel()
+        dictation.retry()
+        assertThat(sent).hasSize(1)
+        assertThat(dir.listFiles()).isEmpty()
+    }
+
+    @Test
+    fun `a recording the server refuses for itself is not kept`() {
+        answers += result(415, null, "That recording is in a format we can't transcribe.")
+        val dictation = sending()
+        dictation.start()
+        now = 3_000
+        dictation.stop()
+
+        assertThat(heard.last()).isEqualTo("result")
+        assertThat(dictation.finished).isTrue()
+        assertThat(dir.listFiles()).isEmpty()
     }
 }

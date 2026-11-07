@@ -22,6 +22,19 @@ class DictationTest {
     }
 
     @Test
+    fun `only a recording the server refused for itself is not worth sending again`() {
+        assertThat(result(200, "Hello.", null).text).isEqualTo("Hello.")
+        assertThat(result(200, "", null).nothingHeard).isTrue()
+        // The proxy's own page, not the app's JSON
+        assertThat(result(504, null, null).retryable).isTrue()
+        assertThat(result(200, null, null).retryable).isTrue()
+        assertThat(result(502, null, "Couldn't transcribe that.").retryable).isTrue()
+        assertThat(result(429, null, "Too fast.").retryable).isTrue()
+        assertThat(result(403, null, "Out of credits.").retryable).isTrue()
+        listOf(400, 413, 415).forEach { assertThat(result(it, null, "No.").retryable).isFalse() }
+    }
+
+    @Test
     fun `the level runs from a whisper to shouting, clamped to 0 and 1`() {
         assertThat(Dictation.loudness(0)).isEqualTo(0f)
         assertThat(Dictation.loudness(-5)).isEqualTo(0f)

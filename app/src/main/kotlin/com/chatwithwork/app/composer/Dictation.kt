@@ -61,17 +61,32 @@ object Dictation {
         /** Recording ended; the words are on their way. */
         fun onTranscribing()
 
-        /** The transcription's words, or why there are none; never after [Session.cancel]. */
+        /**
+         * The transcription's words, or why there are none; never after [Session.cancel]. A [Result.retryable]
+         * one leaves the session [Session.failed], holding the recording for [Session.retry] or [Session.cancel].
+         */
         fun onResult(result: Result)
     }
 
-    class Result(val text: String?, val error: String?, val nothingHeard: Boolean = false)
+    /**
+     * What came back. [retryable] when the recording itself wasn't refused (the phone lost its connection, the
+     * proxy in front of the app gave up, the model failed, credits ran out): sending it again can work, so it's kept.
+     */
+    class Result(
+        val text: String?,
+        val error: String?,
+        val nothingHeard: Boolean = false,
+        val retryable: Boolean = false
+    )
+
+    /** What the server refuses for the recording itself (malformed, too long, not audio): sending it again can't work. */
+    internal val UNSENDABLE = setOf(400, 413, 415)
 
     /**
      * One dictation: records until [stop] (or five minutes), then posts the
      * recording to [path] with the web view's session and hands the words to
      * [listener]. [cancel] throws it away, recording or transcribing.
-     * [microphone] and [clock] are the phone's, or a test's.
+     * [microphone], [clock] and [post] are the phone's, or a test's.
      */
     class Session(
         context: Context,
@@ -83,7 +98,8 @@ object Dictation {
         private val microphone: (file: File, onEnd: () -> Unit) -> Microphone = { file, onEnd ->
             PhoneMicrophone(context, file, onEnd)
         },
-        private val clock: () -> Long = SystemClock::elapsedRealtime
+        private val clock: () -> Long = SystemClock::elapsedRealtime,
+        private val post: (suspend (File, AtomicReference<HttpURLConnection?>) -> Result)? = null
     ) {
         private val file = File(context.cacheDir, "dictation-${System.currentTimeMillis()}.ogg")
         private var recorder: Microphone? = null
@@ -97,6 +113,13 @@ object Dictation {
             private set
         var finished = false
             private set
+
+        /** Transcribing failed, and the recording waits for [retry] or [cancel]. */
+        var failed = false
+            private set
+
+        /** The microphone is open. */
+        val listening: Boolean get() = recorder != null
 
         /** Starts recording; false when the microphone couldn't. */
         fun start(): Boolean {
@@ -126,7 +149,7 @@ object Dictation {
 
         /** Stops recording and transcribes what was heard. */
         fun stop() {
-            if (finished || transcribing) return
+            if (finished || transcribing || failed) return
             transcribing = true
             job?.cancel()
             release()
@@ -136,13 +159,33 @@ object Dictation {
                 listener.onResult(Result(null, null, nothingHeard = true))
                 return
             }
+            send()
+        }
+
+        /** Sends a recording that couldn't be transcribed again. */
+        fun retry() {
+            if (finished || !failed) return
+            failed = false
+            transcribing = true
+            send()
+        }
+
+        private fun send() {
             listener.onTranscribing()
             job =
                 scope.launch {
-                    val result = upload(AppConfig.baseUrl + path, file, csrfToken, userAgent, request)
-                    file.delete()
+                    val result =
+                        post?.invoke(file, request)
+                            ?: upload(AppConfig.baseUrl + path, file, csrfToken, userAgent, request)
                     if (finished) return@launch
-                    finished = true
+                    transcribing = false
+                    if (result.retryable) {
+                        // Kept on the phone, so nothing said is lost.
+                        failed = true
+                    } else {
+                        file.delete()
+                        finished = true
+                    }
                     listener.onResult(result)
                 }
         }
@@ -246,12 +289,12 @@ object Dictation {
             try {
                 URL(url).openConnection() as HttpURLConnection
             } catch (_: IOException) {
-                return@withContext Result(null, null)
+                return@withContext Result(null, null, retryable = true)
             }
         active.set(connection)
         try {
             // Cancelled before the request was published here, so Cancel couldn't drop it.
-            if (!isActive) return@withContext Result(null, null)
+            if (!isActive) return@withContext Result(null, null, retryable = true)
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.connectTimeout = 15_000
@@ -263,7 +306,7 @@ object Dictation {
             CookieManager.getInstance().getCookie(url)?.let { connection.setRequestProperty("Cookie", it) }
             connection.outputStream.use { out ->
                 // Opening the stream connects: a Cancel meanwhile sends nothing.
-                if (!isActive) return@withContext Result(null, null)
+                if (!isActive) return@withContext Result(null, null, retryable = true)
                 val disposition = "Content-Disposition: form-data; name=\"audio\"; filename=\"dictation.ogg\""
                 out.write("--$boundary\r\n$disposition\r\nContent-Type: audio/ogg\r\n\r\n".toByteArray())
                 file.inputStream().use { it.copyTo(out) }
@@ -275,18 +318,25 @@ object Dictation {
             val json = body?.let { runCatching { Json.parseToJsonElement(it).jsonObject }.getOrNull() }
             val text = json?.get("text")?.jsonPrimitive?.contentOrNull
             val error = json?.get("error")?.jsonPrimitive?.contentOrNull
-            when {
-                code in 200..299 && !text.isNullOrBlank() -> Result(text, null)
-                code in 200..299 -> Result(null, null, nothingHeard = true)
-                else -> Result(null, error)
-            }
+            result(code, text, error)
         } catch (_: IOException) {
-            Result(null, null)
+            Result(null, null, retryable = true)
         } finally {
             active.compareAndSet(connection, null)
             connection.disconnect()
         }
     }
+}
+
+/**
+ * What a response says: words, none heard, or why not. Anything but the app's own answer (the proxy's 504 page after
+ * 30 seconds, a lost connection) has no [Result.error] of its own, and the recording is kept to send again.
+ */
+internal fun result(code: Int, text: String?, error: String?): Dictation.Result = when {
+    code in 200..299 && text != null && text.isNotBlank() -> Dictation.Result(text, null)
+    code in 200..299 && text != null -> Dictation.Result(null, null, nothingHeard = true)
+    code in Dictation.UNSENDABLE -> Dictation.Result(null, error)
+    else -> Dictation.Result(null, error, retryable = true)
 }
 
 /** Measured silence and brief clicks stay on the phone; absent metering fails open. */
