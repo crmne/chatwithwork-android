@@ -28,6 +28,8 @@
     <string name="sidebar_views_chats_description">Chats, in the sidebar</string>
     <string name="sidebar_views_bots_description">Bots, in the sidebar</string>
     <string name="sidebar_views_bots_attention">Bots, in the sidebar. Something needs you.</string>
+    <string name="sidebar_views_open_chats">Open the chats page</string>
+    <string name="sidebar_views_open_bots">Open the Bots page</string>
     <string name="sidebar_bots_in">Bots in %1$s</string>
     <plurals name="sidebar_bots_count">
         <item quantity="one">%d bot</item>

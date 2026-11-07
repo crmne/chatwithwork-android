@@ -52,6 +52,9 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         /** The Chats | Bots switch: show [view] under it, and remember it. */
         fun chooseView(view: SidebarRow.View)
 
+        /** The Chats | Bots switch's half already chosen, tapped again: open [view]'s page, as the web's does. */
+        fun openListPage(view: SidebarRow.View)
+
         fun chooseList()
 
         /** Decisions: the Decisions page, or, from an older server, the list of what waits. */
@@ -379,10 +382,27 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                             info.className = RadioButton::class.java.name
                             info.isCheckable = true
                             info.isChecked = host.isSelected
+                            // Chosen, a tap opens its page (actions.openListPage), so say that, not "select".
+                            if (host.isSelected) {
+                                val open =
+                                    if (choice == SidebarRow.View.CHATS) {
+                                        R.string.sidebar_views_open_chats
+                                    } else {
+                                        R.string.sidebar_views_open_bots
+                                    }
+                                info.addAction(
+                                    AccessibilityNodeInfoCompat.AccessibilityActionCompat(
+                                        AccessibilityNodeInfoCompat.ACTION_CLICK,
+                                        context.getString(open)
+                                    )
+                                )
+                            }
                         }
                     }
                 )
-                half.setOnClickListener { if (row.view != choice) actions.chooseView(choice) }
+                half.setOnClickListener {
+                    if (row.view != choice) actions.chooseView(choice) else actions.openListPage(choice)
+                }
             }
         }
 

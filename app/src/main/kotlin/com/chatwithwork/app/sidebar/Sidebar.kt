@@ -277,6 +277,27 @@ data class Sidebar(
         next = next.next
     )
 
+    /**
+     * The page of what [view] shows, opened by a tap on its half of the
+     * Chats | Bots switch while it's already chosen, as the web's switch
+     * does: the chats page on the chosen list, or the Bots page on the list
+     * the Bots view shows ([botListKey], this install's choice). The app
+     * keeps its own choices, so the page is told which with `list=`.
+     */
+    fun listPage(view: SidebarRow.View, botListKey: String?): String? = when (view) {
+        SidebarRow.View.CHATS -> withList("/${organization.id}/chats", list)
+        SidebarRow.View.BOTS -> (bots?.url ?: links.bots)?.let { withList(it, bots?.chosenList(botListKey)) }
+    }
+
+    private fun withList(path: String, list: ChatList?): String {
+        list ?: return path
+        val fragment = path.substringAfter('#', "").let { if (it.isEmpty()) "" else "#$it" }
+        val base = path.substringBefore('#')
+        val others = base.substringAfter('?', "").split('&').filter { it.isNotEmpty() && !it.startsWith("list=") }
+        val query = others + ("list=" + java.net.URLEncoder.encode(list.key, "UTF-8"))
+        return base.substringBefore('?') + "?" + query.joinToString("&") + fragment
+    }
+
     /** Whether anything in it (a chat, or a bot's) is answering right now, to keep it fresh while the sidebar is open. */
     val anyProcessing: Boolean
         get() = (chats + pins + sections.flatMap { it.chats }).any { it.isProcessing } ||
