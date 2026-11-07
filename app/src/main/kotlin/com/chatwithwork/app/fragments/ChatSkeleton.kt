@@ -5,7 +5,7 @@ import com.chatwithwork.app.routing.AppUrls
 /**
  * The shape of a chat, for the moments before its page paints: what's drawn
  * where and how the shimmer travels, kept apart from the views so it can be
- * tested (ChatSkeletonView draws it). The numbers follow the chat page as the
+ * tested (SkeletonView draws it; PageSkeleton has the other kinds). The numbers follow the chat page as the
  * app shows it (Chat with Work's docs/ui/native-apps.md, "Chat screen
  * proportions") and are the same on iOS. All in pixels, top-left origin.
  */
@@ -19,7 +19,10 @@ object ChatSkeleton {
     /** Past this the skeleton goes whatever the page is doing: it never stays for good. */
     const val TIMEOUT_MS = 10_000L
 
-    /** A chat that exists has a page worth waiting for; New chat has nothing to sketch. */
+    /**
+     * A chat that exists, the one page with a skeleton when the server's path
+     * configuration doesn't say which (PageSkeleton.kind).
+     */
     fun shows(location: String): Boolean = AppUrls.chatNumber(location) != null
 
     /** With Remove animations on, the bones stay still. */

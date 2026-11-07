@@ -20,12 +20,13 @@ import androidx.core.view.isVisible
 import com.chatwithwork.app.R
 
 /**
- * Some of a chat's bones (ChatSkeleton), filled as one shape with one shimmer
- * laid over the lot. Its parts (ChatSkeletonOverlay) share their coordinates,
- * so one band crosses them all. It takes no touches: Hotwire Native's progress
- * container under it holds them back from the page until the page has rendered.
+ * Some of a page's bones (PageSkeleton), filled as one shape with one shimmer
+ * laid over the lot, over its groups' boxes, which hold still. Its parts
+ * (SkeletonOverlay) share their coordinates, so one band crosses them all. It
+ * takes no touches: Hotwire Native's progress container under it holds them
+ * back from the page until the page has rendered.
  */
-class ChatSkeletonView @JvmOverloads constructor(
+class SkeletonView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     @AttrRes defStyleAttr: Int = 0
@@ -41,6 +42,18 @@ class ChatSkeletonView @JvmOverloads constructor(
     private val bandMatrix = Matrix()
     private var bandShader: Shader? = null
 
+    private var boxes: List<PageSkeleton.Box> = emptyList()
+    private val boxRect = RectF()
+    private val boxPaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ContextCompat.getColor(context, R.color.lw_surface) }
+    private val hairline = resources.displayMetrics.density
+    private val hairlinePaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = ContextCompat.getColor(context, R.color.lw_line)
+            style = Paint.Style.STROKE
+            strokeWidth = hairline
+        }
+
     /** Where the shimmer's band starts, or null while it isn't moving. */
     private var bandX: Float? = null
 
@@ -48,7 +61,7 @@ class ChatSkeletonView @JvmOverloads constructor(
     private var sweepWidth = 0f
     private var sweepHeight = 0f
 
-    fun setBones(bones: List<ChatSkeleton.Bone>) {
+    fun setBones(bones: List<ChatSkeleton.Bone>, boxes: List<PageSkeleton.Box> = emptyList()) {
         val (even, uneven) = bones.partition { it.radii.distinct().size == 1 }
         rounded = even.map { RectF(it.left, it.top, it.right, it.bottom) to it.radii.first() }
         path.rewind()
@@ -56,6 +69,7 @@ class ChatSkeletonView @JvmOverloads constructor(
             val corners = bone.radii.flatMap { listOf(it, it) }.toFloatArray()
             path.addRoundRect(RectF(bone.left, bone.top, bone.right, bone.bottom), corners, Path.Direction.CW)
         }
+        this.boxes = boxes
         invalidate()
     }
 
@@ -88,6 +102,7 @@ class ChatSkeletonView @JvmOverloads constructor(
     }
 
     override fun onDraw(canvas: Canvas) {
+        drawBoxes(canvas)
         drawBones(canvas, bonePaint)
         val x = bandX ?: return
         bandMatrix.setTranslate(x, 0f)
@@ -99,20 +114,37 @@ class ChatSkeletonView @JvmOverloads constructor(
         rounded.forEach { (rect, radius) -> canvas.drawRoundRect(rect, radius, radius, paint) }
         canvas.drawPath(path, paint)
     }
+
+    /** A group's surface, its hairline just inside its edge, and the hairlines between its rows. */
+    private fun drawBoxes(canvas: Canvas) {
+        val half = hairline / 2
+        boxes.forEach { box ->
+            boxRect.set(box.left, box.top, box.right, box.bottom)
+            canvas.drawRoundRect(boxRect, box.radius, box.radius, boxPaint)
+            boxRect.inset(half, half)
+            canvas.drawRoundRect(boxRect, box.radius - half, box.radius - half, hairlinePaint)
+            box.dividers.forEach { y -> canvas.drawLine(box.left, y, box.right, y, hairlinePaint) }
+        }
+    }
 }
 
 /**
- * A chat's skeleton on its screen (fragment_web), in three parts. The body
+ * A page's skeleton on its screen (fragment_web), in three parts. The body
  * covers the page until it paints, then crossfades to it. The title's bone
- * waits in the bar until the page names the chat. The composer's bone waits
- * for the real composer, which comes with the page's scripts, a while after
- * its first paint. All of it goes for an error, and by itself after
- * ChatSkeleton.TIMEOUT_MS whatever happens.
+ * waits in the bar until the page names itself. A chat's and New chat's
+ * composer bone waits for the real composer, which comes with the page's
+ * scripts, a while after its first paint. All of it goes for an error, and by
+ * itself after ChatSkeleton.TIMEOUT_MS whatever happens.
  */
-class ChatSkeletonOverlay(root: View, private val toolbar: Toolbar, private val bar: View) {
-    private val body: ChatSkeletonView = root.findViewById(R.id.skeleton_body)
-    private val composer: ChatSkeletonView = root.findViewById(R.id.skeleton_composer)
-    private val title: ChatSkeletonView = root.findViewById(R.id.skeleton_title)
+class SkeletonOverlay(
+    root: View,
+    private val kind: PageSkeleton.Kind,
+    private val toolbar: Toolbar,
+    private val bar: View
+) {
+    private val body: SkeletonView = root.findViewById(R.id.skeleton_body)
+    private val composer: SkeletonView = root.findViewById(R.id.skeleton_composer)
+    private val title: SkeletonView = root.findViewById(R.id.skeleton_title)
     private val parts = listOf(body, composer, title)
 
     /** Hidden from screen readers while the body stands in for it: it may still hold the last page. */
@@ -127,8 +159,10 @@ class ChatSkeletonOverlay(root: View, private val toolbar: Toolbar, private val 
     val covering: Boolean
         get() = body.isVisible && body.alpha == 1f
 
-    /** A chat's screen appeared. */
+    /** The screen appeared. */
     fun show() {
+        body.contentDescription =
+            body.context.getString(if (kind == PageSkeleton.Kind.CHAT) R.string.chat_loading else R.string.loading)
         parts.forEach {
             it.alpha = 1f
             it.isVisible = true
@@ -140,7 +174,7 @@ class ChatSkeletonOverlay(root: View, private val toolbar: Toolbar, private val 
         if (ChatSkeleton.sweeps(ValueAnimator.areAnimatorsEnabled())) startSweep()
     }
 
-    /** The page named the chat: the bar shows that instead of the title's bone. */
+    /** The page named itself: the bar shows that instead of the title's bone. */
     fun titleKnown() {
         title.isVisible = false
     }
@@ -169,7 +203,7 @@ class ChatSkeletonOverlay(root: View, private val toolbar: Toolbar, private val 
         stop()
     }
 
-    private fun fadeOut(part: ChatSkeletonView, then: () -> Unit = {}) {
+    private fun fadeOut(part: SkeletonView, then: () -> Unit = {}) {
         if (!part.isVisible) {
             then()
             return
@@ -196,10 +230,11 @@ class ChatSkeletonOverlay(root: View, private val toolbar: Toolbar, private val 
         val width = body.width.toFloat()
         val height = body.height.toFloat()
         val density = body.resources.displayMetrics.density
-        val bones = ChatSkeleton.body(width, height, bar.bottom.toFloat(), density, rtl)
-        // The composer's bone is the last, and lasts longest.
-        body.setBones(bones.dropLast(1))
-        composer.setBones(bones.takeLast(1))
+        // The activity already keeps the screen above the gesture bar (MainActivity.setUpInsets), so the view ends there.
+        val sketch = PageSkeleton.sketch(kind, width, height, bar.bottom.toFloat(), height, density, rtl)
+        body.setBones(sketch.bones, sketch.boxes)
+        // The composer's bone lasts longest.
+        composer.setBones(listOfNotNull(sketch.composer))
         // As the toolbar places its title: past its content inset and the navigation button, then its margin.
         val inset = if (rtl) toolbar.currentContentInsetRight else toolbar.currentContentInsetLeft
         val start = maxOf(inset.toFloat(), NAVIGATION_BUTTON_DP * density) + toolbar.titleMarginStart
@@ -225,5 +260,5 @@ class ChatSkeletonOverlay(root: View, private val toolbar: Toolbar, private val 
     }
 }
 
-/** The toolbar's navigation button, the sidebar's on a chat. */
+/** The toolbar's navigation button: the sidebar's on the root, back or close elsewhere. */
 private const val NAVIGATION_BUTTON_DP = 48f

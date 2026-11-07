@@ -200,6 +200,34 @@ written with `^`):
 | `/chats/\d+/files/` | modal | | off | a chat's file in its viewer, a full-screen modal over the chat (iOS contract, "A file") |
 | files and the marketing site | | `none` | | `open_in_browser: true`: a Chrome Custom Tab |
 
+Every rule but the browser's also says which **skeleton** the app draws
+from the moment the screen appears until its page first paints (the
+`skeleton` property, merged like every other: the later match wins):
+
+| `skeleton` | Where | What the app draws |
+|---|---|---|
+| `chat` | `/chats/<n>`, a `?from=` chat too | the chat's: two questions and answers, the composer at rest |
+| `new_chat` | `/chats/new` | a greeting over three suggestions, the composer at rest |
+| `list` | `/decisions`, `/bots`, `/chats`, `/projects` | rows of a round mark and two lines, as many as fit |
+| `settings` | `/settings` and `/settings?tab=...` | two sections: a heading, a muted line, a group of rows |
+| `form` | every `new` and `edit` sheet | four labelled fields |
+| `page` | everything else (`.*`): a bot and its tabs, a project, a trigger, the panel beside a chat, Settings' own pages | a heading, two lines of text, a group of four rows |
+| `none` | the sign-in pages, a chat's file viewer | nothing, as before |
+
+Every kind is the same machinery (`PageSkeleton`, drawn by `SkeletonView`):
+bones in Live Wire's `--skeleton-bone` with one `--skeleton-shine` band
+sweeping across them every 1.4 seconds, still under Remove animations; the
+title's bone in the bar until the page names itself; groups and fields as
+boxes on the surface with a hairline; read as "Loading" by screen readers
+("Loading chat" on a chat), with the page below hidden from them. It
+crossfades to the page in 200 ms at its first paint, goes at once for an
+error, and after 10 seconds whatever happens. It shows only the first time
+a screen appears, never when coming back to one, and a skeleton stands in
+for Hotwire Native's loading view. An unknown value draws `page`. A server
+that sends no `skeleton` (one from before 2026-11-07) gets `chat` for a
+chat and no skeleton elsewhere, as earlier builds do with every
+server. The numbers are the same as iOS's.
+
 Compared with `ios_v2.json`:
 
 - The patterns and the order are the same, so a page is pushed, modal, or

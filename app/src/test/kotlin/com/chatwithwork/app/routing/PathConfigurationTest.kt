@@ -1,7 +1,10 @@
 package com.chatwithwork.app.routing
 
 import com.chatwithwork.app.AppConfig
+import com.chatwithwork.app.fragments.PageSkeleton
+import com.chatwithwork.app.fragments.PageSkeleton.Kind
 import com.chatwithwork.app.fragments.pageUnderTopBar
+import com.chatwithwork.app.fragments.skeleton
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.google.gson.Gson
@@ -211,6 +214,33 @@ class PathConfigurationTest {
 
         assertThat(properties("/482139075/settings")["open_in_browser"]).isNull()
         assertThat(properties("/accounts")["open_in_browser"]).isNull()
+    }
+
+    @Test
+    fun `every screen names its skeleton, and sign-in and files have none`() {
+        mapOf(
+            "/482139075/chats/42" to Kind.CHAT,
+            "/482139075/chats/42?from=decisions" to Kind.CHAT,
+            "/482139075/chats/new" to Kind.NEW_CHAT,
+            "/482139075/chats/new?project_id=3" to Kind.NEW_CHAT,
+            "/482139075/decisions" to Kind.LIST,
+            "/482139075/bots" to Kind.LIST,
+            "/482139075/chats" to Kind.LIST,
+            "/482139075/projects" to Kind.LIST,
+            "/482139075/settings" to Kind.SETTINGS,
+            "/482139075/settings?tab=profile" to Kind.SETTINGS,
+            "/482139075/bots/new" to Kind.FORM,
+            "/482139075/projects/3/edit" to Kind.FORM,
+            "/482139075/bots/7" to Kind.PAGE,
+            "/482139075/bots/7?tab=setup" to Kind.PAGE,
+            "/482139075/projects/3" to Kind.PAGE,
+            "/482139075/settings/connected_services" to Kind.PAGE
+        ).forEach { (path, kind) ->
+            assertWithMessage(path).that(PageSkeleton.kind("$base$path", properties(path).skeleton)).isEqualTo(kind)
+        }
+        listOf("/users/sign_in", "/users/password/new", "/482139075/chats/42/files/abc").forEach { path ->
+            assertWithMessage(path).that(PageSkeleton.kind("$base$path", properties(path).skeleton)).isNull()
+        }
     }
 
     @Test

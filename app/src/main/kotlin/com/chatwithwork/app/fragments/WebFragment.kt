@@ -34,8 +34,8 @@ open class WebFragment : HotwireWebFragment() {
     /** The bar every screen shares (TopBar), from the view's creation on. */
     private var topBar: TopBar? = null
 
-    /** A chat's skeleton, while this view lasts (ChatSkeletonOverlay). */
-    private var skeleton: ChatSkeletonOverlay? = null
+    /** The page's skeleton, while this view lasts (SkeletonOverlay). */
+    private var skeleton: SkeletonOverlay? = null
 
     /** It shows the first time this screen appears, never when coming back to a page already there. */
     private var skeletonShown = false
@@ -79,12 +79,13 @@ open class WebFragment : HotwireWebFragment() {
             onCoveredChanged(::tellPageItsTop)
         }
 
-        if (ChatSkeleton.shows(location) && !skeletonShown) {
+        val kind = PageSkeleton.kind(location, pathProperties.skeleton)
+        if (kind != null && !skeletonShown) {
             val toolbar = toolbarForNavigation() ?: return
             skeletonShown = true
-            skeleton = ChatSkeletonOverlay(view, toolbar, view.findViewById(R.id.app_bar)).apply { show() }
+            skeleton = SkeletonOverlay(view, kind, toolbar, view.findViewById(R.id.app_bar)).apply { show() }
             FirstPaint.listener = firstPaint
-            host?.onChatSkeletonShown()
+            host?.onSkeletonShown()
         }
     }
 
@@ -235,8 +236,8 @@ interface WebScreenHost {
 
     fun startNewChat()
 
-    /** A chat's skeleton is up: something chat-shaped is on screen. */
-    fun onChatSkeletonShown()
+    /** A page's skeleton is up: something page-shaped is on screen. */
+    fun onSkeletonShown()
 }
 
 /**

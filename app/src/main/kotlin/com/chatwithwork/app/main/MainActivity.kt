@@ -991,7 +991,7 @@ class MainActivity :
 
     // region What pages do
 
-    override fun onChatSkeletonShown() {
+    override fun onSkeletonShown() {
         // The skeleton is better to look at than the splash, which needn't wait for the page.
         viewModel.firstPageShown = true
     }
