@@ -1206,8 +1206,9 @@ What the app does with it:
   set, and the web search globe when `webSearch` is set (sending
   `webSearch {on}`; ink at 20% while `disabled`, when a tap shows its `note`).
   The globe is the web's `.chat-prompt__web-search-toggle`: Phosphor's
-  bold globe, muted on nothing when off, and while `on` ink on a pressed
-  square (ink at 10%, inside the web's inset shadow). They fold into "+" as
+  bold globe in the ghost buttons' 34dp square, muted on nothing when off,
+  and while `on` its filled globe in ink on a quiet wash (ink at 8%, no edge
+  or shadow), so the shape says it's on as well as the tone. They fold into "+" as
   the bar narrows: web search on a screen under 408dp, where the web's bar
   (the box, the screen less 24px) drops below 24rem, and dictation when the model chip would lose its room for a short
   name, or its logo and chevron while the mode pill shows. While web search is on and its switch is in "+", "+" carries the

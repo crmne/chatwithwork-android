@@ -1,5 +1,6 @@
 package com.chatwithwork.app.composer
 
+import com.chatwithwork.app.R
 import com.chatwithwork.app.composer.ComposerBar.Control
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
@@ -158,5 +159,13 @@ class ComposerBarTest {
         // 272 (a 320dp phone) less "+", the 56dp chip, its gap and Send.
         assertThat(ComposerBar.modeMaxWidthDp(272)).isEqualTo(120)
         assertThat(ComposerBar.modeMaxWidthDp(0)).isEqualTo(44)
+    }
+
+    @Test
+    fun `the globe fills while web search is on, and stays an outline when off or when it can't be switched`() {
+        assertThat(ComposerBar.webSearchIcon(ComposerState.WebSearch(on = true))).isEqualTo(R.drawable.ic_globe_fill)
+        assertThat(ComposerBar.webSearchIcon(ComposerState.WebSearch(on = false))).isEqualTo(R.drawable.ic_globe)
+        assertThat(ComposerBar.webSearchIcon(ComposerState.WebSearch(on = true, disabled = true)))
+            .isEqualTo(R.drawable.ic_globe)
     }
 }

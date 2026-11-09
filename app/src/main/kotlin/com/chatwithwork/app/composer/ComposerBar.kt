@@ -1,5 +1,8 @@
 package com.chatwithwork.app.composer
 
+import androidx.annotation.DrawableRes
+import com.chatwithwork.app.R
+
 /**
  * What shows in the composer's bar, one tap away, and what folds into "+", as
  * the web composer's folding bar does (components/composer.css,
@@ -30,6 +33,15 @@ object ComposerBar {
     // 24px, so it folds below a screen 408 wide (CSS pixels are dp). This bar is the screen less 48dp, its 16dp gutters
     // and the box's 8dp padding, so the same phone folds it at 360.
     private const val WEB_SEARCH_MIN_DP = 360
+
+    /**
+     * The globe's icon: Phosphor's filled globe while web search is on, its outline when off or when it can't be
+     * switched now, as the web's toggle. The shape, not only the tone, says it's on, for people who can't tell the inks
+     * apart.
+     */
+    @DrawableRes
+    fun webSearchIcon(search: ComposerState.WebSearch): Int =
+        if (search.on && !search.disabled) R.drawable.ic_globe_fill else R.drawable.ic_globe
 
     /** The mode the pill names: the selected one, unless it's Ask first, which shows nothing. */
     fun selectedMode(state: ComposerState): ComposerState.PermissionOption? =

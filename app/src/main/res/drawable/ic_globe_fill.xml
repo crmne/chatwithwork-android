@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The globe on the composer's "+" while web search is on: Phosphor's globe as the web's badge draws it
-     (icon_tag "globe", style: :fill, in .chat-prompt__attach-badge), on its 256 grid. ComposerView tints it. -->
+<!-- Phosphor's filled globe (icon_tag "globe", style: :fill), on its 256 grid: the composer's globe switched on, at 20dp
+     as ic_globe, and the small one on "+" while web search is on (.chat-prompt__attach-badge), which WebSearchBadge
+     draws at 10dp. Both tint it. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="10dp"
-    android:height="10dp"
+    android:width="20dp"
+    android:height="20dp"
     android:viewportWidth="256"
     android:viewportHeight="256">
     <path

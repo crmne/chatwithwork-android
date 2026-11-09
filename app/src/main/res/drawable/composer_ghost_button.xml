@@ -1,6 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The web composer's ghost button on touch screens (.btn-ghost.btn-square in .chat-prompt__bar): a 34dp square with 9dp corners inside its 44dp target, clear at rest, ink at 7% pressed. The globe's own is composer_toggle_button. -->
+<!-- The web composer's ghost button on touch screens (.btn-ghost.btn-square in .chat-prompt__bar): a 34dp square with
+     9dp corners inside its 44dp target, clear at rest, ink at 7% pressed. Selected is the web search globe switched on
+     (.chat-prompt__web-search-toggle[aria-pressed=true]): the same square in a quiet ink wash, ink at 8%, with no edge
+     or shadow, and ink at 13% pressed. The globe itself turns filled, so the state never rests on tone alone. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true" android:state_selected="true">
+        <inset android:inset="5dp">
+            <shape>
+                <solid android:color="@color/composer_toggle_on_pressed" />
+                <corners android:radius="9dp" />
+            </shape>
+        </inset>
+    </item>
+    <item android:state_selected="true">
+        <inset android:inset="5dp">
+            <shape>
+                <solid android:color="@color/composer_toggle_on" />
+                <corners android:radius="9dp" />
+            </shape>
+        </inset>
+    </item>
     <item android:state_pressed="true">
         <inset android:inset="5dp">
             <shape>

@@ -396,12 +396,12 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         val search = state.webSearch
         webSearchButton.isVisible = !on && search != null && ComposerBar.Control.WEB_SEARCH in bar
         if (search != null) {
-            // The web's globe (.chat-prompt__web-search-toggle): Phosphor's, muted on nothing when off, ink on a
-            // pressed square when on (composer_toggle_button), and ink at 20% on nothing when it can't be switched,
-            // as the web's disabled button (measured while an answer runs).
+            // The web's globe (.chat-prompt__web-search-toggle), in the ghost buttons' square: Phosphor's outline,
+            // muted on nothing when off; filled, in ink, on a quiet ink wash when on (composer_ghost_button selected);
+            // and the outline at ink 20% on nothing when it can't be switched, as the web's disabled button.
             webSearchButton.isSelected = search.on && !search.disabled
             webSearchButton.setImageDrawable(
-                ContextCompat.getDrawable(context, R.drawable.ic_globe)?.mutate()?.apply {
+                ContextCompat.getDrawable(context, ComposerBar.webSearchIcon(search))?.mutate()?.apply {
                     setTint(
                         when {
                             search.disabled -> ContextCompat.getColor(context, R.color.composer_stop_disabled_icon)
