@@ -32,6 +32,8 @@ data class ComposerState(
     val models: List<Model> = emptyList(),
     val permissionModes: PermissionModes? = null,
     val webSearch: WebSearch? = null,
+    /** The + menu's Narrow services, where the page offers it; absent from older servers. */
+    val narrowing: Narrowing? = null,
     val dictation: Dictation? = null,
     val csrfToken: String? = null,
     val attachments: List<Attachment> = emptyList(),
@@ -61,6 +63,10 @@ data class ComposerState(
 
     @Serializable
     data class WebSearch(val on: Boolean = false, val disabled: Boolean = false, val note: String? = null)
+
+    /** [title] is the item's ("Narrow services"), [note] what the person's services are kept to now. */
+    @Serializable
+    data class Narrowing(val title: String = "", val note: String? = null)
 
     @Serializable
     data class Dictation(val url: String)

@@ -1174,8 +1174,8 @@ gutters. The page leaves room to scroll its last answer above the box.
 
 | Event | Direction | Data |
 |---|---|---|
-| `connect`, then `state` | web to app | `{overlay?, visible?, placeholder, text?, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb, iconName?, icon?, invertIcon?}], permissionModes?, webSearch: {on, disabled, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
-| reply to `connect` | app to web | `{action: "send", text}`, `{action: "stop"}`, `{action: "model", index}`, `{action: "permissionMode", value}`, `{action: "webSearch", on}`, `{action: "attach", files: [{name, type, data}]}` (data base64), `{action: "remove", id}`, `{action: "text", text}`, `{action: "layout", height, width}` |
+| `connect`, then `state` | web to app | `{overlay?, visible?, placeholder, text?, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb, iconName?, icon?, invertIcon?}], permissionModes?, webSearch: {on, disabled, note} \| null, narrowing?: {title, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
+| reply to `connect` | app to web | `{action: "send", text}`, `{action: "stop"}`, `{action: "model", index}`, `{action: "permissionMode", value}`, `{action: "webSearch", on}`, `{action: "narrow"}`, `{action: "attach", files: [{name, type, data}]}` (data base64), `{action: "remove", id}`, `{action: "text", text}`, `{action: "layout", height, width}` |
 
 A chat draws its composer again as an answer starts and ends; each new one
 connects again, and the app always replies to the latest `connect`. A page
@@ -1224,6 +1224,19 @@ What the app does with it:
   as `attach`, base64, at most 25 MB each (larger ones are named in a
   snackbar and left out). Each attachment shows as a chip with its name, its
   size or upload progress, and remove (`remove {id}`).
+- **Narrow services (2026-11-09)**: `narrowing` is `{title, note}` only
+  where the web's + menu has its Narrow services item (the person has a
+  service that can be kept to some of its accounts or projects in this
+  chat), and null or absent otherwise, older servers included, which show
+  no row. `title` is the item's ("Narrow services") and `note` what it's
+  kept to now ("Everything connected", "Google Drive ·
+  alex@northwind.example"), possibly null. "+" shows it as one row after
+  the tiles and web search and before "Changes", styled as the modes' rows,
+  with the web item's funnel (the `filter_alt` symbol) and the note under
+  the title; it counts toward "+" holding something. A tap dismisses the
+  sheet and sends `narrow`, which clicks the web's item and opens its
+  dialog; while that's open `visible` is false, so the native composer
+  hides (see above). The pill's Changes-only sheet leaves it out.
 - **The mode pill (2026-11-06)**, after the globe, only when the selected
   option's `value` isn't `ask`, hidden while dictating: a 34dp fully rounded
   pill in a 44dp target, read from `permissionModes` alone. `edits` is the

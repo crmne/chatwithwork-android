@@ -36,7 +36,8 @@ import kotlinx.serialization.json.put
  *   starts and ends; each new one connects again, and replies go to the
  *   latest `connect`.
  * - Native to web, as replies to `connect`, `{action, ...}`: `send {text}`,
- *   `stop`, `model {index}`, `webSearch {on}`, `attach {files}`,
+ *   `stop`, `model {index}`, `webSearch {on}`, `permissionMode {value}`,
+ *   `narrow` (opens the web's Narrow services), `attach {files}`,
  *   `remove {id}`, and `text {text}` (dictated words).
  */
 class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate<HotwireDestination>) :
@@ -123,6 +124,10 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
 
                 override fun webSearch(on: Boolean) = this@ComposerComponent.webSearch(on)
 
+                override fun narrow() {
+                    replyTo("connect", narrowReply().toString())
+                }
+
                 override fun permissionMode(value: String) {
                     if (this@ComposerComponent.view?.state?.canSelectPermissionMode(value) == true) {
                         reply("permissionMode") { put("value", value) }
@@ -207,16 +212,22 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
     }
 
     private fun reply(action: String, fill: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit = {}) {
-        val data: JsonObject =
-            buildJsonObject {
-                put("action", JsonPrimitive(action))
-                fill()
-            }
-        replyTo("connect", data.toString())
+        replyTo("connect", actionReply(action, fill).toString())
     }
 
     companion object {
         val factory = BridgeComponentFactory("composer", ::ComposerComponent)
+
+        internal fun actionReply(
+            action: String,
+            fill: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit = {}
+        ): JsonObject = buildJsonObject {
+            put("action", JsonPrimitive(action))
+            fill()
+        }
+
+        /** Opens the web's Narrow services dialog; the page then sends `visible: false` until it closes. */
+        internal fun narrowReply(): JsonObject = actionReply("narrow")
 
         internal fun layoutReply(height: Int, width: Int): JsonObject = buildJsonObject {
             put("action", "layout")
