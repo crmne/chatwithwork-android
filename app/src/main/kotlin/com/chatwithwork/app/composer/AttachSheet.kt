@@ -25,7 +25,8 @@ import com.google.android.material.materialswitch.MaterialSwitch
  * needs no permission), Files, Scan (ML Kit's document scanner, one PDF),
  * what the bar had no room for ([ComposerBar.Sheet.folded]): Dictate
  * when the page offers dictation, and Web search as a switch when the page
- * offers it; and Changes, the modes the page offers. The mode pill opens it
+ * offers it; Narrow services when the page offers it, which opens the web's
+ * dialog; and Changes, the modes the page offers. The mode pill opens it
  * with Changes alone ([ComposerBar.Sheet.CHANGES]).
  */
 object AttachSheet {
@@ -41,6 +42,8 @@ object AttachSheet {
         fun dictate()
 
         fun webSearch(on: Boolean)
+
+        fun narrow()
 
         fun permissionMode(value: String)
     }
@@ -95,6 +98,26 @@ object AttachSheet {
                 isEnabled = !search.disabled
                 setOnCheckedChangeListener { _, on -> choices.webSearch(on) }
             }
+        }
+
+        val narrowingRow = content.findViewById<LinearLayout>(R.id.attach_narrowing)
+        val narrowing = state.narrowing?.takeIf { sheet.narrowing }
+        narrowingRow.isVisible = narrowing != null
+        if (narrowing != null) {
+            // Styled as the modes' rows, with the web item's funnel (icon_tag "funnel-simple").
+            val item = inflater.inflate(R.layout.action_sheet_item, narrowingRow, false)
+            item.findViewById<TextView>(R.id.action_sheet_item_label).text = narrowing.title
+            item.findViewById<TextView>(R.id.action_sheet_item_subtitle).apply {
+                text = narrowing.note
+                isVisible = !narrowing.note.isNullOrBlank()
+            }
+            item.findViewById<ImageView>(R.id.action_sheet_item_icon)
+                .setImageDrawable(SymbolDrawable(context, "filter_alt", color = ink))
+            item.setOnClickListener {
+                dialog.dismiss()
+                choices.narrow()
+            }
+            narrowingRow.addView(item)
         }
 
         val permissions = content.findViewById<LinearLayout>(R.id.attach_permissions)

@@ -71,6 +71,17 @@ class ComposerBarTest {
     }
 
     @Test
+    fun `Narrow services shows in the plus menu only where the page offers it`() {
+        val state = ComposerState(acceptsFiles = false, narrowing = ComposerState.Narrowing("Narrow services"))
+        val sheet = ComposerBar.inSheet(state, emptySet())
+        assertThat(sheet.narrowing).isTrue()
+        assertThat(sheet.empty).isFalse()
+        assertThat(ComposerBar.inSheet(state.copy(narrowing = null), emptySet()).narrowing).isFalse()
+        // The mode pill's sheet is Changes alone.
+        assertThat(ComposerBar.Sheet.CHANGES.narrowing).isFalse()
+    }
+
+    @Test
     fun `the model chip never takes Send's room`() {
         // A 360dp phone's 320dp bar with "+", the microphone and the globe: 320 - 3 * 44 - 8 - 44.
         assertThat(ComposerBar.modelMaxWidthDp(320, buttons = 3)).isEqualTo(136)

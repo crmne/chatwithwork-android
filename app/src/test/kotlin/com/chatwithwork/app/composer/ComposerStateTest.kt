@@ -68,6 +68,21 @@ class ComposerStateTest {
     }
 
     @Test
+    fun `reads Narrow services, and an older server's state has none`() {
+        val narrowed = json.decodeFromString<ComposerState>(
+            """{"narrowing":{"title":"Narrow services","note":"Google Drive · alex@northwind.example"}}"""
+        )
+        assertThat(narrowed.narrowing?.title).isEqualTo("Narrow services")
+        assertThat(narrowed.narrowing?.note).isEqualTo("Google Drive · alex@northwind.example")
+
+        val noNote = json.decodeFromString<ComposerState>("""{"narrowing":{"title":"Narrow services","note":null}}""")
+        assertThat(noNote.narrowing?.note).isNull()
+
+        assertThat(json.decodeFromString<ComposerState>("""{"narrowing":null}""").narrowing).isNull()
+        assertThat(json.decodeFromString<ComposerState>(sample).narrowing).isNull()
+    }
+
+    @Test
     fun `model maker artwork is optional for older servers`() {
         val state = json.decodeFromString<ComposerState>(
             """{"models":[{"name":"GPT","selected":true,"iconName":"openai","invertIcon":true,"icon":"https://example.com/openai.svg"}]}"""

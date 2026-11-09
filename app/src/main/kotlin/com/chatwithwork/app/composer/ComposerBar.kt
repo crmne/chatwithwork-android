@@ -75,16 +75,25 @@ object ComposerBar {
 
     private fun chipMinDp(modeDp: Int) = if (modeDp > 0) CHIP_MIN_BESIDE_MODE_DP else CHIP_MIN_DP
 
-    /** What "+" holds: attaching, when the page takes files, whatever didn't fit in the bar, and the modes. */
+    /**
+     * What "+" holds: attaching, when the page takes files, whatever didn't fit in the bar, Narrow services when the
+     * page offers it, and the modes.
+     */
     fun inSheet(state: ComposerState, bar: Set<Control>, dictationSupported: Boolean = Dictation.supported): Sheet =
         Sheet(
             attach = state.acceptsFiles,
             folded = offered(state, dictationSupported).filterNot { it in bar }.toSet(),
-            permissions = state.permissionModes != null
+            permissions = state.permissionModes != null,
+            narrowing = state.narrowing != null
         )
 
-    data class Sheet(val attach: Boolean, val folded: Set<Control>, val permissions: Boolean = false) {
-        val empty: Boolean get() = !attach && folded.isEmpty() && !permissions
+    data class Sheet(
+        val attach: Boolean,
+        val folded: Set<Control>,
+        val permissions: Boolean = false,
+        val narrowing: Boolean = false
+    ) {
+        val empty: Boolean get() = !attach && folded.isEmpty() && !permissions && !narrowing
 
         companion object {
             /** What the mode pill opens: the same sheet, showing only Changes. */

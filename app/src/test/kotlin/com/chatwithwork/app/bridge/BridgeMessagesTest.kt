@@ -21,6 +21,13 @@ class BridgeMessagesTest {
         assertThat(payload["width"]?.jsonPrimitive?.content).isEqualTo("1206")
     }
 
+    @Test
+    fun `composer's Narrow services reply is the narrow action alone`() {
+        val payload = ComposerComponent.narrowReply()
+        assertThat(payload["action"]?.jsonPrimitive?.content).isEqualTo("narrow")
+        assertThat(payload.keys).containsExactly("action")
+    }
+
     private val json =
         Json {
             ignoreUnknownKeys = true

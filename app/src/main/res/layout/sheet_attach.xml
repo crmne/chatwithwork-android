@@ -2,7 +2,8 @@
 <!--
   The composer's "+": add something (camera, photos, files, a scan), what
   the bar had no room for (ComposerBar): dictate, and web search as a switch
-  when the organization allows it, and Changes, the modes. The mode pill opens
+  when the organization allows it, Narrow services when the page offers
+  it, and Changes, the modes. The mode pill opens
   Changes alone. The model stays in the composer, so this never becomes a
   drawer of everything.
 -->
@@ -80,6 +81,14 @@
                 android:layout_height="wrap_content" />
 
         </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/attach_narrowing"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical"
+            android:visibility="gone" />
 
         <LinearLayout
             android:id="@+id/attach_permissions"
