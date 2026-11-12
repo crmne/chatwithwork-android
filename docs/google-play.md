@@ -6,6 +6,33 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.7
+
+Version 1.2.7 (10207) keeps a dictation that couldn't be transcribed, to try
+again or discard ([#55](https://github.com/crmne/chatwithwork-android/pull/55)),
+shows a skeleton of every page before it paints
+([#57](https://github.com/crmne/chatwithwork-android/pull/57)), opens the chats
+or Bots page on a second tap of the chosen half
+([#59](https://github.com/crmne/chatwithwork-android/pull/59)), offers Narrow
+services in the + menu
+([#61](https://github.com/crmne/chatwithwork-android/pull/61)), draws the web
+search globe switched on as its neighbours' square
+([#62](https://github.com/crmne/chatwithwork-android/pull/62)), and takes the
+week's dependency updates
+([#60](https://github.com/crmne/chatwithwork-android/pull/60)). Tag `v1.2.7`.
+
+The signed, Firebase-enabled bundle was built with `script/bundle-release
+v1.2.7` on 2026-11-12, and its upload signature verified. It's meant for
+Production and Open testing, replacing 1.2.4, as 1.2.4 went: through Internal
+testing, then promoted to both in one submission, full rollout, same countries.
+So What's new, `changelogs/10207.txt`, covers what people will notice since
+1.2.4, 1.2.6's digital assistant and the icon's shortcuts among it. It hasn't
+been uploaded yet: there's no Play service account for the API, so it waits
+for Play Console.
+
+Validation: the release build's features match the list under Permissions.
+The bundle wasn't tried on a device.
+
 ## Release 1.2.6
 
 Version 1.2.6 (10206) brings the default digital assistant and the icon's
