@@ -26,9 +26,21 @@ v1.2.7` on 2026-11-12, and its upload signature verified. It's meant for
 Production and Open testing, replacing 1.2.4, as 1.2.4 went: through Internal
 testing, then promoted to both in one submission, full rollout, same countries.
 So What's new, `changelogs/10207.txt`, covers what people will notice since
-1.2.4, 1.2.6's digital assistant and the icon's shortcuts among it. It hasn't
-been uploaded yet: there's no Play service account for the API, so it waits
-for Play Console.
+1.2.4, 1.2.6's digital assistant and the icon's shortcuts among it.
+
+On 2026-11-12, 1.2.4 had been live on Production and Open testing since
+November 9, with nothing in review. The bundle went to Internal testing at
+19:18 Europe/Berlin (published at once, replacing 1.2.6), and was promoted to
+Production (replacing 1.2.4) and Open testing (replacing 1.2.4), full rollout,
+same 173 countries and regions, in one submission sent at 19:23. The same
+submission carries App content > App-level trader status, saved as "Yes, my
+trader status applies to this app" (inherited from the account's trader
+declaration of November 7) with https://chatwithwork.com/terms-of-service as
+the Terms of Service. Managed publishing is off, so each track publishes as
+soon as Google approves it. Play's quick checks passed and Publishing overview
+says the changes are in review. The review demo login was refreshed with
+`script/store/seed production review` just before. No devices were lost, and
+the only warning was the usual one about native debug symbols.
 
 Validation: the release build's features match the list under Permissions.
 The bundle wasn't tried on a device.
