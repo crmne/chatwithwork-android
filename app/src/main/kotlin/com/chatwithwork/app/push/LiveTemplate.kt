@@ -2,11 +2,25 @@ package com.chatwithwork.app.push
 
 import android.app.PendingIntent
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Typeface
 import android.graphics.drawable.Icon
 import android.os.Build
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.StyleSpan
 import androidx.annotation.ChecksSdkIntAtLeast
+import androidx.annotation.DrawableRes
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.IconCompat
+import com.chatwithwork.app.R
+import java.io.ByteArrayOutputStream
 
 /**
  * A Live Update in Android 16's own template, the one the system promotes:
@@ -20,39 +34,116 @@ import androidx.core.content.ContextCompat
  * (`Notification.hasPromotableCharacteristics`), so the drawn card
  * ([LiveCard]) stays below Android 16, where nothing is promoted.
  *
- * While it works the bar is the live wire: the system's moving bar in the live
- * colour, which says only that work is happening now, never how far along it
- * is, since nobody knows. A wait for the person or an end has no bar at all:
- * the words, the face and the colour say it. The bot's face, as a sticker,
- * sits beside the words; a person's chat has Chat with Work's logo in the
- * header already and no face, so it shows none.
+ * Laid out like the best of them (a ride's car on its way): a bold line of
+ * what it's doing, the steps under it, the road with the bot walking it, and
+ * the bot's face, on its own paper, as the picture on the right. The road is
+ * [LivePresentation.road]: a segment per step, as long as the time it took,
+ * the bot always at the same place with the open road ahead, so it never
+ * reads as how far along it is. A wait for the person turns the road ahead
+ * amber and says so in a chip; a finished road is green and walked to its
+ * end; a failed or stopped one is flat grey. In a person's chat Chat with
+ * Work's mark walks it, and there's no picture: the header has the logo.
  */
 object LiveTemplate {
     @get:ChecksSdkIntAtLeast(api = Build.VERSION_CODES.BAKLAVA)
     val promotes: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA
 
+    /** The picture beside the words, in pixels: Android shows it at 48dp at most. */
+    private const val PICTURE_PX = 192
+
+    /** The bot on the road: Android draws the tracker at most 24dp tall. */
+    private const val TRACKER_PX = 96
+
     fun dress(
         builder: NotificationCompat.Builder,
         context: Context,
         shown: LivePresentation,
+        title: String,
+        text: String?,
         open: PendingIntent
     ): NotificationCompat.Builder {
-        if (shown.isWorking) {
-            // An indeterminate bar takes its first segment's colour.
-            builder.setStyle(
-                NotificationCompat.ProgressStyle()
-                    .setProgressSegments(
-                        listOf(
-                            NotificationCompat.ProgressStyle.Segment(1)
-                                .setColor(ContextCompat.getColor(context, shown.color))
-                        )
-                    )
-                    .setProgressIndeterminate(true)
+        val road = shown.road
+        builder.setStyle(
+            NotificationCompat.ProgressStyle()
+                .setProgressSegments(
+                    road.stretches.map {
+                        NotificationCompat.ProgressStyle.Segment(it.length).setColor(color(context, it.tone))
+                    }
+                )
+                .setProgress(road.at)
+                .setProgressTrackerIcon(IconCompat.createFromIcon(context, tracker(context, shown)))
+        )
+        builder.setContentTitle(bold(title))
+        builder.setContentText(subtitle(context, shown, text))
+        if (!shown.isChat) {
+            builder.setLargeIcon(
+                mark(context, shown.mark.sticker, ContextCompat.getColor(context, shown.paperColor), PICTURE_PX, 0.12f)
             )
         }
-        shown.sticker?.let { builder.setLargeIcon(Icon.createWithResource(context, it)) }
         shown.chip?.let { builder.setShortCriticalText(context.getString(it)) }
         shown.action?.let { builder.addAction(0, context.getString(it), open) }
         return builder.setSmallIcon(shown.templateIcon)
+    }
+
+    private fun color(context: Context, tone: LivePresentation.Tone): Int = ContextCompat.getColor(
+        context,
+        when (tone) {
+            LivePresentation.Tone.WALKED, LivePresentation.Tone.AHEAD -> R.color.lw_live_ink
+            LivePresentation.Tone.WAITING -> R.color.lw_attention_ink
+            LivePresentation.Tone.ARRIVED -> R.color.lw_positive_ink
+            LivePresentation.Tone.REFUSED, LivePresentation.Tone.FLAT -> R.color.lw_ink_muted
+        }
+    )
+
+    private fun tracker(context: Context, shown: LivePresentation): Icon = if (shown.isChat) {
+        Icon.createWithResource(context, shown.tracker)
+    } else {
+        mark(context, shown.tracker, ContextCompat.getColor(context, shown.paperColor), TRACKER_PX, 0f)
+    }
+
+    private fun bold(title: String): CharSequence = SpannableStringBuilder(title).apply {
+        setSpan(StyleSpan(Typeface.BOLD), 0, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    /**
+     * The steps, after what it waits for when it waits for the person. Plain
+     * words: Android 16 drops colour from a promoted notification's text, so
+     * the amber is the road ahead's and the status bar chip's word.
+     */
+    private fun subtitle(context: Context, shown: LivePresentation, text: String?): String? {
+        if (!shown.isWaiting) return text
+        val steps = shown.walked.takeIf { it > 0 }?.let {
+            context.resources.getQuantityString(R.plurals.live_update_steps, it, it)
+        }
+        return listOfNotNull(context.getString(R.string.live_update_waiting_for_you), steps).joinToString(" · ")
+    }
+
+    /**
+     * The bot mark drawn on its paper: the sticker (white body, black lines),
+     * its white multiplied by the bot's colour, so the lines stay black. As PNG
+     * data, a few hundred bytes, never a bitmap in the notification.
+     */
+    private fun mark(context: Context, @DrawableRes sticker: Int, paper: Int, size: Int, inset: Float): Icon {
+        val bitmap = createBitmap(size, size)
+        val canvas = Canvas(bitmap)
+        val margin = (size * inset).toInt()
+        ContextCompat.getDrawable(context, sticker)?.apply {
+            setBounds(margin, margin, size - margin, size - margin)
+            draw(canvas)
+        }
+        canvas.drawRect(
+            0f,
+            0f,
+            size.toFloat(),
+            size.toFloat(),
+            Paint().apply {
+                color = paper
+                xfermode = PorterDuffXfermode(PorterDuff.Mode.MULTIPLY)
+            }
+        )
+        val png = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, png)
+        bitmap.recycle()
+        return Icon.createWithData(png.toByteArray(), 0, png.size())
     }
 }

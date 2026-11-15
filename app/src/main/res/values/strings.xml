@@ -183,6 +183,7 @@
     <string name="live_update_approval_in">Approve a change in %1$s</string>
     <string name="live_update_input">A question for you</string>
     <string name="live_update_waiting">Waiting</string>
+    <string name="live_update_waiting_for_you">Waiting for you</string>
     <string name="live_update_in">in</string>
     <string name="live_update_starting">Starting</string>
     <string name="live_update_failed">Couldn\'t finish</string>

@@ -102,14 +102,25 @@ that chat, in Chats, inside the right organization.
   and ColorOS 16's Live Alerts and Fluid Cloud, One UI's Now Bar). The chip is
   the bot mark's face (`BotMark::FACES`, `live_mark_*`) and a word of seven
   letters at most (`LivePresentation.chip`: Think, Search, Write, Review,
-  Reply...). While it works the bar is the live wire, the system's moving
-  bar in the live colour: work happening now, never how far along it is. No
-  segments per step: a bar that fills or grows reads as progress, and the
-  head of a road of time already spent only ever sits at its right end. A
-  wait for the person and an end have no bar; the words, the face and the colour say
-  it, and a wait carries Review or Reply. A bot's sticker face
-  (`live_sticker_*`) sits beside the words; a person's chat shows none, as
-  the header already has the logo. The header's clock is the system
+  Reply...). Laid out like a ride's Live Update: a bold line of what it's
+  doing, the steps under it, the road with the bot walking it, and the bot's
+  face on its own paper (`paper`, `Bot::Colours`, multiplied into the
+  sticker's white, `live_sticker_*`) as the picture on the right. The road is
+  `ProgressStyle`'s segments, one per step, as long as its `pace` tick is tall,
+  so length is time spent; refused steps grey. The bot (the tracker) always
+  stands two thirds along with the open road ahead of it, never creeping
+  towards an end: as steps come, those behind it get shorter. So it never
+  reads as how far along it is, the reason the first road (a bar of time
+  already spent, its head at the right end) gave way to the moving bar on
+  2026-11-07. Android draws a plain bar for more than 10 segments, so the
+  oldest steps join into the first. Before the first step the bot stands at
+  the start. A wait for the person turns the road ahead amber, says "Waiting
+  for you" before the steps (Android drops colour from a promoted
+  notification's text, so the amber is the road's and the chip's word), and
+  carries Review or Reply. A finished road is green and walked to its end
+  with the happy face; a failed or stopped one is flat grey, the bot where it
+  stopped. In a person's chat Chat with Work's mark (`ic_mark`) walks the road
+  and there's no picture, as the header already has the logo. The header's clock is the system
   chronometer. An end isn't ongoing, so it isn't promoted, and says its steps
   and time in words. Checked on the API 36.1 emulator (BE4B.251210.005): `PROMOTED_ONGOING`,
   the chip, lock screen and shade. The 36.0 image (BE2A) never promotes.

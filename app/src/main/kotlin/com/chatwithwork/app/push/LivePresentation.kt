@@ -18,12 +18,36 @@ data class LivePresentation(
     val agents: Int? = null,
     val pace: String? = null,
     /** Who's at work, as the server says it: `chat` draws the logo, anything else the bot. */
-    val assistant: String? = null
+    val assistant: String? = null,
+    /** The bot's colour, the paper of its mark (`Bot::Colours`), by name; chalk, the white sticker, when unknown. */
+    val paper: String? = null
 ) {
     enum class State { STARTING, WORKING, AGENTS, WRITING, DECISION, INPUT, FINISHED, FAILED, STOPPED, QUIET }
 
     /** The small thing the bot holds up beside it for a step. */
     enum class Tool { SEARCH, READ, LIST, USE, PLAN, RUN, WRITE, ASK }
+
+    /**
+     * How a stretch of Android 16's road is coloured: steps walked in the live
+     * colour, refused ones grey, the road ahead of the bot in the colour of
+     * what it waits on, a finished road green, and a failed or stopped one flat.
+     */
+    enum class Tone { WALKED, REFUSED, AHEAD, WAITING, ARRIVED, FLAT }
+
+    /** One stretch of the template's road: as long as the time its steps took, never a share of a whole. */
+    data class Stretch(val length: Int, val tone: Tone)
+
+    /**
+     * The road as Android 16's template draws it ([LiveTemplate]): [stretches]
+     * oldest first, and the bot (the tracker) at [at], the end of the road
+     * walked. It sits at the same place however long the answer runs, with the
+     * open road ahead of it, so it never creeps towards an end like progress:
+     * the steps behind it get shorter as more come. Only a finished road is
+     * walked to its end.
+     */
+    data class Road(val stretches: List<Stretch>, val at: Int) {
+        val length: Int get() = stretches.sumOf { it.length }
+    }
 
     /** One step seen, as tall as the time it took where the server says. [refused]: it failed or was turned down. */
     data class Tick(val height: Float, val refused: Boolean)
@@ -118,6 +142,12 @@ data class LivePresentation(
     /** The bot's face beside the words in Android 16's template; a person's chat has the logo in its header. */
     val sticker: Int? get() = if (isChat) null else mark.sticker
 
+    /** Who walks the template's road: the bot with its face, or in a person's chat Chat with Work's mark. */
+    val tracker: Int get() = if (isChat) R.drawable.ic_mark else mark.sticker
+
+    /** The paper of the bot's mark, a colour resource: only the palette's colours pass, anything else is chalk. */
+    val paperColor: Int get() = PAPERS[paper] ?: PAPERS.getValue("chalk")
+
     val mark: Mark get() = when (state) {
         State.STARTING, State.AGENTS, State.WORKING -> if (step == "read") Mark.WRITING else Mark.THINKING
 
@@ -156,6 +186,41 @@ data class LivePresentation(
             "write" -> R.string.live_update_chip_write
             else -> R.string.live_update_chip_think
         }
+    }
+
+    /**
+     * The template's road: a stretch per step, as long as its tick is tall,
+     * so length is time spent. Android draws a plain bar in place of more
+     * than [MAX_STRETCHES] segments, so the oldest steps join into the first,
+     * which keeps the whole road's time, and one is the road ahead.
+     */
+    val road: Road get() {
+        val flat = state == State.FAILED || state == State.STOPPED || state == State.QUIET
+        val walked = ticks.map { tick ->
+            val tone = when {
+                flat -> Tone.FLAT
+                tick.refused -> Tone.REFUSED
+                state == State.FINISHED -> Tone.ARRIVED
+                else -> Tone.WALKED
+            }
+            Stretch(tick.height.toInt(), tone)
+        }.let { all ->
+            if (all.size < MAX_STRETCHES) {
+                all
+            } else {
+                val older = all.dropLast(MAX_STRETCHES - 2)
+                val tone = older.map { it.tone }.distinct().singleOrNull() ?: older.last().tone
+                listOf(Stretch(older.sumOf { it.length }, tone)) + all.takeLast(MAX_STRETCHES - 2)
+            }
+        }
+        val behind = walked.sumOf { it.length }
+        if (state == State.FINISHED) {
+            // An answer that ended before the card heard a step still arrived.
+            return if (behind > 0) Road(walked, behind) else Road(listOf(Stretch(1, Tone.ARRIVED)), 1)
+        }
+        val ahead = Tone.WAITING.takeIf { isWaiting } ?: if (flat || state == State.FINISHED) Tone.FLAT else Tone.AHEAD
+        val aheadLength = if (behind == 0) 1 else maxOf(1, behind * AHEAD_PARTS / BEHIND_PARTS)
+        return Road(walked + Stretch(aheadLength, ahead), behind)
     }
 
     /** What the bot holds up while it works on a step. */
@@ -264,14 +329,33 @@ data class LivePresentation(
         else -> R.color.lw_ink_muted
     }
 
-    private companion object {
-        const val MAX_TICKS = 48
+    companion object {
+        private const val MAX_TICKS = 48
 
-        const val DEEP_AFTER = 24
-        const val MAX_STOPS = 5
-        const val MAX_AGENT_BOTS = 3
-        const val EVEN_HEIGHT = 14f
-        val PACE_HEIGHTS = mapOf('1' to 6f, '2' to 13f, '3' to 21f, '4' to 29f)
-        val KNOWN_PHASES = setOf("answering", "approval_waiting", "input_requested", "answered", "stopped")
+        /** The Rails app's `Bot::Colours::PALETTE` by name, as colour resources the same in both themes. */
+        val PAPERS = mapOf(
+            "chalk" to R.color.bot_paper_chalk,
+            "peach" to R.color.bot_paper_peach,
+            "sand" to R.color.bot_paper_sand,
+            "sage" to R.color.bot_paper_sage,
+            "mist" to R.color.bot_paper_mist,
+            "lilac" to R.color.bot_paper_lilac,
+            "rose" to R.color.bot_paper_rose,
+            "stone" to R.color.bot_paper_stone
+        )
+
+        /** Android 16 draws one plain bar in place of more segments than this. */
+        private const val MAX_STRETCHES = 10
+
+        /** Where the bot stands on the template's road: two parts walked to one ahead, always. */
+        private const val BEHIND_PARTS = 2
+        private const val AHEAD_PARTS = 1
+
+        private const val DEEP_AFTER = 24
+        private const val MAX_STOPS = 5
+        private const val MAX_AGENT_BOTS = 3
+        private const val EVEN_HEIGHT = 14f
+        private val PACE_HEIGHTS = mapOf('1' to 6f, '2' to 13f, '3' to 21f, '4' to 29f)
+        private val KNOWN_PHASES = setOf("answering", "approval_waiting", "input_requested", "answered", "stopped")
     }
 }
