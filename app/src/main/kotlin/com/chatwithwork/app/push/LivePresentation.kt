@@ -145,7 +145,7 @@ data class LivePresentation(
     /** Who walks the template's road: the bot with its face, or in a person's chat Chat with Work's mark. */
     val tracker: Int get() = if (isChat) R.drawable.ic_mark else mark.sticker
 
-    /** The paper of the bot's mark, as ARGB: only the palette's colours pass, anything else is chalk. */
+    /** The paper of the bot's mark, a colour resource: only the palette's colours pass, anything else is chalk. */
     val paperColor: Int get() = PAPERS[paper] ?: PAPERS.getValue("chalk")
 
     val mark: Mark get() = when (state) {
@@ -214,7 +214,10 @@ data class LivePresentation(
             }
         }
         val behind = walked.sumOf { it.length }
-        if (state == State.FINISHED && behind > 0) return Road(walked, behind)
+        if (state == State.FINISHED) {
+            // An answer that ended before the card heard a step still arrived.
+            return if (behind > 0) Road(walked, behind) else Road(listOf(Stretch(1, Tone.ARRIVED)), 1)
+        }
         val ahead = Tone.WAITING.takeIf { isWaiting } ?: if (flat || state == State.FINISHED) Tone.FLAT else Tone.AHEAD
         val aheadLength = if (behind == 0) 1 else maxOf(1, behind * AHEAD_PARTS / BEHIND_PARTS)
         return Road(walked + Stretch(aheadLength, ahead), behind)
@@ -329,16 +332,16 @@ data class LivePresentation(
     companion object {
         private const val MAX_TICKS = 48
 
-        /** The Rails app's `Bot::Colours::PALETTE`, pale with black lines in both themes. */
+        /** The Rails app's `Bot::Colours::PALETTE` by name, as colour resources the same in both themes. */
         val PAPERS = mapOf(
-            "chalk" to 0xFFFFFFFF.toInt(),
-            "peach" to 0xFFF7C8B2.toInt(),
-            "sand" to 0xFFE9DDC4.toInt(),
-            "sage" to 0xFFC3DCC0.toInt(),
-            "mist" to 0xFFC2D5EE.toInt(),
-            "lilac" to 0xFFD8CBF3.toInt(),
-            "rose" to 0xFFF4C2D5.toInt(),
-            "stone" to 0xFFCFCBC4.toInt()
+            "chalk" to R.color.bot_paper_chalk,
+            "peach" to R.color.bot_paper_peach,
+            "sand" to R.color.bot_paper_sand,
+            "sage" to R.color.bot_paper_sage,
+            "mist" to R.color.bot_paper_mist,
+            "lilac" to R.color.bot_paper_lilac,
+            "rose" to R.color.bot_paper_rose,
+            "stone" to R.color.bot_paper_stone
         )
 
         /** Android 16 draws one plain bar in place of more segments than this. */

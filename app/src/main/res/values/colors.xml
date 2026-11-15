@@ -87,4 +87,13 @@
     <color name="composer_toggle_on_pressed">#210A0D14</color>
     <!-- A file chip's remove button pressed, as the web's hovered .attachment__remove: ink at 8%. -->
     <color name="composer_remove_pressed">#140A0D14</color>
+    <!-- Bots' papers (Rails' Bot::Colours::PALETTE): the same in both themes, so not in values-night. -->
+    <color name="bot_paper_chalk">#FFFFFF</color>
+    <color name="bot_paper_peach">#F7C8B2</color>
+    <color name="bot_paper_sand">#E9DDC4</color>
+    <color name="bot_paper_sage">#C3DCC0</color>
+    <color name="bot_paper_mist">#C2D5EE</color>
+    <color name="bot_paper_lilac">#D8CBF3</color>
+    <color name="bot_paper_rose">#F4C2D5</color>
+    <color name="bot_paper_stone">#CFCBC4</color>
 </resources>

@@ -181,7 +181,10 @@ object LiveUpdates {
                 progress.agents,
                 if (progress.trail != null) progress.pace else shown.extras.getString(EXTRA_PACE),
                 progress.assistant ?: shown.extras.getString(EXTRA_ASSISTANT),
-                progress.paper ?: shown.extras.getString(EXTRA_PAPER)
+                // What this chat last heard, as Android may not have published the newest card yet.
+                progress.paper
+                    ?: preferences(context).getString(PAPER_PREFIX + progress.thread, null)
+                    ?: shown.extras.getString(EXTRA_PAPER)
             )
         progress.paper?.let { paper -> preferences(context).edit { putString(PAPER_PREFIX + progress.thread, paper) } }
         val notification =

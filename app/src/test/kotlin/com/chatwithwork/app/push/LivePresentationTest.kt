@@ -355,6 +355,11 @@ class LivePresentationTest {
             LivePresentation.Tone.REFUSED
         ).inOrder()
 
+        // An answer that ended before the card heard a step still arrived.
+        assertThat(LivePresentation("answered").road).isEqualTo(
+            LivePresentation.Road(listOf(LivePresentation.Stretch(1, LivePresentation.Tone.ARRIVED)), 1)
+        )
+
         for (phase in listOf("failed", "stopped", "future_state")) {
             val road = LivePresentation(phase, trail = trail).road
             assertThat(road.stretches.map { it.tone }.distinct()).containsExactly(LivePresentation.Tone.FLAT)
@@ -364,9 +369,11 @@ class LivePresentationTest {
 
     @Test
     fun `the bot walks on its own paper, and a person's chat has the logo walk it`() {
-        assertThat(LivePresentation("answering", "search", paper = "sage").paperColor).isEqualTo(0xFFC3DCC0.toInt())
-        assertThat(LivePresentation("answering", "search", paper = "neon").paperColor).isEqualTo(0xFFFFFFFF.toInt())
-        assertThat(LivePresentation("answering", "search").paperColor).isEqualTo(0xFFFFFFFF.toInt())
+        assertThat(LivePresentation("answering", "search", paper = "sage").paperColor).isEqualTo(R.color.bot_paper_sage)
+        assertThat(
+            LivePresentation("answering", "search", paper = "neon").paperColor
+        ).isEqualTo(R.color.bot_paper_chalk)
+        assertThat(LivePresentation("answering", "search").paperColor).isEqualTo(R.color.bot_paper_chalk)
         assertThat(LivePresentation("answering", "search", assistant = "chat").tracker).isEqualTo(R.drawable.ic_mark)
         assertThat(LivePresentation("approval_waiting", assistant = "bot").tracker)
             .isEqualTo(R.drawable.live_sticker_waiting)

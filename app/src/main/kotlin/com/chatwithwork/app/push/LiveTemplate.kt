@@ -75,7 +75,11 @@ object LiveTemplate {
         )
         builder.setContentTitle(bold(title))
         builder.setContentText(subtitle(context, shown, text))
-        if (!shown.isChat) builder.setLargeIcon(mark(context, shown.mark.sticker, shown.paperColor, PICTURE_PX, 0.12f))
+        if (!shown.isChat) {
+            builder.setLargeIcon(
+                mark(context, shown.mark.sticker, ContextCompat.getColor(context, shown.paperColor), PICTURE_PX, 0.12f)
+            )
+        }
         shown.chip?.let { builder.setShortCriticalText(context.getString(it)) }
         shown.action?.let { builder.addAction(0, context.getString(it), open) }
         return builder.setSmallIcon(shown.templateIcon)
@@ -94,7 +98,7 @@ object LiveTemplate {
     private fun tracker(context: Context, shown: LivePresentation): Icon = if (shown.isChat) {
         Icon.createWithResource(context, shown.tracker)
     } else {
-        mark(context, shown.tracker, shown.paperColor, TRACKER_PX, 0f)
+        mark(context, shown.tracker, ContextCompat.getColor(context, shown.paperColor), TRACKER_PX, 0f)
     }
 
     private fun bold(title: String): CharSequence = SpannableStringBuilder(title).apply {
