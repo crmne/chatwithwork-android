@@ -6,6 +6,34 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.8
+
+Version 1.2.8 (10208) shows an answer left running as a road in Android 16's
+Live Update: a segment per step as long as it took, the bot walking it two
+thirds along on its own colour, the road ahead amber while a change waits and
+green once the answer is ready
+([#63](https://github.com/crmne/chatwithwork-android/pull/63)), and the bot
+filling the picture beside the words
+([#64](https://github.com/crmne/chatwithwork-android/pull/64)). Tag `v1.2.8`.
+The bot's colour needs the server's `paper` key (crmne/chatwithwork 931045d1);
+without it the bot is white.
+
+1.2.7 had published on Production and Open testing by November 15: on
+2026-11-15 Publishing overview said "Last published on November 15, 2026",
+with no submissions in review, and Production's latest release was 10207
+(1.2.7).
+
+The signed, Firebase-enabled bundle was built with `script/bundle-release
+v1.2.8` on 2026-11-15, and its upload signature verified. It went to Internal
+testing only, published at once at 22:03 Europe/Berlin (replacing 1.2.7
+there), with the What's new in `changelogs/10208.txt`. Play's preview showed
+no change in supported devices and only the usual warning about native debug
+symbols. Production and Open testing still have 1.2.7; promoting 1.2.8 to
+them is Carmine's call.
+
+Validation: the Live Update changes were checked on the API 36.1 emulator
+with synthetic content, in dark and light. The bundle wasn't tried on a device.
+
 ## Release 1.2.7
 
 Version 1.2.7 (10207) keeps a dictation that couldn't be transcribed, to try
