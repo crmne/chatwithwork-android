@@ -1,0 +1,1 @@
+An answer you leave running shows as a road in Android 16's Live Update: a step for each thing it did, as long as it took, with the bot walking it on its own colour. The road ahead turns amber when a change waits for you, and green when the answer is ready. In your own chats, Chat with Work's mark walks it.
