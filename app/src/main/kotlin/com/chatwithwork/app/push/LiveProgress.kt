@@ -36,7 +36,9 @@ data class LiveProgress(
     val trail: String? = null,
     val pace: String? = null,
     val agents: Int? = null,
-    val heardAt: Long? = null
+    val heardAt: Long? = null,
+    /** The bot's colour by name (`Bot::Colours`), absent in a person's chat and from older servers. */
+    val paper: String? = null
 ) {
     /** Still answering. */
     val isWorking: Boolean get() = phase == ANSWERING
@@ -105,7 +107,8 @@ data class LiveProgress(
                 trail = trail(data["trail"]),
                 pace = pace(data["pace"], data["trail"]),
                 agents = data["agents"]?.toIntOrNull(),
-                heardAt = data["heard_at"]?.toLongOrNull()?.let { it * 1000 }
+                heardAt = data["heard_at"]?.toLongOrNull()?.let { it * 1000 },
+                paper = data["paper"]?.takeIf { it in LivePresentation.PAPERS }
             )
         }
     }

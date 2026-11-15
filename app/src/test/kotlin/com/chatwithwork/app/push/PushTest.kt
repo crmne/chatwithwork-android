@@ -92,6 +92,15 @@ class PushTest {
     }
 
     @Test
+    fun `takes a bot's paper only from the palette`() {
+        val data =
+            mapOf("kind" to "progress", "path" to path, "thread" to "chat-482139075-42", "phase" to "answering")
+        assertThat(LiveProgress.from(data + ("paper" to "sage"))?.paper).isEqualTo("sage")
+        assertThat(LiveProgress.from(data + ("paper" to "#ff0000"))?.paper).isNull()
+        assertThat(LiveProgress.from(data)?.paper).isNull()
+    }
+
+    @Test
     fun `asks this server for a notification's words, only by an id shaped like the server's`() {
         assertThat(NotificationWords.url("c2VjcmV0--aXY--dGFn_x-y"))
             .isEqualTo("${AppConfig.baseUrl}/native/notifications/c2VjcmV0--aXY--dGFn_x-y")

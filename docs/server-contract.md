@@ -713,7 +713,7 @@ Only `answered`, `failed` and `stopped` end a run. `approval_waiting` and
 The server repeats the state every 4 minutes with `heard_at`, also while
 waiting, which renews the card's 30-minute timeout. Also optional, and
 content-free, for the card's road (below): `service`, `services` (JSON string),
-`trail`, `pace`, `agents`, and `heard_at`.
+`trail`, `pace`, `agents`, `heard_at`, and `paper`.
 
 The app keeps one record per thread (`LiveRuns`, kept apart from the card):
 the run, its start, the newest revision heard and whether it was dismissed.
@@ -751,6 +751,13 @@ draws Chat with Work's logo (at the road's head below Android 16) and its
 silhouette in the status bar (`LivePresentation.isChat`); `bot`, a bot's chat or run, or nothing from an
 older server, which draws the bot and its faces.
 
+Optional `paper` (2026-11-15), in a bot's chat or run, is the bot's colour by
+name from `Bot::Colours::PALETTE` (`chalk`, `peach`, `sand`, `sage`, `mist`,
+`lilac`, `rose`, `stone`), the paper of its mark: Android 16's template draws
+the bot on it, and the app drops any other value. Without it, the bot is
+chalk, the white sticker. The app remembers it per chat, so the card it
+posts on leaving starts on the right paper.
+
 Optional `recent_steps`, which older app versions show, is ignored now: the
 road says the same thing.
 
@@ -765,7 +772,8 @@ seconds, 2 under 10, 3 under 60, 4 a minute or more; without exactly that, every
 tick is the same height. `agents`, from 2, forks the road into two lanes or three
 bots and a count. Below Android 16 the app draws the iOS card as a custom
 notification, and from 16 the road is the template's segments
-(`docs/push-notifications.md`); upper-case letters show faded or grey.
+(`docs/push-notifications.md`): one per step, as long as its `pace`, with the
+bot two thirds along and the open road ahead; upper-case letters show faded or grey.
 
 An `end` message carries only `phase`, `message`, `run`, `revision`,
 `started_at` and `heard_at`: the card keeps its last steps, trail and services

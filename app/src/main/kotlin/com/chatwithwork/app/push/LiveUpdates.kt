@@ -65,6 +65,10 @@ object LiveUpdates {
     private const val EXTRA_ASSISTANT = "com.chatwithwork.app.LIVE_UPDATE_ASSISTANT"
     private const val EXTRA_SERVICES = "com.chatwithwork.app.LIVE_UPDATE_SERVICES"
     private const val EXTRA_STARTED_AT = "com.chatwithwork.app.LIVE_UPDATE_STARTED_AT"
+    private const val EXTRA_PAPER = "com.chatwithwork.app.LIVE_UPDATE_PAPER"
+
+    /** The bot's colour each chat's card last heard, so the next card for it starts on the right paper. */
+    private const val PAPER_PREFIX = "paper:"
     private const val PREFERENCES = "live_updates"
 
     /** Goes up as the session ends, so a request begun before can't act after it. */
@@ -108,7 +112,12 @@ object LiveUpdates {
                 context,
                 url,
                 organization ?: context.getString(R.string.app_name),
-                LivePresentation(LiveProgress.ANSWERING, step, assistant = assistant),
+                LivePresentation(
+                    LiveProgress.ANSWERING,
+                    step,
+                    assistant = assistant,
+                    paper = preferences(context).getString(PAPER_PREFIX + thread, null)
+                ),
                 null,
                 startedAt,
                 startedAt
@@ -171,8 +180,10 @@ object LiveUpdates {
                 progress.services.ifEmpty { shown.extras.getStringArrayList(EXTRA_SERVICES).orEmpty() },
                 progress.agents,
                 if (progress.trail != null) progress.pace else shown.extras.getString(EXTRA_PACE),
-                progress.assistant ?: shown.extras.getString(EXTRA_ASSISTANT)
+                progress.assistant ?: shown.extras.getString(EXTRA_ASSISTANT),
+                progress.paper ?: shown.extras.getString(EXTRA_PAPER)
             )
+        progress.paper?.let { paper -> preferences(context).edit { putString(PAPER_PREFIX + progress.thread, paper) } }
         val notification =
             if (!progress.isEnd) {
                 ongoing(
@@ -236,8 +247,9 @@ object LiveUpdates {
             )
     }
 
-    private fun lastSentAt(context: Context, thread: String): Long =
-        context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE).getLong(thread, 0)
+    private fun lastSentAt(context: Context, thread: String): Long = preferences(context).getLong(thread, 0)
+
+    private fun preferences(context: Context) = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
 
     /**
      * A signed-out identity must leave no per-chat push state on this
@@ -431,9 +443,10 @@ object LiveUpdates {
                         putString(EXTRA_PACE, shown.pace)
                         putString(EXTRA_ASSISTANT, shown.assistant)
                         putStringArrayList(EXTRA_SERVICES, ArrayList(shown.services))
+                        putString(EXTRA_PAPER, shown.paper)
                     }
                 )
-        if (LiveTemplate.promotes) return LiveTemplate.dress(builder, context, shown, open(context, url))
+        if (LiveTemplate.promotes) return LiveTemplate.dress(builder, context, shown, title, text, open(context, url))
         val view =
             LiveCard(context, shown, title, organization, stepsText(context, shown.walked), clock, open(context, url))
         return builder

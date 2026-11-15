@@ -297,4 +297,78 @@ class LivePresentationTest {
         assertThat(LivePresentation("failed").sticker).isEqualTo(R.drawable.live_sticker_flat)
         assertThat(LivePresentation("answering", "search", assistant = "chat").sticker).isNull()
     }
+
+    @Test
+    fun `the template's road is time spent per step, with the bot two thirds along and the road open ahead`() {
+        val road = LivePresentation("answering", "search", trail = "srR", pace = "142").road
+        assertThat(road.stretches).containsExactly(
+            LivePresentation.Stretch(6, LivePresentation.Tone.WALKED),
+            LivePresentation.Stretch(29, LivePresentation.Tone.WALKED),
+            LivePresentation.Stretch(13, LivePresentation.Tone.REFUSED),
+            LivePresentation.Stretch(24, LivePresentation.Tone.AHEAD)
+        ).inOrder()
+        assertThat(road.at).isEqualTo(48)
+        // An older server sends only a count: even stretches.
+        val counted = LivePresentation("answering", "search", steps = 3).road
+        assertThat(counted.stretches.dropLast(1).map { it.length }.distinct()).hasSize(1)
+    }
+
+    @Test
+    fun `the bot stays where it is however long the answer runs`() {
+        listOf("1", "1414", "4".repeat(30)).forEach { pace ->
+            val road = LivePresentation("answering", "search", trail = "s".repeat(pace.length), pace = pace).road
+            assertThat(road.at.toDouble() / road.length).isWithin(0.03).of(2.0 / 3)
+        }
+    }
+
+    @Test
+    fun `before its first step the bot stands at the start of an open road`() {
+        val road = LivePresentation("answering", "answer").road
+        assertThat(road.at).isEqualTo(0)
+        assertThat(road.stretches).containsExactly(LivePresentation.Stretch(1, LivePresentation.Tone.AHEAD))
+    }
+
+    @Test
+    fun `a long road joins its oldest steps into the first stretch, keeping its whole time`() {
+        val trail = "s".repeat(14)
+        val pace = "1".repeat(6) + "4".repeat(8)
+        val shown = LivePresentation("answering", "search", trail = trail, pace = pace)
+        val road = shown.road
+        assertThat(road.stretches).hasSize(10)
+        assertThat(road.stretches.first().length).isEqualTo(6 * 6)
+        assertThat(road.at).isEqualTo(shown.ticks.sumOf { it.height.toInt() })
+    }
+
+    @Test
+    fun `the road ahead says what it waits on, a finished road is walked to its end, and a failed one is flat`() {
+        val trail = "srs"
+        assertThat(LivePresentation("approval_waiting", trail = trail).road.stretches.last().tone)
+            .isEqualTo(LivePresentation.Tone.WAITING)
+        assertThat(LivePresentation("input_requested", trail = trail).road.stretches.last().tone)
+            .isEqualTo(LivePresentation.Tone.WAITING)
+
+        val finished = LivePresentation("answered", trail = "srS").road
+        assertThat(finished.at).isEqualTo(finished.length)
+        assertThat(finished.stretches.map { it.tone }).containsExactly(
+            LivePresentation.Tone.ARRIVED,
+            LivePresentation.Tone.ARRIVED,
+            LivePresentation.Tone.REFUSED
+        ).inOrder()
+
+        for (phase in listOf("failed", "stopped", "future_state")) {
+            val road = LivePresentation(phase, trail = trail).road
+            assertThat(road.stretches.map { it.tone }.distinct()).containsExactly(LivePresentation.Tone.FLAT)
+            assertThat(road.at).isLessThan(road.length)
+        }
+    }
+
+    @Test
+    fun `the bot walks on its own paper, and a person's chat has the logo walk it`() {
+        assertThat(LivePresentation("answering", "search", paper = "sage").paperColor).isEqualTo(0xFFC3DCC0.toInt())
+        assertThat(LivePresentation("answering", "search", paper = "neon").paperColor).isEqualTo(0xFFFFFFFF.toInt())
+        assertThat(LivePresentation("answering", "search").paperColor).isEqualTo(0xFFFFFFFF.toInt())
+        assertThat(LivePresentation("answering", "search", assistant = "chat").tracker).isEqualTo(R.drawable.ic_mark)
+        assertThat(LivePresentation("approval_waiting", assistant = "bot").tracker)
+            .isEqualTo(R.drawable.live_sticker_waiting)
+    }
 }
