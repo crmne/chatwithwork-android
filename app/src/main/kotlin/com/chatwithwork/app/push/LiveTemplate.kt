@@ -51,6 +51,13 @@ object LiveTemplate {
     /** The picture beside the words, in pixels: Android shows it at 48dp at most. */
     private const val PICTURE_PX = 192
 
+    /** Room left at each side of the picture, so the bot fills it as a ride's driver photo does, never clipped. */
+    private const val PICTURE_INSET = 0.03f
+
+    /** The mark's 16 by 16 grid, and the middle of its bubble's rows (2 to 15), which the drawing centres on. */
+    private const val GRID = 16
+    private const val BODY_MIDDLE = 8.5f
+
     /** The bot on the road: Android draws the tracker at most 24dp tall. */
     private const val TRACKER_PX = 96
 
@@ -77,7 +84,13 @@ object LiveTemplate {
         builder.setContentText(subtitle(context, shown, text))
         if (!shown.isChat) {
             builder.setLargeIcon(
-                mark(context, shown.mark.sticker, ContextCompat.getColor(context, shown.paperColor), PICTURE_PX, 0.12f)
+                mark(
+                    context,
+                    shown.mark.sticker,
+                    ContextCompat.getColor(context, shown.paperColor),
+                    PICTURE_PX,
+                    PICTURE_INSET
+                )
             )
         }
         shown.chip?.let { builder.setShortCriticalText(context.getString(it)) }
@@ -120,15 +133,19 @@ object LiveTemplate {
 
     /**
      * The bot mark drawn on its paper: the sticker (white body, black lines),
-     * its white multiplied by the bot's colour, so the lines stay black. As PNG
-     * data, a few hundred bytes, never a bitmap in the notification.
+     * its white multiplied by the bot's colour, so the lines stay black. Whole
+     * pixels per square, so its edges stay sharp, and its bubble centred, as
+     * the grid's top rows are empty. As PNG data, a few hundred bytes, never a
+     * bitmap in the notification.
      */
     private fun mark(context: Context, @DrawableRes sticker: Int, paper: Int, size: Int, inset: Float): Icon {
         val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
-        val margin = (size * inset).toInt()
+        val square = (size * (1 - 2 * inset) / GRID).toInt()
+        val left = (size - square * GRID) / 2
+        val top = (size / 2f - BODY_MIDDLE * square).toInt()
         ContextCompat.getDrawable(context, sticker)?.apply {
-            setBounds(margin, margin, size - margin, size - margin)
+            setBounds(left, top, left + square * GRID, top + square * GRID)
             draw(canvas)
         }
         canvas.drawRect(
