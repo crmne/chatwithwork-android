@@ -754,9 +754,11 @@ older server, which draws the bot and its faces.
 Optional `paper` (2026-11-15), in a bot's chat or run, is the bot's colour by
 name from `Bot::Colours::PALETTE` (`chalk`, `peach`, `sand`, `sage`, `mist`,
 `lilac`, `rose`, `stone`), the paper of its mark: Android 16's template draws
-the bot on it, and the app drops any other value. Without it, the bot is
-chalk, the white sticker. The app remembers it per chat, so the card it
-posts on leaving starts on the right paper.
+the bot on it, and the app drops any other value. The app remembers the
+last one per chat, so the card it posts on leaving starts on the right
+paper, and a message without it keeps that paper: chalk, the white sticker,
+only while none was ever heard. The server sends it on every message of a
+bot's run, so a changed colour (chalk included) replaces the remembered one.
 
 Optional `recent_steps`, which older app versions show, is ignored now: the
 road says the same thing.
