@@ -156,6 +156,8 @@ object LiveUpdates {
         context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE).edit {
             putLong(progress.thread, progress.sentAt)
         }
+        // Kept even with no card showing, so the next card for this chat starts on it.
+        progress.paper?.let { paper -> preferences(context).edit { putString(PAPER_PREFIX + progress.thread, paper) } }
         if (showing == null) return
         val shown = showing.notification
         if (run == null && progress.sentAt <= shown.extras.getLong(EXTRA_SENT_AT, 0)) return
@@ -186,7 +188,6 @@ object LiveUpdates {
                     ?: preferences(context).getString(PAPER_PREFIX + progress.thread, null)
                     ?: shown.extras.getString(EXTRA_PAPER)
             )
-        progress.paper?.let { paper -> preferences(context).edit { putString(PAPER_PREFIX + progress.thread, paper) } }
         val notification =
             if (!progress.isEnd) {
                 ongoing(
