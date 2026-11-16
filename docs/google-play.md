@@ -28,8 +28,16 @@ v1.2.8` on 2026-11-15, and its upload signature verified. It went to Internal
 testing only, published at once at 22:03 Europe/Berlin (replacing 1.2.7
 there), with the What's new in `changelogs/10208.txt`. Play's preview showed
 no change in supported devices and only the usual warning about native debug
-symbols. Production and Open testing still have 1.2.7; promoting 1.2.8 to
-them is Carmine's call.
+symbols.
+
+On 2026-11-16, with Carmine's approval, 1.2.8 was promoted from Internal
+testing to Production (replacing 1.2.7), full rollout, same 173 countries and
+regions, with the same What's new. Only Production changed: Open testing still
+has 1.2.7. The submission was sent at about 04:50 Europe/Berlin; Play's preview
+showed no change in supported devices and only the usual warning about native
+debug symbols, and Production says "Release 10208 (1.2.8) in review". Managed
+publishing is off, so it goes live as soon as Google approves it. There is no
+Play service account for the Developer API, so this was done in Play Console.
 
 Validation: the Live Update changes were checked on the API 36.1 emulator
 with synthetic content, in dark and light. The bundle wasn't tried on a device.
