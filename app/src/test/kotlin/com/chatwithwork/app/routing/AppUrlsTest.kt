@@ -19,6 +19,12 @@ class AppUrlsTest {
     }
 
     @Test
+    fun `the app opens on the organization's home, or the unprefixed one before it knows the organization`() {
+        assertThat(AppUrls.home("482139075")).isEqualTo("$base/482139075/home")
+        assertThat(AppUrls.home(null)).isEqualTo("$base/home")
+    }
+
+    @Test
     fun `a different port is a different server`() {
         val other = base.replace(Regex(":\\d+$"), "") + ":4000"
         assertThat(AppUrls.isAppUrl("$other/chats")).isFalse()

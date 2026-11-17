@@ -134,6 +134,8 @@ class PathConfigurationTest {
     @Test
     fun `every place replaces the root, so nothing stacks under it`() {
         listOf(
+            "/482139075/home",
+            "/home",
             "/482139075/decisions",
             "/482139075/decisions?decision=t7&view=now",
             "/482139075/bots",

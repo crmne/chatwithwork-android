@@ -33,6 +33,13 @@ object AppUrls {
     /** New bot, inside [account] when it's known. */
     fun newBot(account: String?): String = page("/bots/new", account)
 
+    /**
+     * Where the app opens: the organization's home, which the server sends on
+     * to Decisions once it has something to show, else New chat, as signing
+     * in on the web does (docs/server-contract.md, "Places").
+     */
+    fun home(account: String?): String = page("/home", account)
+
     /** The Decisions page, inside [account] when it's known. */
     fun decisions(account: String?): String = page("/decisions", account)
 

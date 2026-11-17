@@ -397,10 +397,10 @@ class MainActivity :
 
     /**
      * Where the app opens: a chat it was sent to, else the chat the person
-     * left under ten minutes ago while it was still answering, else a new
-     * chat in the list the sidebar last showed. Before the app knows an
-     * organization, the unprefixed new chat, which the server redirects into
-     * the one used last.
+     * left under ten minutes ago while it was still answering, else the
+     * organization's home, which the server sends on to Decisions or New
+     * chat, as the web lands. Before the app knows an organization, the
+     * unprefixed home, which the server redirects into the one used last.
      */
     private fun startLocation(): String {
         viewModel.startLocation?.let { return it }
@@ -412,7 +412,7 @@ class MainActivity :
         // With no connection New chat can't load, but the chat last shown may
         // have a copy kept for reading offline (docs/server-contract.md).
         if (!isOnline()) account?.let(memory::lastChat)?.let { return it }
-        return account?.let { memory.newChatPath(it) }?.let(AppUrls::absolute) ?: AppUrls.newChat(account)
+        return AppUrls.home(account)
     }
 
     private fun isOnline(): Boolean {
