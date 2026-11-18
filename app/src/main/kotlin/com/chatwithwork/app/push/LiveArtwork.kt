@@ -16,6 +16,8 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.graphics.drawable.Icon
+import android.text.TextPaint
+import android.text.TextUtils
 import android.util.TypedValue
 import androidx.annotation.ColorInt
 import androidx.annotation.ColorRes
@@ -79,10 +81,11 @@ object LiveArtwork {
         @ColorInt color: Int,
         logo: String? = null,
         after: String? = null,
-        logoSizeSp: Float = 0f
+        logoSizeSp: Float = 0f,
+        maxWidthDp: Float? = null
     ): Picture {
         val metrics = context.resources.displayMetrics
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             this.color = color
             textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, type.sizeSp, metrics)
             typeface = ResourcesCompat.getFont(context, type.font)
@@ -93,6 +96,12 @@ object LiveArtwork {
         val hasLogo = logoSize > 0 && LiveServices.of(logo) != null
         val fit = paint.fontMetrics
         val height = ceil(max(fit.descent - fit.ascent, logoSize)).toInt()
+        // Words that may run long (a chat's title) are cut short at the end rather than shrunk to fit.
+        val words =
+            maxWidthDp?.let {
+                TextUtils.ellipsize(words, paint, it * metrics.density, TextUtils.TruncateAt.END).toString()
+            }
+                ?: words
         val first = paint.measureText(words)
         val second = after?.let { paint.measureText(it) } ?: 0f
         val width = first + (if (hasLogo) gap + logoSize else 0f) + (if (after != null) gap + second else 0f)

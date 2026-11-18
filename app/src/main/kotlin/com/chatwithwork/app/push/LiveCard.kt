@@ -47,17 +47,14 @@ class LiveCard(
     }
 
     fun expanded() = RemoteViews(context.packageName, R.layout.notification_live_card).apply {
+        val headingInk = if (shown.chatTitle != null) R.color.road_ink else R.color.road_ink_muted
         words(
             R.id.live_organization,
             heading,
             ORGANIZATION,
-            if (shown.chatTitle !=
-                null
-            ) {
-                R.color.road_ink
-            } else {
-                R.color.road_ink_muted
-            }
+            headingInk,
+            maxWidthDp =
+                roadWidth(context) - HEADING_BESIDE
         )
         words(R.id.live_steps, steps.orEmpty(), STEPS, R.color.road_ink_muted)
         setViewVisibility(R.id.live_steps, visible(steps != null))
@@ -78,9 +75,10 @@ class LiveCard(
         @ColorRes color: Int,
         logo: String? = null,
         after: String? = null,
-        logoSizeSp: Float = 0f
+        logoSizeSp: Float = 0f,
+        maxWidthDp: Float? = null
     ) {
-        val picture = LiveArtwork.words(context, text, type, color(color), logo, after, logoSizeSp)
+        val picture = LiveArtwork.words(context, text, type, color(color), logo, after, logoSizeSp, maxWidthDp)
         setImageViewIcon(view, picture.icon)
         setInt(view, "setMaxHeight", picture.height)
         setContentDescription(view, listOfNotNull(text, after).joinToString(" "))
@@ -190,6 +188,9 @@ class LiveCard(
         private val BAND_WAITING = LiveArtwork.Type(R.font.geist_mono_medium, 10.5f)
         private val BAND_ACTION = LiveArtwork.Type(R.font.geist_semibold, 13.5f)
         private const val HEADLINE_LOGO = 20f
+
+        /** What shares the heading's row, in dp: the mark, its gap, and room for the steps count. */
+        private const val HEADING_BESIDE = 15f + 7f + 88f
         private const val BAND_LOGO = 14f
 
         /** What the shade's sides and the card's own padding leave of the screen: Android 16's indent is wider. */

@@ -6,6 +6,11 @@ import com.chatwithwork.app.AppConfig
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.FutureTask
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+import kotlin.concurrent.thread
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -52,6 +57,10 @@ object LiveTitles {
     data class Kept(val run: String? = null, val title: Title = Title())
 
     private const val TIMEOUT_MS = 3_000
+
+    /** Goes up as the session ends, so a request begun before can't keep a title after it. */
+    @Volatile
+    private var session = 0
     private const val PREFERENCES = "live_titles"
     private val ID = Regex("[A-Za-z0-9_=-]+")
     private val json = Json { ignoreUnknownKeys = true }
@@ -77,17 +86,43 @@ object LiveTitles {
         val id = progress.titleRef ?: return
         if (!needsFetch(kept(context, progress.thread), progress.run)) return
         val key = PushNotifications.notificationKey(context) ?: return
-        keep(context, progress.thread, progress.run, fetch(id, key) ?: return)
+        val askedIn = session
+        val title = fetchWithin(id, key) ?: return
+        keep(context, progress.thread, progress.run, title, askedIn)
     }
 
-    /** Keeps what the server said of [thread]'s chat for [run]. */
-    fun keep(context: Context, thread: String, run: String?, title: Title) {
+    /** Keeps what the server said of [thread]'s chat for [run], unless the session it was asked in has ended. */
+    @Synchronized
+    fun keep(context: Context, thread: String, run: String?, title: Title, askedIn: Int = session) {
+        if (askedIn != session) return
         preferences(context).edit { putString(thread, json.encodeToString(Kept(run, title))) }
     }
 
-    /** Signing out forgets every chat's title. */
+    /** Signing out forgets every chat's title, and any still being asked for. */
+    @Synchronized
     fun forget(context: Context) {
+        session++
         preferences(context).edit { clear() }
+    }
+
+    /**
+     * [fetch] with one deadline for the whole lookup, since the step it heads
+     * waits for it: a slow answer is dropped after [TIMEOUT_MS], and the card
+     * shows the step's words.
+     */
+    private fun fetchWithin(id: String, key: String): Title? {
+        val lookup = FutureTask { fetch(id, key) }
+        thread(isDaemon = true, name = "live-title") { lookup.run() }
+        return try {
+            lookup.get(TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
+        } catch (_: TimeoutException) {
+            lookup.cancel(true)
+            null
+        } catch (_: ExecutionException) {
+            null
+        } catch (_: InterruptedException) {
+            null
+        }
     }
 
     /** The title [id] names, or null. Blocks: call it off the main thread. */
