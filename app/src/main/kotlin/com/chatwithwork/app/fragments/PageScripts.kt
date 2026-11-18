@@ -31,7 +31,12 @@ object PageScripts {
               if (scrollable && element.scrollTop > 0) return
               element = element.parentElement
             }
-            if (window.TurboSession) window.TurboSession.elementTouchStarted(false)
+            // Hotwire Native 1.4 reaches the app through TurboSessionChannel; earlier versions had window.TurboSession.
+            if (window.TurboSessionChannel) {
+              window.TurboSessionChannel.postMessage(JSON.stringify({ name: "elementTouchStarted", args: [ false ] }))
+            } else if (window.TurboSession) {
+              window.TurboSession.elementTouchStarted(false)
+            }
           }, { passive: true })
         })()
         """.trimIndent()
