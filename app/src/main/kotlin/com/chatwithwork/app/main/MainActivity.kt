@@ -584,10 +584,18 @@ class MainActivity :
      * what was there (Places). A Turbo replace on the root takes its place.
      */
     override fun openPath(path: String) {
-        closeSidebarNow()
-        val navigator = navigator ?: return
         val location = AppUrls.absolute(path)
-        when (Places.opening(Hotwire.config.pathConfiguration.properties(location))) {
+        val properties = Hotwire.config.pathConfiguration.properties(location)
+        // A modal (Rename, Move to project) opens over a drawer still sliding
+        // shut and holds it there, so it would slide away again as the modal
+        // closes: shut it at once.
+        if (properties.context == PresentationContext.MODAL) {
+            drawer.closeDrawer(GravityCompat.START, false)
+        } else {
+            closeSidebarNow()
+        }
+        val navigator = navigator ?: return
+        when (Places.opening(properties)) {
             Places.Opening.ROUTE -> navigator.route(location)
 
             Places.Opening.REPLACE_ROOT -> navigator.clearAll {
