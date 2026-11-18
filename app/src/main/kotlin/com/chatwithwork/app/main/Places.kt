@@ -1,5 +1,6 @@
 package com.chatwithwork.app.main
 
+import com.chatwithwork.app.routing.AppUrls
 import dev.hotwire.core.turbo.config.PathConfigurationProperties
 import dev.hotwire.core.turbo.config.context
 import dev.hotwire.core.turbo.config.presentation
@@ -30,4 +31,13 @@ object Places {
         properties.presentation == Presentation.REPLACE_ROOT -> Opening.ROUTE
         else -> Opening.REPLACE_ROOT
     }
+
+    /**
+     * Where the app's own New chat goes in [account]: the organization's New
+     * chat while the sidebar is the server's page ([serverSidebar]), whose
+     * choices the native sidebar's saved list (a project chosen there,
+     * [nativePath]) would otherwise outlive; that list otherwise.
+     */
+    fun newChat(account: String?, serverSidebar: Boolean, nativePath: String?): String =
+        nativePath?.takeUnless { serverSidebar }?.let(AppUrls::absolute) ?: AppUrls.newChat(account)
 }

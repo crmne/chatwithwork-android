@@ -638,11 +638,17 @@ class MainActivity :
      */
     private fun newChatUrl(): String {
         val account = viewModel.account ?: memory.lastAccount
-        if (sidebarPage.pagePath != null) return AppUrls.newChat(account)
-        val path =
+        // A cold start's shortcut or share asks before the sidebar is set up: the page it's about to load then.
+        val serverSidebar =
+            if (::sidebarPage.isInitialized) {
+                sidebarPage.pagePath != null
+            } else {
+                memory.hasSignedIn && !viewModel.signedOut && account?.let(memory::sidebarPage) != null
+            }
+        val nativePath =
             viewModel.sidebar?.takeIf { it.organization.id == account }?.links?.newChat
                 ?: account?.let { memory.newChatPath(it) }
-        return path?.let(AppUrls::absolute) ?: AppUrls.newChat(account)
+        return Places.newChat(account, serverSidebar, nativePath)
     }
 
     /** New bot in the list the sidebar's Bots view shows; the server's rule for who may make one stands. */

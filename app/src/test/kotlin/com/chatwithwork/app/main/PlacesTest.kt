@@ -1,6 +1,7 @@
 package com.chatwithwork.app.main
 
 import com.chatwithwork.app.AppConfig
+import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.google.gson.Gson
 import dev.hotwire.core.turbo.config.PathConfigurationData
@@ -44,5 +45,17 @@ class PlacesTest {
             "/482139075/bots/new"
         )
             .forEach { assertWithMessage(it).that(opening(it)).isEqualTo(Places.Opening.ROUTE) }
+    }
+
+    @Test
+    fun `New chat is the organization's own while the sidebar is the server's page, the saved list's otherwise`() {
+        val base = AppConfig.baseUrl
+        val saved = "/482139075/chats/new?project_id=3"
+        assertThat(Places.newChat("482139075", serverSidebar = true, nativePath = saved))
+            .isEqualTo("$base/482139075/chats/new")
+        assertThat(Places.newChat("482139075", serverSidebar = false, nativePath = saved)).isEqualTo("$base$saved")
+        assertThat(Places.newChat("482139075", serverSidebar = false, nativePath = null))
+            .isEqualTo("$base/482139075/chats/new")
+        assertThat(Places.newChat(null, serverSidebar = false, nativePath = null)).isEqualTo("$base/chats/new")
     }
 }
