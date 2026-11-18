@@ -200,7 +200,7 @@ open class WebFragment : HotwireWebFragment() {
         super.onVisitErrorReceived(location, error)
         if (error is HttpError.ClientError.Unauthorized) host?.onSignedOut(this)
         // A server from before the organization's home answers it 404: New chat, as earlier builds opened.
-        if (AppUrls.opensNewChatInstead(location, (error as? HttpError)?.statusCode)) host?.onHomeMissing()
+        if (AppUrls.opensNewChatInstead(location, (error as? HttpError)?.statusCode)) host?.onHomeMissing(this)
     }
 
     override fun onVisitRendered(location: String) {
@@ -238,8 +238,8 @@ interface WebScreenHost {
 
     fun startNewChat()
 
-    /** The organization's home answered 404 (a server from before it): open New chat instead. */
-    fun onHomeMissing()
+    /** The organization's home, in [destination], answered 404 (a server from before it): open New chat instead. */
+    fun onHomeMissing(destination: HotwireDestination)
 
     /** A page's skeleton is up: something page-shaped is on screen. */
     fun onSkeletonShown()

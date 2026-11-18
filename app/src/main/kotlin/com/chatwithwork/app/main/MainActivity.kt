@@ -619,8 +619,14 @@ class MainActivity :
         navigator?.route(newChatUrl())
     }
 
-    override fun onHomeMissing() {
-        root.post { navigator?.route(newChatUrl()) }
+    override fun onHomeMissing(destination: HotwireDestination) {
+        // Signed out, New chat would read as a session (routeDecision); signing in starts on the home again.
+        if (viewModel.signedOut || viewModel.signingIn) return
+        root.post {
+            // Only while that home still shows: a link opened since stays.
+            val navigator = navigator ?: return@post
+            if (navigator.currentDestination === destination) navigator.route(newChatUrl())
+        }
     }
 
     /**

@@ -456,8 +456,11 @@ Links the app handles itself:
   the app knows the organization), which the server sends on to Decisions or
   New chat. A server from before 2026-11-17, every self-hosted release up to
   v0.15.0 among them, answers it 404: the app then opens the organization's
-  New chat (the list the sidebar last chose), as earlier builds did. Only a
-  404 on that start page does this; any other failure shows the error
+  New chat (the list the sidebar last chose), as earlier builds did. A 404
+  on `/<organization>/home` (or `/home`) does this whenever it comes, as
+  long as that page is still the one on screen and someone is signed in
+  (signed out, the next sign-in starts on the home again). A 401 there
+  shows the welcome screen, as anywhere; other failures show the error
   screen.
 
 **Chats readable offline (server, 2026-11-04).** The pages register the
