@@ -118,6 +118,21 @@ flashes as toasts). What differs on Android:
   at its top. The app also stops it while a finger is inside an inner
   scroller that isn't at its top, so a drawer that scrolls doesn't refresh
   by accident, but a document that scrolls is what makes it right.
+- **Pull to refresh brings the page up to date in place** (2026-11-18).
+  The pull calls the page's `window.chatWithWork.refresh()`
+  (`PullToRefresh`), which morphs a fresh copy of a chat's frame in
+  (what's typed, the focus and the scroll kept) or refreshes any other page
+  by morphing it, and keeps the spinner until `window.chatWithWork.refreshing`
+  is false, at most 10 seconds. A page without `chatWithWork` (an older
+  server) gets Hotwire Native's refresh, a cold reload. Hotwire Native sets
+  its listener each time it prepares the screen, so `WebFragment` takes it
+  over on every start. The page's touchstart listener (`PageScripts`) tells
+  Hotwire Native the pull may start through `window.TurboSessionChannel`
+  (Hotwire Native 1.4 has no `window.TurboSession`).
+- **Coming back from the background needs nothing from the app.** The web
+  view fires `visibilitychange` as the app returns, and the page reopens its
+  connection and brings a chat up to date in place itself (the server's
+  docs/ui/chat.md, "Coming back").
 - **No sideways scrolling.** A page wider than the screen pans sideways in
   the Android web view. `/chats/new` does today: `.new-chat__backdrop`
   (`inset: -2rem -30vw`) relies on its container to clip it, and without

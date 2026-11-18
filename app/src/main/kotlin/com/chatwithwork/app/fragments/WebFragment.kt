@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import androidx.appcompat.R as AppCompatR
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.chatwithwork.app.R
 import com.chatwithwork.app.routing.AppUrls
 import dev.hotwire.core.config.Hotwire
@@ -18,9 +19,11 @@ import dev.hotwire.core.turbo.errors.HttpError
 import dev.hotwire.core.turbo.errors.VisitError
 import dev.hotwire.core.turbo.nav.PresentationContext
 import dev.hotwire.core.turbo.webview.HotwireWebChromeClient
+import dev.hotwire.navigation.R as HotwireR
 import dev.hotwire.navigation.destinations.HotwireDestination
 import dev.hotwire.navigation.destinations.HotwireDestinationDeepLink
 import dev.hotwire.navigation.fragments.HotwireWebFragment
+import dev.hotwire.navigation.session.SessionModalResult
 
 /**
  * A page: the native top app bar over the shared web view. The root (the
@@ -100,6 +103,27 @@ open class WebFragment : HotwireWebFragment() {
     /** The next screen may already be listening as this one goes. */
     private fun stopHearingFirstPaint() {
         if (FirstPaint.listener === firstPaint) FirstPaint.listener = null
+    }
+
+    override fun onStart() {
+        super.onStart()
+        takeOverPullToRefresh()
+    }
+
+    override fun onStartAfterModalResult(result: SessionModalResult) {
+        super.onStartAfterModalResult(result)
+        takeOverPullToRefresh()
+    }
+
+    override fun onStartAfterDialogCancel() {
+        super.onStartAfterDialogCancel()
+        takeOverPullToRefresh()
+    }
+
+    /** Hotwire Native sets its own refresh as it prepares the screen (each start): the page's in-place one replaces it. */
+    private fun takeOverPullToRefresh() {
+        val spinner = view?.findViewById<SwipeRefreshLayout>(HotwireR.id.hotwire_webView_container) ?: return
+        PullToRefresh.install(spinner, navigator.session.webView) { refresh(displayProgress = false) }
     }
 
     override fun onDestroyView() {
