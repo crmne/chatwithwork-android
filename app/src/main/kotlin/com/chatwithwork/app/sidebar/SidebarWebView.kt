@@ -232,8 +232,12 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
 
         // Also a reload once it drew (back from the background), which replaced the page with the error.
         override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, response: WebResourceResponse) {
-            if (request.isForMainFrame && view === webView) failed(response.statusCode)
+            if (isCurrentLoad(view, request)) failed(response.statusCode)
         }
+
+        // Only the page asked for last: an earlier one's error, arriving after another was asked for, isn't its.
+        private fun isCurrentLoad(view: WebView, request: WebResourceRequest) =
+            request.isForMainFrame && view === webView && state.isCurrent(request.url.encodedPath)
 
         // Its renderer gone (memory pressure, a crash): a new web view, and the page again as the drawer next opens.
         override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
@@ -248,7 +252,7 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
 
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
             // Offline, the worker's copy may still draw after this: `ready` then shows it.
-            if (request.isForMainFrame && view === webView) failed(null)
+            if (isCurrentLoad(view, request)) failed(null)
         }
     }
 }

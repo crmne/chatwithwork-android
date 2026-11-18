@@ -103,4 +103,19 @@ class SidebarPageStateTest {
         assertThat(state.ready(before, page)).isFalse()
         assertThat(state.retry()).isTrue()
     }
+
+    @Test
+    fun `an error belongs only to the page asked for last`() {
+        val state = SidebarPageState()
+        assertThat(state.isCurrent(page)).isFalse()
+        state.show(page)
+        assertThat(state.isCurrent(page)).isTrue()
+        // Another organization's page asked for while the first was still loading: the first's 404 isn't its.
+        state.show(other)
+        assertThat(state.isCurrent(page)).isFalse()
+        assertThat(state.isCurrent(other)).isTrue()
+        assertThat(state.isCurrent(null)).isFalse()
+        state.show(null)
+        assertThat(state.isCurrent(other)).isFalse()
+    }
 }

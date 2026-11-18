@@ -87,6 +87,13 @@ class SidebarPageState {
     }
 
     /**
+     * Whether a main-frame error for [requested] (the failing request's path)
+     * is about the page asked for last: one for a page since replaced, still
+     * in flight when the app asked for another, is nobody's.
+     */
+    fun isCurrent(requested: String?): Boolean = requested != null && requested == path
+
+    /**
      * The page's load, or a reload of it, failed with [status] (null without
      * an answer: offline, or sent to the sign-in form): the native sidebar
      * meanwhile. Whether the server has no such page (404), which isn't
