@@ -6,6 +6,26 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.9
+
+Version 1.2.9 (10209) shows the server's own sidebar in the drawer, the web
+sidebar's page in a web view of its own, so the sidebar changes with the
+server (docs/server-contract.md, "The sidebar page"), and keeps the native
+sidebar for servers without that page. It opens on the organization's home,
+as the web lands, and on New chat where the server has no home yet (a 404).
+It shows the notice a modal's form recedes with ("Chat renamed.", Move to
+project's), which builds up to 1.2.8 missed under an organization's prefix,
+and puts snackbars above the composer. What's new is in
+`changelogs/10209.txt`. Tag `v1.2.9` once the branch is merged.
+
+It needs the server's sidebar page (crmne/chatwithwork, branch
+`native-sidebar`) on production before it goes out: against a server without
+it the app shows the native sidebar as 1.2.8 does, so it is safe on older and
+self-hosted servers, but nothing changes for people until the page is there.
+
+Not built, uploaded or submitted yet. Build it with `script/bundle-release
+v1.2.9` from the tag, then Internal testing first, as 1.2.8 went.
+
 ## Release 1.2.8
 
 Version 1.2.8 (10208) shows an answer left running as a road in Android 16's
