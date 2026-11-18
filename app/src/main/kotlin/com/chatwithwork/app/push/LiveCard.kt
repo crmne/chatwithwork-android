@@ -19,12 +19,14 @@ import kotlin.math.roundToInt
  * ([LiveArtwork]) and everything else real, so the clock runs on its own and
  * TalkBack reads the words. Every view's state is set on every update, since
  * the system may reapply these onto the views the last update left behind.
+ * [heading], the line above the step's words, is the chat's title where the
+ * app knows it ([LiveTitles]), and the organization's name otherwise.
  */
 class LiveCard(
     private val context: Context,
     private val shown: LivePresentation,
     private val title: String,
-    private val organization: String,
+    private val heading: String,
     private val steps: String?,
     private val clock: Clock,
     private val open: PendingIntent
@@ -45,7 +47,15 @@ class LiveCard(
     }
 
     fun expanded() = RemoteViews(context.packageName, R.layout.notification_live_card).apply {
-        words(R.id.live_organization, organization, ORGANIZATION, R.color.road_ink_muted)
+        val headingInk = if (shown.chatTitle != null) R.color.road_ink else R.color.road_ink_muted
+        words(
+            R.id.live_organization,
+            heading,
+            ORGANIZATION,
+            headingInk,
+            maxWidthDp =
+                roadWidth(context) - HEADING_BESIDE
+        )
         words(R.id.live_steps, steps.orEmpty(), STEPS, R.color.road_ink_muted)
         setViewVisibility(R.id.live_steps, visible(steps != null))
         setViewVisibility(R.id.live_headline, visible(!shown.hasBand))
@@ -53,7 +63,7 @@ class LiveCard(
         headline()
         road()
         if (shown.hasBand) band()
-        setContentDescription(R.id.live_card, listOfNotNull(organization, title, steps).joinToString(". "))
+        setContentDescription(R.id.live_card, listOfNotNull(heading, title, steps).joinToString(". "))
         setOnClickPendingIntent(R.id.live_action, open)
     }
 
@@ -65,9 +75,10 @@ class LiveCard(
         @ColorRes color: Int,
         logo: String? = null,
         after: String? = null,
-        logoSizeSp: Float = 0f
+        logoSizeSp: Float = 0f,
+        maxWidthDp: Float? = null
     ) {
-        val picture = LiveArtwork.words(context, text, type, color(color), logo, after, logoSizeSp)
+        val picture = LiveArtwork.words(context, text, type, color(color), logo, after, logoSizeSp, maxWidthDp)
         setImageViewIcon(view, picture.icon)
         setInt(view, "setMaxHeight", picture.height)
         setContentDescription(view, listOfNotNull(text, after).joinToString(" "))
@@ -177,6 +188,9 @@ class LiveCard(
         private val BAND_WAITING = LiveArtwork.Type(R.font.geist_mono_medium, 10.5f)
         private val BAND_ACTION = LiveArtwork.Type(R.font.geist_semibold, 13.5f)
         private const val HEADLINE_LOGO = 20f
+
+        /** What shares the heading's row, in dp: the mark, its gap, and room for the steps count. */
+        private const val HEADING_BESIDE = 15f + 7f + 88f
         private const val BAND_LOGO = 14f
 
         /** What the shade's sides and the card's own padding leave of the screen: Android 16's indent is wider. */

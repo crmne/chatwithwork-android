@@ -19,7 +19,8 @@ import kotlin.concurrent.thread
  * A Live Update's step is `--es kind progress --es phase answering --es
  * message "Searching Todoist" --es step search --es steps 2 --es sent_at <ms>`
  * with the same path and thread, and `--es notification_id <id>` fetches a
- * notification's words from the server, as FCM's would.
+ * notification's words from the server, as FCM's would. A `live_preview` with
+ * `--es chat_title` (and `--es chat_bot`) heads its card with that title.
  *
  * Only the shell can send it (it holds DUMP, which apps can't get).
  */
@@ -30,6 +31,20 @@ class DebugPushReceiver : BroadcastReceiver() {
         if (data["kind"] == "live_preview") {
             val progress = LiveProgress.from(data + ("kind" to "progress")) ?: return
             PushNotifications.optIn(context)
+            // A synthetic headline, as the server would answer for the chat's title: `--es chat_title`, `--es chat_bot`.
+            if (data["chat_title"] != null || data["chat_bot"] != null) {
+                val title = data["chat_title"]?.takeIf { it.isNotBlank() }
+                LiveTitles.keep(
+                    context,
+                    progress.thread,
+                    progress.run,
+                    LiveTitles.Title(
+                        title,
+                        data["chat_bot"],
+                        title != null
+                    )
+                )
+            }
             LiveUpdates.show(context, progress.url, "Northwind Studio", progress.runRef, progress.assistant)
             LiveUpdates.progress(
                 context,
