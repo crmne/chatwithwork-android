@@ -694,7 +694,6 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         }
 
         private fun bindNav(view: View, row: SidebarRow.Nav) {
-            view.updateLayoutParams<RecyclerView.LayoutParams> { height = dp(ROW_DP) }
             val (icon, label) =
                 when (row.kind) {
                     SidebarRow.Nav.Kind.NEW_CHAT -> "edit_square" to R.string.new_chat
@@ -736,8 +735,6 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                     else -> null
                 }
             bindRow(view, icon, chat.title, null, dot, row.selected)
-            // Every row is a 48dp target, Material's least for a touch.
-            view.updateLayoutParams<RecyclerView.LayoutParams> { height = dp(ROW_DP) }
             val state =
                 when {
                     chat.waiting -> context.getString(R.string.sidebar_chat_waiting)
@@ -853,7 +850,6 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         private const val SYMBOL_WEIGHT = 400
         private const val GAP_DP = 8
         private const val ADD_REACH_START_DP = 4
-        private const val ROW_DP = 48
         private const val HEAD_REACH_DP = 2
         private const val PIN_GAP_DP = 2
 
