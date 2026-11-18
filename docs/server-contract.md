@@ -922,13 +922,18 @@ without the page, and for older builds, which the server keeps serving.
   filter, Delete in a row's menu) stay in the page, and deleting the chat on
   screen sends `visit` to New chat.
 - **When it can't load.** A 404 means a server without the page: the native
-  sidebar, and nothing remembered. Any other failure before the page drew
-  keeps the native sidebar (its last JSON) and tries again as the drawer
-  next opens; once drawn, the page stays as it was. Offline, the page has an
-  offline copy in the service worker (`docs/offline-chats.md` on the
-  server), which the WebView may draw after its own `onReceivedError`:
-  `ready` then shows it. A renderer that dies gets a new web view, and the
-  page again as the drawer next opens.
+  sidebar, nothing remembered, and that page isn't asked for again while
+  the app runs, even when a `connect` names it. Any other failure, on the
+  first load or on a reload once it drew (`refresh` coming back from the
+  background), shows the native sidebar (fetched again if the drawer is
+  open) and tries the page again as the drawer next opens or the next
+  `connect` names it. Offline, the page has an offline copy in the service
+  worker (`docs/offline-chats.md` on the server), which the WebView may
+  draw after its own `onReceivedError`: `ready` then shows it. `ready`
+  counts only from the page the app last asked for, in that load: one from
+  a page since replaced (another organization) or dropped (signed out) is
+  ignored. A renderer that dies gets a new web view, and the page again as
+  the drawer next opens.
 - **While it shows,** the app fetches no JSON (on opening, polling, or
   `changed`), and the top bar's New chat opens `/<organization>/chats/new`.
 - **Phone proportions** are the page's (the server's `native_sidebar.css`):

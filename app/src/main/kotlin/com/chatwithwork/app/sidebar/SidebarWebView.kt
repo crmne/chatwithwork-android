@@ -19,6 +19,7 @@ import androidx.core.view.isVisible
 import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.R
 import com.chatwithwork.app.routing.AppUrls
+import java.net.URI
 
 /**
  * The server's sidebar page in the drawer (docs/server-contract.md, "The
@@ -47,19 +48,22 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
 
         /** The server has no sidebar page (an older one): the native sidebar it is. */
         fun onSidebarMissing()
+
+        /** The page couldn't load, or reload: the native sidebar until it does (it tries again as the drawer opens). */
+        fun onSidebarFailed()
     }
 
     private val main = Handler(Looper.getMainLooper())
 
+    private val state = SidebarPageState()
+
     /** The page's path ("/482139075/sidebar"), once one was asked for. */
-    var pagePath: String? = null
-        private set
+    val pagePath: String?
+        get() = state.path
 
-    /** Whether the page drew since it was last loaded, and so shows in place of the native sidebar. */
-    var isShowing = false
-        private set
-
-    private var failed = false
+    /** Whether the page in the web view drew, and so shows in place of the native sidebar. */
+    val isShowing: Boolean
+        get() = state.showing
 
     private var webView: WebView = makeWebView()
 
@@ -81,7 +85,7 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
                 WebSettings.getDefaultUserAgent(context)
             )
         }
-        addJavascriptInterface(Bridge(), SidebarPage.INTERFACE)
+        addJavascriptInterface(Bridge(this), SidebarPage.INTERFACE)
         webViewClient = Client()
     }
 
@@ -90,36 +94,26 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
     }
 
     /** Shows the page at [path], loading it unless it's the one already there; null goes back to the native sidebar. */
-    fun show(path: String?) {
-        if (path == null) {
-            reset()
-            return
-        }
-        if (path == pagePath && !failed) return
-        pagePath = path
-        isShowing = false
-        failed = false
-        apply()
-        webView.loadUrl(AppUrls.absolute(path))
-    }
+    fun show(path: String?) = load(state.show(path))
 
     /** The drawer opening: a page that couldn't load tries again. */
     fun retryIfFailed() {
-        val path = pagePath ?: return
-        if (failed) {
-            failed = false
-            webView.loadUrl(AppUrls.absolute(path))
-        }
+        if (state.retry()) state.path?.let { webView.loadUrl(AppUrls.absolute(it)) }
     }
 
-    /** Forgets what it showed (signed out, or signed in as someone else): the native sidebar until the page draws again. */
-    fun reset() {
-        isShowing = false
-        failed = false
-        // Asked for again by the next connect.
-        pagePath = null
-        webView.loadUrl("about:blank")
+    /**
+     * Forgets what it showed (signed out, or signed in as someone else): the
+     * native sidebar until the next connect names a page and it draws.
+     */
+    fun reset() = load(state.forget())
+
+    private fun load(change: SidebarPageState.Change) {
         apply()
+        when (change) {
+            SidebarPageState.Change.NONE -> Unit
+            SidebarPageState.Change.LOAD -> state.path?.let { webView.loadUrl(AppUrls.absolute(it)) }
+            SidebarPageState.Change.CLEAR -> webView.loadUrl("about:blank")
+        }
     }
 
     /** Marks the row of the page on the app's screen. */
@@ -141,12 +135,12 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
         native.isVisible = !isShowing
     }
 
-    private fun receive(message: SidebarPage.Message) {
+    private fun receive(message: SidebarPage.Message, document: Int, shown: String) {
         when (message) {
             SidebarPage.Message.Ready -> {
-                // Also after the offline WebView's error and then the worker's copy.
-                failed = false
-                isShowing = true
+                // Only the page asked for, drawn in this load: also after the offline WebView's error and then the
+                // worker's copy, or a reload that failed and then drew.
+                if (!state.ready(document, runCatching { URI(shown).rawPath }.getOrNull())) return
                 apply()
                 listener.onSidebarReady()
             }
@@ -167,15 +161,33 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
         }
     }
 
-    /** The page's messages arrive on WebView's own thread, and only from our server's page. */
-    private inner class Bridge {
+    /**
+     * The page's messages arrive on WebView's own thread, and only from our
+     * server's page in [view], in the load the app asked for last: one from a
+     * document the app has since replaced, or a web view since gone, is
+     * dropped.
+     */
+    private inner class Bridge(private val view: WebView) {
         @JavascriptInterface
         fun postMessage(raw: String) {
             val message = SidebarPage.parse(raw) ?: return
+            val document = state.document
             main.post {
-                val shown = webView.url
-                if (shown != null && AppUrls.isAppUrl(shown)) receive(message)
+                if (view !== webView || document != state.document) return@post
+                val shown = view.url
+                if (shown != null && AppUrls.isAppUrl(shown)) receive(message, document, shown)
             }
+        }
+    }
+
+    /** The page's load, or a reload of it, failed: the native sidebar meanwhile. */
+    private fun failed(status: Int?) {
+        val wasShowing = state.showing
+        val missing = state.failed(status)
+        apply()
+        when {
+            missing -> listener.onSidebarMissing()
+            wasShowing -> listener.onSidebarFailed()
         }
     }
 
@@ -190,7 +202,7 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
                     // A redirect on the page's own load (no session: the sign-in form) isn't the person's tap;
                     // the navigator finds out about the session on its own.
                     if (request.isRedirect && AppUrls.isSignInForm(url)) {
-                        failed = true
+                        failed(null)
                     } else {
                         listener.onSidebarVisit(url)
                     }
@@ -204,10 +216,9 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
             }
         }
 
+        // Also a reload once it drew (back from the background), which replaced the page with the error.
         override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, response: WebResourceResponse) {
-            if (!request.isForMainFrame || isShowing) return
-            failed = true
-            if (response.statusCode == HTTP_NOT_FOUND) listener.onSidebarMissing()
+            if (request.isForMainFrame && view === webView) failed(response.statusCode)
         }
 
         // Its renderer gone (memory pressure, a crash): a new web view, and the page again as the drawer next opens.
@@ -216,19 +227,14 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
             view.destroy()
             webView = makeWebView()
             container.addView(webView)
-            isShowing = false
-            failed = pagePath != null
+            state.rendererGone()
             apply()
             return true
         }
 
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
             // Offline, the worker's copy may still draw after this: `ready` then shows it.
-            if (request.isForMainFrame && !isShowing) failed = true
+            if (request.isForMainFrame && view === webView) failed(null)
         }
-    }
-
-    private companion object {
-        const val HTTP_NOT_FOUND = 404
     }
 }

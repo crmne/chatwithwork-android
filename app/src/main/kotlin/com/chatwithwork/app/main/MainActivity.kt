@@ -947,6 +947,14 @@ class MainActivity :
     override fun onSidebarMissing() {
         (viewModel.account ?: memory.lastAccount)?.let { memory.setSidebarPage(it, null) }
         sidebarPage.show(null)
+        refreshRevealedSidebar()
+    }
+
+    override fun onSidebarFailed() = refreshRevealedSidebar()
+
+    /** The native sidebar back in an open drawer, where it fetched nothing while the page showed: fresh now. */
+    private fun refreshRevealedSidebar() {
+        if (drawer.isDrawerVisible(GravityCompat.START)) refreshSidebar()
     }
 
     /** Remembers the chat showing, if it's answering, so a launch soon after reopens it. */
