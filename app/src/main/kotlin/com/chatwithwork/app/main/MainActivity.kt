@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
@@ -13,12 +14,14 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
@@ -73,7 +76,9 @@ import com.chatwithwork.app.sidebar.BotMarkDrawable
 import com.chatwithwork.app.sidebar.Sidebar
 import com.chatwithwork.app.sidebar.SidebarClient
 import com.chatwithwork.app.sidebar.SidebarDrawer
+import com.chatwithwork.app.sidebar.SidebarPage
 import com.chatwithwork.app.sidebar.SidebarRow
+import com.chatwithwork.app.sidebar.SidebarWebView
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -103,8 +108,9 @@ import kotlinx.coroutines.launch
  * Decisions, Bots, Settings, or whatever else the sidebar opened (Places).
  * Drill-downs from it (a bot from Bots) are pushed over it with back, and
  * forms are modals. Back at the root leaves the app. The sidebar is
- * Material 3's modal navigation drawer, drawn natively from the server's JSON
- * (SidebarDrawer). The welcome screen covers it all when nobody is signed in.
+ * Material 3's modal navigation drawer, holding the server's sidebar page
+ * (SidebarWebView), or, from a server without one, drawn natively from its
+ * JSON (SidebarDrawer). The welcome screen covers it all when nobody is signed in.
  *
  * The server tells it when things change, and it listens in the navigator's
  * traffic:
@@ -131,7 +137,8 @@ class MainActivity :
     SidebarHost,
     ComposerHost,
     FileSaveHost,
-    SidebarDrawer.Actions {
+    SidebarDrawer.Actions,
+    SidebarWebView.Listener {
     private val viewModel: MainViewModel by viewModels()
     private val memory by lazy { SessionMemory(this) }
 
@@ -140,6 +147,16 @@ class MainActivity :
     private lateinit var root: View
     private lateinit var welcome: View
     private lateinit var sidebar: SidebarDrawer
+    private lateinit var sidebarPage: SidebarWebView
+
+    /** The page on screen as its `sidebar` component last said, with the path it belongs under. */
+    private var connectedPage: Pair<String, String?>? = null
+
+    /** Whether the app left the foreground since it last started, so the sidebar page may have missed something. */
+    private var stopped = false
+
+    /** When the navigator last finished a visit (uptime), for a modal's notice to wait on. */
+    private var lastVisitCompletedAt = 0L
 
     private var keyboardVisible = false
 
@@ -303,6 +320,8 @@ class MainActivity :
         super.onStart()
         // Back in the foreground: what's answering may have finished meanwhile.
         if (!viewModel.signedOut) refreshSidebar()
+        if (stopped) sidebarPage.refresh()
+        stopped = false
         if (takeLiveUpdateAway()) offerLiveAlerts()
     }
 
@@ -317,8 +336,15 @@ class MainActivity :
         if (LiveTemplate.promotes) showLiveUpdate()
     }
 
+    override fun onDestroy() {
+        // The sidebar's own web view, which the navigators' teardown doesn't know about.
+        if (::sidebarPage.isInitialized) sidebarPage.destroy()
+        super.onDestroy()
+    }
+
     override fun onStop() {
         super.onStop()
+        stopped = true
         rememberAnsweringChat()
         // Also from Android 16 when onPause found nothing: an answer that started
         // as the person left says it's working only after the pause.
@@ -397,10 +423,10 @@ class MainActivity :
 
     /**
      * Where the app opens: a chat it was sent to, else the chat the person
-     * left under ten minutes ago while it was still answering, else a new
-     * chat in the list the sidebar last showed. Before the app knows an
-     * organization, the unprefixed new chat, which the server redirects into
-     * the one used last.
+     * left under ten minutes ago while it was still answering, else the
+     * organization's home, which the server sends on to Decisions or New
+     * chat, as the web lands. Before the app knows an organization, the
+     * unprefixed home, which the server redirects into the one used last.
      */
     private fun startLocation(): String {
         viewModel.startLocation?.let { return it }
@@ -412,7 +438,7 @@ class MainActivity :
         // With no connection New chat can't load, but the chat last shown may
         // have a copy kept for reading offline (docs/server-contract.md).
         if (!isOnline()) account?.let(memory::lastChat)?.let { return it }
-        return account?.let { memory.newChatPath(it) }?.let(AppUrls::absolute) ?: AppUrls.newChat(account)
+        return AppUrls.home(account)
     }
 
     private fun isOnline(): Boolean {
@@ -441,13 +467,19 @@ class MainActivity :
     // region The sidebar
 
     private fun setUpSidebar() {
-        val panel = findViewById<View>(R.id.sidebar)
+        val panel = findViewById<FrameLayout>(R.id.sidebar)
         sidebar = SidebarDrawer(panel, this)
+        sidebarPage = SidebarWebView(panel, findViewById(R.id.sidebar_native), this)
+        // The page this organization named last time loads now, before the first page connects.
+        if (memory.hasSignedIn && !viewModel.signedOut) {
+            (viewModel.account ?: memory.lastAccount)?.let(memory::sidebarPage)?.let(sidebarPage::show)
+        }
         drawer.setScrimColor(ContextCompat.getColor(this, R.color.scrim))
         drawer.addDrawerListener(
             object : DrawerLayout.SimpleDrawerListener() {
                 override fun onDrawerOpened(drawerView: View) {
                     closeSidebar.isEnabled = true
+                    sidebarPage.retryIfFailed()
                     startPolling()
                 }
 
@@ -501,6 +533,8 @@ class MainActivity :
 
     override fun onSidebarChanged() {
         viewModel.sidebarStale = true
+        // The sidebar page follows its own streams.
+        if (sidebarPage.isShowing) return
         if (drawer.isDrawerOpen(GravityCompat.START) || drawer.isDrawerVisible(GravityCompat.START)) {
             refreshSidebar(debounce = true)
         }
@@ -509,6 +543,7 @@ class MainActivity :
     /** Fetches the sidebar for the organization showing (the first page, or every chat while searching). */
     private fun refreshSidebar(debounce: Boolean = false, all: Boolean = sidebar.searchesChats) {
         val account = viewModel.account ?: return
+        if (sidebarPage.isShowing) return
         fetchJob?.cancel()
         fetchJob =
             lifecycleScope.launch {
@@ -542,6 +577,7 @@ class MainActivity :
             lifecycleScope.launch {
                 while (true) {
                     delay(POLL_MS)
+                    if (sidebarPage.isShowing) continue
                     if (viewModel.sidebar?.anyProcessing == true || viewModel.sidebarStale) refreshSidebar()
                 }
             }
@@ -554,10 +590,18 @@ class MainActivity :
      * what was there (Places). A Turbo replace on the root takes its place.
      */
     override fun openPath(path: String) {
-        closeSidebarNow()
-        val navigator = navigator ?: return
         val location = AppUrls.absolute(path)
-        when (Places.opening(Hotwire.config.pathConfiguration.properties(location))) {
+        val properties = Hotwire.config.pathConfiguration.properties(location)
+        // A modal (Rename, Move to project) opens over a drawer still sliding
+        // shut and holds it there, so it would slide away again as the modal
+        // closes: shut it at once.
+        if (properties.context == PresentationContext.MODAL) {
+            drawer.closeDrawer(GravityCompat.START, false)
+        } else {
+            closeSidebarNow()
+        }
+        val navigator = navigator ?: return
+        when (Places.opening(properties)) {
             Places.Opening.ROUTE -> navigator.route(location)
 
             Places.Opening.REPLACE_ROOT -> navigator.clearAll {
@@ -575,13 +619,36 @@ class MainActivity :
         navigator?.route(newChatUrl())
     }
 
-    /** The new chat in the list the sidebar shows (or last showed) in the organization showing. */
+    override fun onHomeMissing(destination: HotwireDestination) {
+        // Signed out, New chat would read as a session (routeDecision); signing in starts on the home again.
+        if (viewModel.signedOut || viewModel.signingIn) return
+        root.post {
+            // Only while that home still shows: a link opened since stays.
+            val navigator = navigator ?: return@post
+            if (navigator.currentDestination === destination) navigator.route(newChatUrl())
+        }
+    }
+
+    /**
+     * The new chat in the list the native sidebar shows (or last showed) in
+     * the organization showing. While the sidebar is the server's page, the
+     * organization's own New chat: the native sidebar's saved list (a
+     * project chosen before) would otherwise outlive it, as nothing there
+     * updates it.
+     */
     private fun newChatUrl(): String {
         val account = viewModel.account ?: memory.lastAccount
-        val path =
+        // A cold start's shortcut or share asks before the sidebar is set up: the page it's about to load then.
+        val serverSidebar =
+            if (::sidebarPage.isInitialized) {
+                sidebarPage.pagePath != null
+            } else {
+                memory.hasSignedIn && !viewModel.signedOut && account?.let(memory::sidebarPage) != null
+            }
+        val nativePath =
             viewModel.sidebar?.takeIf { it.organization.id == account }?.links?.newChat
                 ?: account?.let { memory.newChatPath(it) }
-        return path?.let(AppUrls::absolute) ?: AppUrls.newChat(account)
+        return Places.newChat(account, serverSidebar, nativePath)
     }
 
     /** New bot in the list the sidebar's Bots view shows; the server's rule for who may make one stands. */
@@ -844,6 +911,77 @@ class MainActivity :
         }
     }
 
+    // The sidebar page (SidebarWebView, docs/server-contract.md, "The sidebar page")
+
+    override fun onSidebarConnect(connect: SidebarPage.Connect, location: String) {
+        if (viewModel.signedOut || viewModel.signingIn) return
+        val account = AppUrls.account(location) ?: viewModel.account
+        val page = SidebarPage.pageFor(connect, remembered = null)
+        account?.let { memory.setSidebarPage(it, page) }
+        sidebarPage.show(page)
+        connectedPage = location to connect.belongsTo
+        sidebarPage.current(location, connect.belongsTo)
+    }
+
+    override fun onSidebarReady() {
+        val location = navigator?.currentDestination?.location ?: return
+        sidebarPage.current(location, connectedPage?.takeIf { it.first == location }?.second)
+    }
+
+    /** What the page opens is a place, as the native sidebar's rows are; signing out there ends the session here. */
+    override fun onSidebarVisit(url: String) {
+        if (AppUrls.isSignInForm(url)) {
+            closeSidebarNow()
+            showSignedOut(presentSignIn = false)
+            return
+        }
+        openPath(url)
+    }
+
+    override fun onSidebarExternal(url: String) {
+        BrowserTabs.open(this, url.toUri())
+    }
+
+    override fun onSidebarClose() = closeSidebarNow()
+
+    /** The page's data-turbo-confirm, as the app's alert, as bridge--confirm shows it on the other pages. */
+    override fun onSidebarConfirm(confirm: SidebarPage.Message.Confirm) {
+        var answered = false
+        val answer = { confirmed: Boolean ->
+            if (!answered) {
+                answered = true
+                sidebarPage.answer(confirm.id, confirmed)
+            }
+        }
+        val dialog =
+            MaterialAlertDialogBuilder(this)
+                .setTitle(confirm.title)
+                .apply { confirm.description?.let(::setMessage) }
+                .setNegativeButton(confirm.dismiss) { _, _ -> answer(false) }
+                .setPositiveButton(confirm.confirm) { _, _ -> answer(true) }
+                .setOnDismissListener { answer(false) }
+                .show()
+        if (confirm.destructive) {
+            dialog
+                .getButton(DialogInterface.BUTTON_POSITIVE)
+                ?.setTextColor(MaterialColors.getColor(root, androidx.appcompat.R.attr.colorError))
+        }
+    }
+
+    /** A server without the sidebar page: the native sidebar, and nothing remembered to load next time. */
+    override fun onSidebarMissing() {
+        (viewModel.account ?: memory.lastAccount)?.let { memory.setSidebarPage(it, null) }
+        sidebarPage.show(null)
+        refreshRevealedSidebar()
+    }
+
+    override fun onSidebarFailed() = refreshRevealedSidebar()
+
+    /** The native sidebar back in an open drawer, where it fetched nothing while the page showed: fresh now. */
+    private fun refreshRevealedSidebar() {
+        if (drawer.isDrawerVisible(GravityCompat.START)) refreshSidebar()
+    }
+
     /** Remembers the chat showing, if it's answering, so a launch soon after reopens it. */
     private fun rememberAnsweringChat() {
         memory.leftAnswering(answeringChat()?.first, System.currentTimeMillis())
@@ -961,6 +1099,7 @@ class MainActivity :
         if (!viewModel.signedOut) {
             viewModel.signedOut = true
             viewModel.sidebar = null
+            sidebarPage.reset()
             memory.hasSignedIn = false
             memory.forgetLastChats()
             PushNotifications.forget(this)
@@ -981,6 +1120,7 @@ class MainActivity :
         viewModel.signedOut = false
         viewModel.account = null
         viewModel.sidebar = null
+        sidebarPage.reset()
         memory.hasSignedIn = true
         showWelcome(false)
         delegate.resetNavigators()
@@ -1004,6 +1144,7 @@ class MainActivity :
 
     override fun onVisitCompleted(destination: HotwireDestination, location: String) {
         viewModel.firstPageShown = true
+        lastVisitCompletedAt = SystemClock.uptimeMillis()
 
         // The server may redirect a signed-out request to the sign-in form
         // instead of answering 401; the page then shows that form in place.
@@ -1031,6 +1172,7 @@ class MainActivity :
         }
         openPendingLink(destination.navigator)
         updateChrome()
+        sidebarPage.current(shown, connectedPage?.takeIf { it.first == shown }?.second)
         if (viewModel.sidebarStale || drawer.isDrawerVisible(GravityCompat.START)) refreshSidebar(debounce = true)
     }
 
@@ -1057,6 +1199,7 @@ class MainActivity :
         viewModel.account = account
         viewModel.sidebar = null
         memory.lastAccount = account
+        sidebarPage.show(memory.sidebarPage(account))
         if (AppUrls.isChat(location)) {
             viewModel.startLocation = location
             viewModel.pendingLink = null
@@ -1074,7 +1217,9 @@ class MainActivity :
         val location = proposal.location
 
         if (AppUrls.isHistoricalLocation(location)) {
-            showNotice(location)
+            val closesModal = AppUrls.isRecede(location) && navigator?.currentDestination?.isModal == true
+            // From a modal, once the screen under it is back, so the snackbar sits above its composer.
+            if (closesModal) showNoticeAfterModal(location) else showNotice(location)
             if (viewModel.signingIn || viewModel.signedOut) {
                 didSignIn()
                 return Router.Decision.CANCEL
@@ -1083,8 +1228,8 @@ class MainActivity :
             // and nothing else, as on iOS: Hotwire Native would also go back
             // from the page under it. That page loads again, changed.
             val navigator = navigator
-            if (AppUrls.isRecede(location) && navigator?.currentDestination?.isModal == true) {
-                root.post { navigator.route(AppUrls.resume) }
+            if (closesModal) {
+                root.post { navigator?.route(AppUrls.resume) }
                 return Router.Decision.CANCEL
             }
             // A recede on the chat itself (deleted from its menu) has nothing
@@ -1145,15 +1290,26 @@ class MainActivity :
         return null
     }
 
+    /**
+     * A modal's notice, once the modal has gone and the page under it has
+     * loaded again, with its composer if it has one, so the snackbar sits
+     * above the composer rather than over it; at most [NOTICE_WAIT_MS] later
+     * whatever is showing.
+     */
+    private fun showNoticeAfterModal(location: String, since: Long = SystemClock.uptimeMillis()) {
+        val now = SystemClock.uptimeMillis()
+        val loaded = lastVisitCompletedAt > since && now - lastVisitCompletedAt >= NOTICE_SETTLE_MS
+        val settled = navigator?.currentDestination?.isModal == false && (visibleComposer() != null || loaded)
+        if (settled || now - since >= NOTICE_WAIT_MS) {
+            showNotice(location)
+        } else {
+            root.postDelayed({ showNoticeAfterModal(location, since) }, NOTICE_POLL_MS)
+        }
+    }
+
     /** `recede_or_redirect_to(url, notice: "...")` puts the notice on the URL; show it the native way. */
     private fun showNotice(location: String) {
-        val uri = location.toUri()
-        val notice = uri.getQueryParameter("notice")?.takeIf { it.isNotBlank() }
-        val alert = uri.getQueryParameter("alert")?.takeIf { it.isNotBlank() }
-        when {
-            notice != null -> showSnackbar(notice)
-            alert != null -> showSnackbar(alert, long = true)
-        }
+        AppUrls.historicalNotice(location)?.let { showSnackbar(it.message, it.long) }
     }
 
     // endregion
@@ -1315,8 +1471,15 @@ class MainActivity :
     // region Hosts for bridge components
 
     override fun showSnackbar(message: String, long: Boolean) {
-        Snackbar.make(root, message, if (long) Snackbar.LENGTH_LONG else Snackbar.LENGTH_SHORT).show()
+        Snackbar.make(root, message, if (long) Snackbar.LENGTH_LONG else Snackbar.LENGTH_SHORT)
+            .apply { visibleComposer()?.let { anchorView = it } }
+            .show()
     }
+
+    /** The native composer on screen, which a snackbar sits above rather than over. */
+    private fun visibleComposer(): View? = navigator?.currentDestination?.fragment?.view
+        ?.findViewById<ComposerView>(R.id.composer)
+        ?.takeIf { it.isVisible && it.isAttachedToWindow && it.height > 0 }
 
     /**
      * Once per install, when a page says it's a good moment (a change waits
@@ -1459,6 +1622,13 @@ class MainActivity :
 
     private companion object {
         const val NAVIGATOR = "main"
+
+        /** How often, and for how long at most, a modal's notice waits for the screen under it. */
+        const val NOTICE_POLL_MS = 100L
+        const val NOTICE_WAIT_MS = 2_000L
+
+        /** After a visit completes, how long its page's composer gets to connect before a notice shows anyway. */
+        const val NOTICE_SETTLE_MS = 300L
 
         /** The most photos one pick adds to the composer. */
         const val MAX_PICKED = 10

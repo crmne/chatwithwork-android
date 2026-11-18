@@ -3,7 +3,8 @@
 <EditText xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/sidebar_search"
     android:layout_width="match_parent"
-    android:layout_height="32dp"
+    android:layout_height="wrap_content"
+    android:minHeight="48dp"
     android:layout_marginTop="4dp"
     android:layout_marginBottom="8dp"
     android:autofillHints=""
@@ -18,4 +19,4 @@
     android:paddingVertical="0dp"
     android:textColor="?attr/colorOnSurface"
     android:textColorHint="@color/lw_ink_faint"
-    android:textSize="12sp" />
+    android:textSize="16sp" />

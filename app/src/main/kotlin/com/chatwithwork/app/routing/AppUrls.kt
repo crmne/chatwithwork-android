@@ -2,6 +2,7 @@ package com.chatwithwork.app.routing
 
 import com.chatwithwork.app.AppConfig
 import java.net.URI
+import java.net.URLDecoder
 
 /**
  * The URLs the app knows about. Pages inside an organization carry its id as
@@ -32,6 +33,23 @@ object AppUrls {
 
     /** New bot, inside [account] when it's known. */
     fun newBot(account: String?): String = page("/bots/new", account)
+
+    /**
+     * Where the app opens: the organization's home, which the server sends on
+     * to Decisions once it has something to show, else New chat, as signing
+     * in on the web does (docs/server-contract.md, "Places").
+     */
+    fun home(account: String?): String = page("/home", account)
+
+    /** The organization's home ("/482139075/home") or the unprefixed one ("/home"), on this server. */
+    fun isStartHome(url: String): Boolean = isAppUrl(url) && pathWithinAccount(url) == "/home"
+
+    /**
+     * Whether [url] answering [status] means the server has no home yet (one
+     * from before 2026-11-17, a self-hosted release among them), so the app
+     * opens New chat instead, as earlier builds did.
+     */
+    fun opensNewChatInstead(url: String, status: Int?): Boolean = status == HTTP_NOT_FOUND && isStartHome(url)
 
     /** The Decisions page, inside [account] when it's known. */
     fun decisions(account: String?): String = page("/decisions", account)
@@ -135,14 +153,33 @@ object AppUrls {
     /** The sign-in form itself, where Devise sends a request without a session. */
     fun isSignInForm(url: String): Boolean = parse(url)?.rawPath == "/users/sign_in"
 
-    /** Turbo's recede_, resume_ and refresh_historical_location. */
-    fun isHistoricalLocation(url: String): Boolean = when (parse(url)?.rawPath) {
-        "/recede_historical_location", "/resume_historical_location", "/refresh_historical_location" -> true
-        else -> false
-    }
+    /**
+     * Turbo's recede_, resume_ and refresh_historical_location, also under an
+     * organization's prefix ("/482139075/recede_historical_location"), where
+     * the server's account-scoped controllers send them.
+     */
+    fun isHistoricalLocation(url: String): Boolean = isAppUrl(url) && pathWithinAccount(url) in HISTORICAL
 
     /** `recede_or_redirect_to`: go back a screen. */
-    fun isRecede(url: String): Boolean = parse(url)?.rawPath == "/recede_historical_location"
+    fun isRecede(url: String): Boolean = isAppUrl(url) && pathWithinAccount(url) == "/recede_historical_location"
+
+    /** What a historical location says to show: its `notice`, or its `alert`, which stays up longer. */
+    data class Notice(val message: String, val long: Boolean)
+
+    /** [url]'s notice or alert (`recede_or_redirect_to url, notice: "Chat renamed."`), if it's a historical location with one. */
+    fun historicalNotice(url: String): Notice? {
+        if (!isHistoricalLocation(url)) return null
+        val query = parse(url)?.rawQuery ?: return null
+        val values =
+            query.split('&').mapNotNull { pair ->
+                val parts = pair.split('=', limit = 2)
+                val value = parts.getOrNull(1)?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrNull() }
+                value?.takeIf { it.isNotBlank() }?.let { parts[0] to it }
+            }.toMap()
+        values["notice"]?.let { return Notice(it, long = false) }
+        values["alert"]?.let { return Notice(it, long = true) }
+        return null
+    }
 
     /** `resume_or_redirect_to`: stay where the person was. */
     val resume = "${AppConfig.baseUrl}/resume_historical_location"
@@ -152,6 +189,11 @@ object AppUrls {
 
     /** A chat's file in its viewer (the server's chats/files/show), which zooms like a document. */
     fun isFileViewer(url: String): Boolean = Regex("^/chats/\\d+/files/").containsMatchIn(pathWithinAccount(url))
+
+    private const val HTTP_NOT_FOUND = 404
+
+    private val HISTORICAL =
+        setOf("/recede_historical_location", "/resume_historical_location", "/refresh_historical_location")
 
     private fun parse(url: String): URI? = runCatching { URI(url) }.getOrNull()?.takeIf { it.host != null }
 

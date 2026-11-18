@@ -196,7 +196,7 @@ written with `^`):
 | `/chats/\d+\?(.*&)?from=` | default | push (`presentation: default`) | off | a chat a page opens about something on it (a bot's "Change it in a chat", its runs, Decisions' "Open chat", a side chat), pushed with back to that page |
 | `^/shared/` | default | push | off | |
 | `/settings\?` | default | push | on | a Settings tab, pushed over the Settings list (`query_string_presentation: default`, since the list and its tabs share `/settings`) |
-| `/decisions(\?\|$)`, `/bots(\?\|$)`, `/chats(\?\|$)`, `/projects(\?\|$)`, `/settings$` | default | `replace_root` | on | the places: Decisions, Bots, the chat lists, Projects, the Settings list |
+| `^(/[0-9]+)?/home(\?\|$)` (anchored: a `return_to=/home` in another page's query isn't the home), `/decisions(\?\|$)`, `/bots(\?\|$)`, `/chats(\?\|$)`, `/projects(\?\|$)`, `/settings$` | default | `replace_root` | on | the places: the organization's home (where the app opens, which the server sends on to Decisions or New chat; a server without it answers 404, and the app opens New chat instead, below), Decisions, Bots, the chat lists, Projects, the Settings list |
 | `/chats/\d+/files/` | modal | | off | a chat's file in its viewer, a full-screen modal over the chat (iOS contract, "A file") |
 | files and the marketing site | | `none` | | `open_in_browser: true`: a Chrome Custom Tab |
 
@@ -443,7 +443,25 @@ Links the app handles itself:
   chat, or on its new chat with the page on top.
 - `notice` and `alert` on `/recede_historical_location`,
   `/resume_historical_location` and `/refresh_historical_location` show as
-  snackbars.
+  snackbars, `alert` for longer. Account-scoped controllers send them under
+  the organization's prefix (`/482139075/recede_historical_location?notice=Chat+renamed.`),
+  which counts the same (from 1.2.9; earlier builds missed the prefixed
+  ones, so "Chat renamed." and Move to project's notice never showed).
+  Turbo's
+  `recede_or_redirect_to` passes `notice:` only; an `alert` needs
+  `native_params: { alert: }`.
+- Snackbars sit above the native composer where a screen has one, never
+  over it (1.2.9).
+- **Where the app opens (1.2.9).** `/<organization>/home` (`/home` before
+  the app knows the organization), which the server sends on to Decisions or
+  New chat. A server from before 2026-11-17, every self-hosted release up to
+  v0.15.0 among them, answers it 404: the app then opens the organization's
+  New chat (the list the sidebar last chose), as earlier builds did. A 404
+  on `/<organization>/home` (or `/home`) does this whenever it comes, as
+  long as that page is still the one on screen and someone is signed in
+  (signed out, the next sign-in starts on the home again). A 401 there
+  shows the welcome screen, as anywhere; other failures show the error
+  screen.
 
 **Chats readable offline (server, 2026-11-04).** The pages register the
 server's service worker in the app too, and it keeps the chats someone
@@ -852,6 +870,103 @@ On Android:
 
 ## 11. The sidebar
 
+**The sidebar page (2026-11-17).** The server draws the sidebar, so a change
+to it needs no app release: builds from `server-sidebar` keep the server's
+own sidebar, `GET /<organization>/sidebar` (the server's `SidebarsController`),
+loaded in a web view of their own in the drawer (`SidebarWebView`), and show
+it in place of the native sidebar once it has drawn. Everything below this
+section, the JSON and the native sidebar, stays as the fallback for a server
+without the page, and for older builds, which the server keeps serving.
+
+- **Which page.** Every signed-in page's hidden `bridge--sidebar` element
+  sends `connect` `{page, belongsTo}`: `page` is this organization's sidebar
+  page (`"/482139075/sidebar"`), `belongsTo` the path the page on screen
+  belongs under (its `data-sidebar-belongs-to`: a bot's chat raises its bot's
+  row), or null. An older server sends `{}`: no `page`, so the native
+  sidebar. The app loads the page once and again only when `page` changes
+  (another organization), remembers it per organization (`SessionMemory`) to
+  load it at launch before the first page connects, and forgets it when a
+  `connect` comes without one or the page answers 404.
+- **Its web view.** A plain `WebView`, never Hotwire's, kept for the
+  activity's life over the native sidebar, inside the system bars and cutout,
+  on the sunken canvas, JavaScript and DOM storage on, no zoom, one window.
+  Cookies are the app's own `CookieManager`, so it's signed in as the pages
+  are. Its user agent is the app's tokens and the WebView's own,
+  `Chat with Work; platform=android; version=...; build=...; Mozilla/5.0 ...`,
+  with no `Hotwire Native`, `Turbo Native` or `bridge-components`: the server
+  draws it for a phone, and none of the page's bridge controllers load there,
+  where no bridge answers them. The page never writes the session, shows only
+  its own requests' flashes, and never becomes the kept `app_user_agent`.
+- **Page to app**, through `window.ChatWithWorkSidebar.postMessage(json)`
+  (`addJavascriptInterface`), taken only while the web view shows this
+  server's page:
+
+  | Event | Data | The app |
+  |---|---|---|
+  | `ready` | | shows the page in place of the native sidebar, and answers with `current` |
+  | `visit` | `url` (absolute) | this server: opens it as a place, as a native row does (Places), and closes the drawer (at once, without sliding, when it opens a modal such as Rename or Move to project); the sign-in form (signing out from the person's menu) shows the welcome screen; another site (Help, which the page sends as an absolute https URL): a Chrome Custom Tab, never the drawer or the navigator. A link of this server the page marks `target="_blank"` is a page like any other: the navigator |
+  | `close` | | closes the drawer (the page's header button) |
+  | `confirm` | `id`, `title`, `description`, `confirm`, `dismiss`, `destructive` | a Material alert worded as `bridge--confirm`'s, the confirm button in the error colour when `destructive`, then `answer` |
+
+- **App to page**, on `window.chatWithWorkSidebar` with `evaluateJavascript`:
+  `current(url, belongsTo)` after every visit on the navigator, each
+  `connect` and `ready`, which marks the row of the page on screen (the
+  page keeps it on its column as `data-native-current-url`, so a row drawn
+  again by a stream is marked too, with nothing more from the app);
+  `refresh()` back from the background (`onStart` after `onStop`), since the
+  page's streams may have missed something; `answer(id, confirmed)`.
+- **Navigation.** Nothing but the page loads in the drawer:
+  `shouldOverrideUrlLoading` lets through only the page's own path, hands
+  any other page of this server to the navigator (`visit`) and other sites to
+  the browser. A redirect to the sign-in form on the page's own load (no
+  session) is dropped: the navigator learns about the session on its own.
+  Turbo's visits inside the page never reach the WebView: the page turns
+  each into `visit`. Requests that answer in place (pins, sections, the
+  filter, Delete in a row's menu) stay in the page, and deleting the chat on
+  screen sends `visit` to New chat.
+- **When it can't load.** A 404 means a server without the page: the native
+  sidebar, nothing remembered, and that page isn't asked for again while
+  the app runs, even when a `connect` names it. Any other failure, on the
+  first load or on a reload once it drew (`refresh` coming back from the
+  background), shows the native sidebar (fetched again if the drawer is
+  open) and tries the page again as the drawer next opens or the next
+  `connect` names it. Offline, the page has an offline copy in the service
+  worker (`docs/offline-chats.md` on the server), which the WebView may
+  draw after its own `onReceivedError`: `ready` then shows it. `ready`
+  counts only from the page the app last asked for, in that load: one from
+  a page since replaced (another organization) or dropped (signed out) is
+  ignored. A renderer that dies gets a new web view, and the page again as
+  the drawer next opens.
+- **While it shows,** the app fetches no JSON (on opening, polling, or
+  `changed`), and the app's own New chat (the top bar, a chat deleted on
+  screen, the icon's shortcuts, the widget and tile, shared text) opens
+  `/<organization>/chats/new`, never the list the native sidebar last
+  chose. That holds from the moment a `connect` names the page, before it
+  draws.
+- **Phone proportions** are the page's (the server's `native_sidebar.css`):
+  48dp rows and buttons, names and the search at 16px.
+- **What it shows (server, 2026-11-18).** The web sidebar's own partials:
+  New bot and New chat, Decisions with how many wait, the search, Pinned
+  (chats and bots), Recent filtered All, Chats or Bots with the person's
+  sections, each row's three-dot menu (Pin, Rename, Move to section, Move
+  to project, Delete behind the app's alert; a bot's own), Projects, and the
+  person's menu with the usage ring, whose panel shows what was used and
+  sells nothing. No credits row and no "Get the apps".
+- **Known limitations.** While the page shows, every page in the navigator
+  still subscribes to the person's chat-list streams for `changed`, which
+  the app then ignores, so the app holds two cable connections (the
+  navigator's and the drawer's). `belongsTo` is read when the bridge
+  connects, so after a morph (which doesn't connect again), or for the
+  moment between a visit and the new page's `connect`, the row marked can be
+  the previous page's. `refresh()` reloads the whole page (only online),
+  where a Turbo refresh would be lighter. The bridge interface is on every
+  frame of the page's web view; the app takes messages only while its top
+  frame is this server's page.
+- **Retiring the JSON.** The server keeps `/native/sidebar` until every
+  store build in use has the sidebar page; this app keeps the native sidebar
+  until self-hosted servers older than the page have updated, then drops
+  `SidebarDrawer`, `SidebarClient`, `Sidebar` and their layouts.
+
 **Same head in both views (2026-11-01).** Chats and Bots open the same way,
 as the web's (`.sidebar__head`, `.sidebar__search`), so switching moves
 nothing: Decisions, the Chats | Bots switch, the head (one row: the list
@@ -1107,8 +1222,8 @@ element, subscribed to the person's own chat-list streams. It sends:
 
 | Event | Data | The app |
 |---|---|---|
-| `connect` | `{}` | keeps it, to reply with a chat's action from a long press: `{action: "perform", url, method, confirm?, destructive?}` |
-| `changed` | `{}` | fetches the JSON again (debounced, 500 ms) if the sidebar is open, else on its next opening |
+| `connect` | `{page?, belongsTo?}` | shows the sidebar page `page` names (above, "The sidebar page"), or the native sidebar without one; keeps the component, to reply with a chat's action from a long press: `{action: "perform", url, method, confirm?, destructive?}` |
+| `changed` | `{}` | fetches the JSON again (debounced, 500 ms) if the native sidebar is open, else on its next opening; nothing while the sidebar page shows |
 
 No replies.
 

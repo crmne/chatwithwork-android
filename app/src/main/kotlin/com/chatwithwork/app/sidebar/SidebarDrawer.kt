@@ -694,7 +694,6 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
         }
 
         private fun bindNav(view: View, row: SidebarRow.Nav) {
-            view.updateLayoutParams<RecyclerView.LayoutParams> { height = dp(35) }
             val (icon, label) =
                 when (row.kind) {
                     SidebarRow.Nav.Kind.NEW_CHAT -> "edit_square" to R.string.new_chat
@@ -736,8 +735,6 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                     else -> null
                 }
             bindRow(view, icon, chat.title, null, dot, row.selected)
-            // A pin is the web's plain row; a chat's row is a little taller.
-            view.updateLayoutParams<RecyclerView.LayoutParams> { height = dp(if (row.pinned) 35 else 38) }
             val state =
                 when {
                     chat.waiting -> context.getString(R.string.sidebar_chat_waiting)

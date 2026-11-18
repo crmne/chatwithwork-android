@@ -22,12 +22,15 @@ Live Wire design system and the chat UI. Read the README here first, then
 
 ## Architecture rules
 
-- One activity (`MainActivity`) with one navigator, whose root is always a
-  chat, and the native sidebar (`sidebar/`) in a `DrawerLayout`. Changes of
+- One activity (`MainActivity`) with one navigator, whose root is the
+  place showing (the organization's home, Decisions, a chat, a list: the
+  path configuration's `replace_root` rules), and the sidebar (`sidebar/`) in a `DrawerLayout`. Changes of
   session or organization reset the navigator rather than patching
-  screens. The sidebar draws only what the server's JSON says
-  (docs/server-contract.md, "The sidebar"); visibility and permissions stay
-  on the server.
+  screens. The sidebar is the server's own sidebar page in a web view
+  (`SidebarWebView`, docs/server-contract.md, "The sidebar page"), so a
+  change to it needs no release; the native sidebar, which draws only what
+  the server's JSON says, is the fallback for servers without the page.
+  Visibility and permissions stay on the server.
 - Screens are `WebFragment` (pushed or the root) and `WebModalFragment` (modal),
   chosen by the path configuration's `uri`. Modals stay full-screen
   fragments: Hotwire Native's bottom-sheet fragments have no top app bar,

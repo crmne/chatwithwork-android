@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   The sidebar: Material 3's modal navigation drawer, drawn with Live Wire's
-  sunken canvas like the web's sidebar. The list scrolls (Decisions, the Chats | Bots
+  sunken canvas like the web's sidebar. Builds with the sidebar page show the server's own sidebar in a web view
+  over the native one (SidebarWebView, docs/server-contract.md, "The sidebar page"); the native one below is the
+  fallback. The list scrolls (Decisions, the Chats | Bots
   switch, each view's head and search, then pins and chats, or the bots); the person stays at the foot. SidebarDrawer fills it from the
   server's JSON.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/sidebar"
@@ -14,8 +16,15 @@
     android:layout_gravity="start"
     android:clickable="true"
     android:focusable="false"
-    android:orientation="vertical"
     android:background="@drawable/sidebar_background">
+
+    <!-- The server's sidebar page (SidebarWebView) is added over this once it has drawn;
+         this native sidebar stays for servers without the page, and before the page ever loaded. -->
+    <LinearLayout
+        android:id="@+id/sidebar_native"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/sidebar_list"
@@ -95,4 +104,6 @@
 
     </LinearLayout>
 
-</LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>

@@ -43,6 +43,17 @@ class SessionMemory(context: Context) {
 
     fun setNewChatPath(account: String, path: String?) = preferences.edit { putString("$KEY_NEW_CHAT$account", path) }
 
+    /**
+     * The server's sidebar page for [account] ("/482139075/sidebar"), as the
+     * pages last named it, so the drawer loads it before the first page
+     * connects; none from a server without one.
+     */
+    fun sidebarPage(account: String): String? = preferences.getString("$KEY_SIDEBAR_PAGE$account", null)
+
+    fun setSidebarPage(account: String, path: String?) = preferences.edit {
+        putString("$KEY_SIDEBAR_PAGE$account", path)
+    }
+
     /** The chat the person left while it answered, and when, to reopen it on a launch soon after. */
     fun leftAnswering(url: String?, at: Long) = preferences.edit {
         putString(KEY_LEFT_CHAT, url)
@@ -75,6 +86,7 @@ class SessionMemory(context: Context) {
         const val KEY_LIST = "list:"
         const val KEY_BOT_LIST = "bot_list:"
         const val KEY_NEW_CHAT = "new_chat:"
+        const val KEY_SIDEBAR_PAGE = "sidebar_page:"
         const val KEY_VIEW = "sidebar_view"
         const val KEY_LEFT_CHAT = "left_answering_chat"
         const val KEY_LEFT_AT = "left_answering_at"

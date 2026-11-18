@@ -9,8 +9,8 @@ servers in Germany with every model in the EU, or on your own servers.
 The app is built with [Hotwire Native](https://native.hotwired.dev). Its
 screens are the web app's own pages, so every feature the web app gains
 reaches the app without a release, and it goes native wherever that makes it
-feel like an Android app: it opens on a chat, with Material 3's navigation
-drawer as a native sidebar (your chats, projects, what waits for you, bots),
+feel like an Android app: it opens by default on your Decisions or a new chat, with Material 3's navigation
+drawer holding the server's own sidebar (what waits for you, your chats and bots, projects),
 Material top app bars with the page's actions and overflow
 menu, a native composer (with the photo picker, camera, ML Kit's document
 scanner, and dictation recorded on the phone and transcribed on the server), full-screen modals, a welcome screen, native dialogs, snackbars,
@@ -114,7 +114,7 @@ key, and the app signing key's fingerprint is what
 app/src/main/kotlin/com/chatwithwork/app/
   ChatWithWorkApplication.kt  Hotwire configuration, bridge components, path configuration
   main/        MainActivity (the sidebar shell, welcome screen, sign-in, links), view model
-  sidebar/     the native sidebar: the server's JSON, its rows, the drawer's views
+  sidebar/     the sidebar page's web view, and the native fallback: the server's JSON, its rows, the drawer's views
   composer/    the native composer: its state, view, "+" sheet, files, and dictation
   shortcuts/   the home screen widget, the Quick Settings tile, and where they and the icon's shortcuts lead
   fragments/   the web screen (top app bar over the shared web view), page titles, error states
@@ -132,8 +132,9 @@ docs/                    the server contract and design notes
   chat, Decisions, Bots, Settings: the path configuration's `replace_root`,
   and whatever the sidebar opens, `Places`), with only drill-downs pushed
   over it, the
-  sidebar (a `DrawerLayout` whose content `SidebarDrawer` draws from the
-  server's JSON, fetched with the web view's cookies), and the welcome
+  sidebar (a `DrawerLayout` holding the server's sidebar page in a web view,
+  `SidebarWebView`, or, from a server without it, what `SidebarDrawer`
+  draws from the server's JSON, fetched with the web view's cookies), and the welcome
   screen. It watches the navigator's traffic for what the server says: a
   401 or the sign-in page means no session, a recede while signed out means
   signed in, a link into another organization starts over there.

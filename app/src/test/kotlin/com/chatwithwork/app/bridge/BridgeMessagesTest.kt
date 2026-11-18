@@ -220,4 +220,17 @@ class BridgeMessagesTest {
         assertThat(data.dismiss).isNull()
         assertThat(data.destructive).isTrue()
     }
+
+    @Test
+    fun `sidebar's connect names the sidebar page and what the page on screen belongs under, both optional`() {
+        val connect = json.decodeFromString<com.chatwithwork.app.sidebar.SidebarPage.Connect>(
+            """{"page":"/482139075/sidebar","belongsTo":"/482139075/bots/4","metadata":{"url":"x"}}"""
+        )
+        assertThat(connect.page).isEqualTo("/482139075/sidebar")
+        assertThat(connect.belongsTo).isEqualTo("/482139075/bots/4")
+
+        val older = json.decodeFromString<com.chatwithwork.app.sidebar.SidebarPage.Connect>("""{}""")
+        assertThat(older.page).isNull()
+        assertThat(older.belongsTo).isNull()
+    }
 }
