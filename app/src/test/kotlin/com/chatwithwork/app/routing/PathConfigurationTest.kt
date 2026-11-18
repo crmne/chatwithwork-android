@@ -49,7 +49,7 @@ class PathConfigurationTest {
     }
 
     @Test
-    fun `a chat replaces the root and scrolls its conversation instead of refreshing`() {
+    fun `a chat replaces the root and refreshes in place when pulled`() {
         listOf(
             "/482139075/chats/42",
             "/482139075/chats/42#tool_call_7",
@@ -61,7 +61,7 @@ class PathConfigurationTest {
                     assertWithMessage(path).that(it["context"]).isEqualTo("default")
                     assertWithMessage(path).that(it["presentation"]).isEqualTo("replace_root")
                     assertWithMessage(path).that(it["uri"]).isEqualTo("hotwire://fragment/web")
-                    assertWithMessage(path).that(it["pull_to_refresh_enabled"]).isEqualTo(false)
+                    assertWithMessage(path).that(it["pull_to_refresh_enabled"]).isEqualTo(true)
                 }
             }
         assertThat(properties("/shared/abc123")["pull_to_refresh_enabled"]).isEqualTo(false)
@@ -193,6 +193,7 @@ class PathConfigurationTest {
                 properties(path).let {
                     assertWithMessage(path).that(it["context"]).isEqualTo("default")
                     assertWithMessage(path).that(it["presentation"]).isEqualTo("default")
+                    assertWithMessage(path).that(it["pull_to_refresh_enabled"]).isEqualTo(true)
                 }
             }
         assertThat(properties("/482139075/chats/42?message=7")["presentation"]).isEqualTo("replace_root")

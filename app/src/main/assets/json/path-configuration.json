@@ -50,7 +50,7 @@
       "properties": {
         "context": "default",
         "presentation": "replace_root",
-        "pull_to_refresh_enabled": false,
+        "pull_to_refresh_enabled": true,
         "skeleton": "chat",
         "uri": "hotwire://fragment/web"
       }
@@ -70,7 +70,7 @@
       "properties": {
         "context": "default",
         "presentation": "default",
-        "pull_to_refresh_enabled": false,
+        "pull_to_refresh_enabled": true,
         "uri": "hotwire://fragment/web"
       }
     },
