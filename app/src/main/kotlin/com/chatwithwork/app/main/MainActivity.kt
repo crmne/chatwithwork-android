@@ -601,6 +601,10 @@ class MainActivity :
         navigator?.route(newChatUrl())
     }
 
+    override fun onHomeMissing() {
+        root.post { navigator?.route(newChatUrl()) }
+    }
+
     /** The new chat in the list the sidebar shows (or last showed) in the organization showing. */
     private fun newChatUrl(): String {
         val account = viewModel.account ?: memory.lastAccount

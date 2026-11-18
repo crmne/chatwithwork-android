@@ -40,6 +40,16 @@ object AppUrls {
      */
     fun home(account: String?): String = page("/home", account)
 
+    /** The organization's home ("/482139075/home") or the unprefixed one ("/home"), on this server. */
+    fun isStartHome(url: String): Boolean = isAppUrl(url) && pathWithinAccount(url) == "/home"
+
+    /**
+     * Whether [url] answering [status] means the server has no home yet (one
+     * from before 2026-11-17, a self-hosted release among them), so the app
+     * opens New chat instead, as earlier builds did.
+     */
+    fun opensNewChatInstead(url: String, status: Int?): Boolean = status == HTTP_NOT_FOUND && isStartHome(url)
+
     /** The Decisions page, inside [account] when it's known. */
     fun decisions(account: String?): String = page("/decisions", account)
 
@@ -159,6 +169,8 @@ object AppUrls {
 
     /** A chat's file in its viewer (the server's chats/files/show), which zooms like a document. */
     fun isFileViewer(url: String): Boolean = Regex("^/chats/\\d+/files/").containsMatchIn(pathWithinAccount(url))
+
+    private const val HTTP_NOT_FOUND = 404
 
     private fun parse(url: String): URI? = runCatching { URI(url) }.getOrNull()?.takeIf { it.host != null }
 

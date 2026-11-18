@@ -25,6 +25,19 @@ class AppUrlsTest {
     }
 
     @Test
+    fun `a server without a home sends the app to New chat`() {
+        assertThat(AppUrls.opensNewChatInstead("$base/482139075/home", 404)).isTrue()
+        assertThat(AppUrls.opensNewChatInstead("$base/home", 404)).isTrue()
+        assertThat(AppUrls.opensNewChatInstead("$base/home?x=1", 404)).isTrue()
+        // Any other failure, or any other page, is the error screen as before.
+        assertThat(AppUrls.opensNewChatInstead("$base/482139075/home", 500)).isFalse()
+        assertThat(AppUrls.opensNewChatInstead("$base/482139075/home", null)).isFalse()
+        assertThat(AppUrls.opensNewChatInstead("$base/482139075/chats/42", 404)).isFalse()
+        assertThat(AppUrls.opensNewChatInstead("$base/482139075/bots/home", 404)).isFalse()
+        assertThat(AppUrls.opensNewChatInstead("https://chatwithwork.example/home", 404)).isFalse()
+    }
+
+    @Test
     fun `a different port is a different server`() {
         val other = base.replace(Regex(":\\d+$"), "") + ":4000"
         assertThat(AppUrls.isAppUrl("$other/chats")).isFalse()
