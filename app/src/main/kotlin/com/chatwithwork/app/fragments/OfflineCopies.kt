@@ -38,9 +38,9 @@ import android.webkit.WebViewClient
  */
 object OfflineCopies {
     /** Wraps the session's client once; Hotwire Native makes a new web view after a renderer crash. */
-    fun install(webView: WebView) {
+    fun install(webView: WebView, resetSession: () -> Unit) {
         val client = webView.webViewClient
-        if (client !is OfflineWebViewClient) webView.webViewClient = OfflineWebViewClient(client)
+        if (client !is OfflineWebViewClient) webView.webViewClient = OfflineWebViewClient(client, resetSession)
     }
 
     /** Whether a failed request may be the network failing behind a page the worker still answers. */
@@ -85,14 +85,22 @@ object OfflineCopies {
     )
 }
 
-/** Hotwire Native's own client, everything handed through but the error [OfflineCopies] describes. */
-internal class OfflineWebViewClient(private val inner: WebViewClient) : WebViewClient() {
+/**
+ * Hotwire Native's own client, everything handed through but the error
+ * [OfflineCopies] describes and a form shown again with its mistakes
+ * ([FormRerenders]).
+ */
+internal class OfflineWebViewClient(private val inner: WebViewClient, private val resetSession: () -> Unit) :
+    WebViewClient() {
     /** A held error, numbered so a late page check or timeout can't act on a later one. */
     private class Hold(val number: Int, val request: WebResourceRequest, val error: WebResourceError)
 
     private var held: Hold? = null
     private var holds = 0
     private val handler = Handler(Looper.getMainLooper())
+
+    /** A form shown again shows, without Turbo's bridge: the next navigation from it starts the session afresh. */
+    private var rerendered = false
 
     override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
         if (!OfflineCopies.mayBeAnswered(request.isForMainFrame, error.errorCode)) {
@@ -155,8 +163,16 @@ internal class OfflineWebViewClient(private val inner: WebViewClient) : WebViewC
         inner.onReceivedError(view, hold.request, hold.error)
     }
 
-    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
-        inner.shouldOverrideUrlLoading(view, request)
+    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+        // Hotwire Native still takes the session for ready, so it proposes the visit; the reset then has that
+        // visit load its page whole, as a cold boot, rather than ask a page without the bridge to.
+        val handled = inner.shouldOverrideUrlLoading(view, request)
+        if (rerendered && request.isForMainFrame) {
+            rerendered = false
+            if (handled) resetSession()
+        }
+        return handled
+    }
 
     override fun onPageCommitVisible(view: WebView, url: String) = inner.onPageCommitVisible(view, url)
 
@@ -165,8 +181,13 @@ internal class OfflineWebViewClient(private val inner: WebViewClient) : WebViewC
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
         inner.shouldInterceptRequest(view, request)
 
-    override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, errorResponse: WebResourceResponse) =
+    override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, errorResponse: WebResourceResponse) {
+        if (FormRerenders.isRerender(request.isForMainFrame, request.method, errorResponse.statusCode)) {
+            rerendered = true
+            return
+        }
         inner.onReceivedHttpError(view, request, errorResponse)
+    }
 
     override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) =
         inner.onReceivedSslError(view, handler, error)
