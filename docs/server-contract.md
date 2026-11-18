@@ -207,8 +207,8 @@ written with `^`):
 | `.*` | default | push | on | `uri: hotwire://fragment/web`; `query_string_presentation: replace`, so a visit to the page on screen with another query (a bot's tabs, a form redirecting back) replaces it rather than stacking a copy |
 | `/new(\?\|$)`, `/edit(\?\|$)` | modal | | off | every new and edit form; `uri: hotwire://fragment/web/modal` |
 | `^/users/sign_in`, `^/users/sign_up`, `^/users(\?\|$)`, `^/users/password...`, `^/users/confirmation...`, `^/users/unlock...` | modal | | off | the sign-in pages |
-| `/chats/new(\?\|$)`, `/chats/\d+(\?\|#\|$)` | default | `replace_root` | off | a chat is always the one screen |
-| `/chats/\d+\?(.*&)?from=` | default | push (`presentation: default`) | off | a chat a page opens about something on it (a bot's "Change it in a chat", its runs, Decisions' "Open chat", a side chat), pushed with back to that page |
+| `/chats/new(\?\|$)`, `/chats/\d+(\?\|#\|$)` | default | `replace_root` | on | a chat is always the one screen; the pull brings it up to date in place, keeping what's typed |
+| `/chats/\d+\?(.*&)?from=` | default | push (`presentation: default`) | on | a chat a page opens about something on it (a bot's "Change it in a chat", its runs, Decisions' "Open chat", a side chat), pushed with back to that page |
 | `^/shared/` | default | push | off | |
 | `/settings\?` | default | push | on | a Settings tab, pushed over the Settings list (`query_string_presentation: default`, since the list and its tabs share `/settings`) |
 | `^(/[0-9]+)?/home(\?\|$)` (anchored: a `return_to=/home` in another page's query isn't the home), `/decisions(\?\|$)`, `/bots(\?\|$)`, `/chats(\?\|$)`, `/projects(\?\|$)`, `/settings$` | default | `replace_root` | on | the places: the organization's home (where the app opens, which the server sends on to Decisions or New chat; a server without it answers 404, and the app opens New chat instead, below), Decisions, Bots, the chat lists, Projects, the Settings list |
