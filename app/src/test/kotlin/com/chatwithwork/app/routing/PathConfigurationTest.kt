@@ -135,7 +135,9 @@ class PathConfigurationTest {
     fun `every place replaces the root, so nothing stacks under it`() {
         listOf(
             "/482139075/home",
+            "/482139075/home?welcome=1",
             "/home",
+            "/home?welcome=1",
             "/482139075/decisions",
             "/482139075/decisions?decision=t7&view=now",
             "/482139075/bots",
@@ -151,6 +153,15 @@ class PathConfigurationTest {
                 assertWithMessage(path).that(it["uri"]).isEqualTo("hotwire://fragment/web")
                 assertWithMessage(path).that(it["pull_to_refresh_enabled"]).isEqualTo(true)
             }
+        }
+    }
+
+    @Test
+    fun `only the home itself is the home, not a page whose query names it`() {
+        assertThat(properties("/482139075/bots/7?return_to=/482139075/home")["presentation"]).isNull()
+        properties("/users/sign_in?return_to=/482139075/home").let {
+            assertThat(it["context"]).isEqualTo("modal")
+            assertThat(it["presentation"]).isNotEqualTo("replace_root")
         }
     }
 

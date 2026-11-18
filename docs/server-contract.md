@@ -196,7 +196,7 @@ written with `^`):
 | `/chats/\d+\?(.*&)?from=` | default | push (`presentation: default`) | off | a chat a page opens about something on it (a bot's "Change it in a chat", its runs, Decisions' "Open chat", a side chat), pushed with back to that page |
 | `^/shared/` | default | push | off | |
 | `/settings\?` | default | push | on | a Settings tab, pushed over the Settings list (`query_string_presentation: default`, since the list and its tabs share `/settings`) |
-| `/home$`, `/decisions(\?\|$)`, `/bots(\?\|$)`, `/chats(\?\|$)`, `/projects(\?\|$)`, `/settings$` | default | `replace_root` | on | the places: the organization's home (where the app opens, which the server sends on to Decisions or New chat; a server without it answers 404, and the app opens New chat instead, below), Decisions, Bots, the chat lists, Projects, the Settings list |
+| `^(/[0-9]+)?/home(\?\|$)` (anchored: a `return_to=/home` in another page's query isn't the home), `/decisions(\?\|$)`, `/bots(\?\|$)`, `/chats(\?\|$)`, `/projects(\?\|$)`, `/settings$` | default | `replace_root` | on | the places: the organization's home (where the app opens, which the server sends on to Decisions or New chat; a server without it answers 404, and the app opens New chat instead, below), Decisions, Bots, the chat lists, Projects, the Settings list |
 | `/chats/\d+/files/` | modal | | off | a chat's file in its viewer, a full-screen modal over the chat (iOS contract, "A file") |
 | files and the marketing site | | `none` | | `open_in_browser: true`: a Chrome Custom Tab |
 
