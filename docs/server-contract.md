@@ -686,7 +686,7 @@ naming the token, for a token that's gone: destroy the registration. Retry
 When the person leaves the app while the chat on screen is answering (its
 composer says `working`), the app posts an ongoing notification for that
 chat: the Open Road card, as on iOS (`docs/push-notifications.md`), with the
-current step, the organization's name and an elapsed timer, never the chat's title or content. It uses the chat's notification
+chat's title as its headline (below), the current step under it, the organization's name and an elapsed timer, never the chat's content. No push carries the title. It uses the chat's notification
 slot (tag `chat-<organization>-<number>`, the `thread` the server sends), so
 the push for its end (`answered`, `failed`) takes its place.
 It's taken away when the person comes back, and after 30 minutes if
@@ -750,8 +750,9 @@ hears.
 Todoist", "Reading 3 files in Drive", "Running code", "Writing the answer",
 "Answering" between steps), `step` its kind (`search`, `list`, `read`, `use`,
 `plan`, `run`, `ask`, `write`, `answer`), `steps` how many it took, never a
-query, file name, title or text. The app shows `message` as the Live
-Update's headline, with the organization and the steps above it. When the
+query, file name, title or text. The app shows `message` under the chat's
+title, or as the headline when it doesn't know the title, with the
+organization in the header. When the
 answer ends, the same kind comes with `phase` `answered`,
 `failed` or `stopped` and generic
 words for it, never collapsed and kept a day, and the Live Update becomes a
@@ -777,6 +778,36 @@ last one per chat, so the card it posts on leaving starts on the right
 paper, and a message without it keeps that paper: chalk, the white sticker,
 only while none was ever heard. The server sends it on every message of a
 bot's run, so a changed colour (chalk included) replaces the remembered one.
+
+**The chat's title (2026-11-18).** Every `progress` message carries
+optional `title_ref`, an id the app can't read. As the message arrives, the
+app asks for the chat's title with it and the phone's notification key, as
+it fetches a notification's words:
+
+```
+GET /native/live_titles/<title_ref>
+Authorization: Bearer <notification key>
+
+{ "title": "Q3 renewal plan", "bot": "Morning plan", "titled": true }
+```
+
+`title` is the chat's title on one line, at most 120 characters; `bot` the
+bot's name in a bot's chat or run; `titled` false while the chat has none yet.
+An empty object means the person turned off Settings ▸ Notifications'
+"Show the chat and its answer", and the card shows the step's words as its headline,
+as before. A `404` (not this phone's, the follow ended, an id too old or
+tampered with) or no answer within 3 seconds changes nothing. The headline is
+the title, the bot's name and then the title (` · `, which the system cuts
+short where there's no room), the bot's name alone, or "New chat"; the line
+under it is the step's words and the steps ("Searching Drive · 3 steps", or
+"Approve a change in Slack · 4 steps" while it waits). The app keeps the
+answer per chat (`LiveTitles`), shows it on the next card for that chat at
+once, and asks again once per run and while `titled` is false, so a new
+chat's summarized title replaces "New chat" with the next message. Sign-out
+forgets them. The status bar chip keeps the step's word (Search, Review): a
+title doesn't fit its seven letters. Below Android 16 the drawn card puts
+the title on its top line, above the step's words, in place of the
+organization's name, which stays in the header.
 
 Optional `recent_steps`, which older app versions show, is ignored now: the
 road says the same thing.

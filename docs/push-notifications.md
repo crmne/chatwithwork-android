@@ -160,6 +160,21 @@ that chat, in Chats, inside the right organization.
   passes 5 a second, so a burst loses frames, never the last state's truth for
   long. The road's width is worked out from the screen (the indent differs on
   Android 16); a shade that's narrower scales it down.
+  The headline is the chat's title, or a bot's name and the title, which
+  no push carries: each message's `title_ref` is asked for at
+  `/native/live_titles/` with the notification key (`LiveTitles`,
+  docs/server-contract.md, "The chat's title"), and the step's words go
+  under it. Android 16's template wraps a long title to two lines in the
+  expanded card and cuts it after that; collapsed it's one line.
+  The status bar masks (`live_mark_*` on Android 16, `live_chip_*` below)
+  are the bot mark drawn on a 24dp canvas, the bubble's 16 squares scaled
+  1.2 and centred on the circle around it, so the whole bot sits inside the
+  circle a phone maker's capsule crops the icon to. Drawn edge to edge on a
+  16dp canvas, as they were until 2026-11-18, OxygenOS's capsule cut the
+  bubble's corners and the tail (Carmine: "the bot icon gets cut on
+  Android's island at the top. Chat with Work icon fits"), while the round
+  logo fits. Stock Android 16's chip never cropped it, and draws the bot at
+  the logo's size now.
   Missing or blank activity labels fall back to the stable step kind.
   `answer` means thinking between steps; `write` means streaming the answer.
   Only the logos in `LiveServices` show; any other `service` shows none.
@@ -170,7 +185,7 @@ The code: `push/PushNotifications.kt` (permission, opt-in, token, the
 notification key, showing notifications), `push/PushMessagingService.kt`
 (Firebase's callbacks), `push/Push.kt` (the payload), `push/NotificationWords.kt`
 (fetching a notification's words), `push/LiveUpdates.kt` and
-`push/LiveProgress.kt`, `push/LiveRuns.kt`, `push/LiveUpdateDismissed.kt` (Live Updates, their steps and runs), `push/LivePresentation.kt`
+`push/LiveProgress.kt`, `push/LiveRuns.kt`, `push/LiveUpdateDismissed.kt` (Live Updates, their steps and runs), `push/LiveTitles.kt` (their chat's title), `push/LivePresentation.kt`
 (state, face, ticks), `push/LiveCard.kt` (the views), `push/LiveArtwork.kt` and `push/LiveBotPixels.kt` (the road and the words as pictures), `push/LiveServices.kt` (logos),
 `push/LiveArtwork.kt` (the road as a picture below Android 16), and
 `bridge/NotificationTokenComponent.kt`.
@@ -221,7 +236,8 @@ service google_drive --es services "'[\"slack\",\"google_drive\"]'"`, with `--es
 waiting_since <s>` or `--es heard_at <s>` where they apply.
 
 For a synthetic card without a server, use the same broadcast with
-`--es kind live_preview`. Debug builds create a Northwind Studio Live
+`--es kind live_preview` (and `--es chat_title "'Acme renewal'"`, `--es
+chat_bot "'Morning plan'"` for its headline). Debug builds create a Northwind Studio Live
 Update before applying that progress; production has no such receiver.
 
 A push with `--es notification_id <id>` fetches its words from the server

@@ -5,7 +5,8 @@ import com.chatwithwork.app.R
 
 /**
  * What a Live Update shows, from what the server said and nothing else: no
- * percentage, no estimate, no planned stages. The same state drives the
+ * percentage, no estimate, no planned stages. Its headline is the chat's
+ * title where the app could ask for it ([chatTitle]). The same state drives the
  * card ([LiveCard]), its road ([LiveArtwork]) and the status bar icon.
  */
 data class LivePresentation(
@@ -20,7 +21,13 @@ data class LivePresentation(
     /** Who's at work, as the server says it: `chat` draws the logo, anything else the bot. */
     val assistant: String? = null,
     /** The bot's colour, the paper of its mark (`Bot::Colours`), by name; chalk, the white sticker, when unknown. */
-    val paper: String? = null
+    val paper: String? = null,
+    /**
+     * The headline: the chat's title, or a bot's name and the title ([LiveTitles]),
+     * with the step's words under it. Null when the app doesn't know it, and
+     * the step's words lead as they always did.
+     */
+    val chatTitle: String? = null
 ) {
     enum class State { STARTING, WORKING, AGENTS, WRITING, DECISION, INPUT, FINISHED, FAILED, STOPPED, QUIET }
 

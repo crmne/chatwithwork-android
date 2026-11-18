@@ -200,7 +200,10 @@ object PushNotifications {
             val words = progress.notificationId?.let { id ->
                 notificationKey(context)?.let { key -> NotificationWords.fetch(id, key) }
             }
-            if (words?.suppressed != true) LiveUpdates.progress(context, progress)
+            if (words?.suppressed != true) {
+                LiveTitles.refresh(context, progress)
+                LiveUpdates.progress(context, progress)
+            }
             return
         }
         val push = Push.from(data) ?: return

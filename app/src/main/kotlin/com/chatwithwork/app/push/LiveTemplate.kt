@@ -124,7 +124,8 @@ object LiveTemplate {
      * the amber is the road ahead's and the status bar chip's word.
      */
     private fun subtitle(context: Context, shown: LivePresentation, text: String?): String? {
-        if (!shown.isWaiting) return text
+        // Under a chat's title, the line already starts with what it waits for.
+        if (!shown.isWaiting || shown.chatTitle != null) return text
         val steps = shown.walked.takeIf { it > 0 }?.let {
             context.resources.getQuantityString(R.plurals.live_update_steps, it, it)
         }

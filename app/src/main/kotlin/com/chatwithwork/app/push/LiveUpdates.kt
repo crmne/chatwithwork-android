@@ -30,8 +30,9 @@ import kotlinx.serialization.json.putJsonObject
  * A Live Update for a chat the person left while it was answering: an
  * ongoing notification, Android's own promoted template from Android 16
  * ([LiveTemplate]) and the iOS app's card below it ([LiveCard]),
- * saying the organization's name and what the answer is doing, never the
- * chat's title or anything in it.
+ * headed by the chat's title, or a bot's name, and saying what the answer is
+ * doing. The title never comes in a push: the app asks the server for it
+ * ([LiveTitles]) and shows the step's words alone when it can't.
  *
  * The app asks the server to follow the chat ([follow]), which then sends
  * each step as FCM data of kind `progress` ([progress]): "Searching Todoist",
@@ -116,7 +117,8 @@ object LiveUpdates {
                     LiveProgress.ANSWERING,
                     step,
                     assistant = assistant,
-                    paper = preferences(context).getString(PAPER_PREFIX + thread, null)
+                    paper = preferences(context).getString(PAPER_PREFIX + thread, null),
+                    chatTitle = chatTitle(context, thread)
                 ),
                 null,
                 startedAt,
@@ -186,7 +188,8 @@ object LiveUpdates {
                 // What this chat last heard, as Android may not have published the newest card yet.
                 progress.paper
                     ?: preferences(context).getString(PAPER_PREFIX + progress.thread, null)
-                    ?: shown.extras.getString(EXTRA_PAPER)
+                    ?: shown.extras.getString(EXTRA_PAPER),
+                chatTitle(context, progress.thread)
             )
         val notification =
             if (!progress.isEnd) {
@@ -251,6 +254,10 @@ object LiveUpdates {
             )
     }
 
+    /** The chat's headline as the server last said it, or null. */
+    private fun chatTitle(context: Context, thread: String): String? =
+        LiveTitles.kept(context, thread)?.title?.headline(context.getString(R.string.live_update_new_chat))
+
     private fun lastSentAt(context: Context, thread: String): Long = preferences(context).getLong(thread, 0)
 
     private fun preferences(context: Context) = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
@@ -263,6 +270,7 @@ object LiveUpdates {
     fun forget(context: Context) {
         session++
         context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE).edit { clear() }
+        LiveTitles.forget(context)
         val manager = NotificationManagerCompat.from(context)
         manager.activeNotifications
             .filter { it.notification.channelId == PushNotifications.CHANNEL_ANSWERING }
@@ -366,7 +374,8 @@ object LiveUpdates {
             // Android's template names the organization in its header already.
             starting -> organization.takeUnless { LiveTemplate.promotes }
 
-            waiting -> context.getString(R.string.live_update_waiting)
+            // Under a chat's title the step's words already say what waits.
+            waiting && shown.chatTitle == null -> context.getString(R.string.live_update_waiting)
 
             else -> stepsText(context, shown.walked)
         }
@@ -431,13 +440,16 @@ object LiveUpdates {
         organization: String,
         clock: LiveCard.Clock
     ): NotificationCompat.Builder {
-        val title = shown.title(message, context::getString)
+        // The chat's title leads where the app knows it, and the step's words go under it.
+        val step = shown.title(message, context::getString)
+        val title = shown.chatTitle ?: step
+        val line = if (shown.chatTitle != null) listOfNotNull(step, text).joinToString(" · ") else text
         val builder =
             NotificationCompat
                 .Builder(context, PushNotifications.CHANNEL_ANSWERING)
                 .setSubText(organization)
                 .setContentTitle(title)
-                .setContentText(text)
+                .setContentText(line)
                 .setColor(ContextCompat.getColor(context, shown.color))
                 .setOnlyAlertOnce(true)
                 .addExtras(
@@ -450,9 +462,17 @@ object LiveUpdates {
                         putString(EXTRA_PAPER, shown.paper)
                     }
                 )
-        if (LiveTemplate.promotes) return LiveTemplate.dress(builder, context, shown, title, text, open(context, url))
+        if (LiveTemplate.promotes) return LiveTemplate.dress(builder, context, shown, title, line, open(context, url))
         val view =
-            LiveCard(context, shown, title, organization, stepsText(context, shown.walked), clock, open(context, url))
+            LiveCard(
+                context,
+                shown,
+                step,
+                shown.chatTitle ?: organization,
+                stepsText(context, shown.walked),
+                clock,
+                open(context, url)
+            )
         return builder
             .setSmallIcon(shown.cardIcon)
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())

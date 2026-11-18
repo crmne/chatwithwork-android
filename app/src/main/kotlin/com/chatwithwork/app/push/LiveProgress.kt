@@ -11,7 +11,7 @@ import kotlinx.serialization.json.JsonPrimitive
  * sends it: FCM data of kind `progress` (docs/server-contract.md, "Live
  * Updates"). Never the chat's words: [message] names the kind of step and a
  * built-in service ("Searching Todoist", "Writing the answer"), or says how it
- * ended in generic words. [run] says which answer it's about and [revision]
+ * ended in generic words. The chat's title is asked for with [titleRef]. [run] says which answer it's about and [revision]
  * orders it within that answer ([LiveRuns]); both are absent from older
  * servers, where [sentAt], the server's clock, keeps an older message arriving
  * late from undoing a newer one. [startedAt] is when the answer began.
@@ -38,7 +38,9 @@ data class LiveProgress(
     val agents: Int? = null,
     val heardAt: Long? = null,
     /** The bot's colour by name (`Bot::Colours`), absent in a person's chat and from older servers. */
-    val paper: String? = null
+    val paper: String? = null,
+    /** The id the app asks the server for the chat's title with ([LiveTitles]); never the title. Absent from older servers. */
+    val titleRef: String? = null
 ) {
     /** Still answering. */
     val isWorking: Boolean get() = phase == ANSWERING
@@ -108,7 +110,8 @@ data class LiveProgress(
                 pace = pace(data["pace"], data["trail"]),
                 agents = data["agents"]?.toIntOrNull(),
                 heardAt = data["heard_at"]?.toLongOrNull()?.let { it * 1000 },
-                paper = data["paper"]?.takeIf { it in LivePresentation.PAPERS }
+                paper = data["paper"]?.takeIf { it in LivePresentation.PAPERS },
+                titleRef = data["title_ref"]?.takeIf { it.isNotBlank() }
             )
         }
     }

@@ -186,6 +186,8 @@
     <string name="live_update_waiting_for_you">Waiting for you</string>
     <string name="live_update_in">in</string>
     <string name="live_update_starting">Starting</string>
+    <!-- A Live Update's headline for a chat that has no title yet. -->
+    <string name="live_update_new_chat">New chat</string>
     <string name="live_update_failed">Couldn\'t finish</string>
     <string name="live_update_stopped">Stopped</string>
     <string name="live_update_unknown">Open chat for an update</string>

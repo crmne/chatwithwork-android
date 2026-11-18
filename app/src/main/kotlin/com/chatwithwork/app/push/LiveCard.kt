@@ -19,12 +19,14 @@ import kotlin.math.roundToInt
  * ([LiveArtwork]) and everything else real, so the clock runs on its own and
  * TalkBack reads the words. Every view's state is set on every update, since
  * the system may reapply these onto the views the last update left behind.
+ * [heading], the line above the step's words, is the chat's title where the
+ * app knows it ([LiveTitles]), and the organization's name otherwise.
  */
 class LiveCard(
     private val context: Context,
     private val shown: LivePresentation,
     private val title: String,
-    private val organization: String,
+    private val heading: String,
     private val steps: String?,
     private val clock: Clock,
     private val open: PendingIntent
@@ -45,7 +47,18 @@ class LiveCard(
     }
 
     fun expanded() = RemoteViews(context.packageName, R.layout.notification_live_card).apply {
-        words(R.id.live_organization, organization, ORGANIZATION, R.color.road_ink_muted)
+        words(
+            R.id.live_organization,
+            heading,
+            ORGANIZATION,
+            if (shown.chatTitle !=
+                null
+            ) {
+                R.color.road_ink
+            } else {
+                R.color.road_ink_muted
+            }
+        )
         words(R.id.live_steps, steps.orEmpty(), STEPS, R.color.road_ink_muted)
         setViewVisibility(R.id.live_steps, visible(steps != null))
         setViewVisibility(R.id.live_headline, visible(!shown.hasBand))
@@ -53,7 +66,7 @@ class LiveCard(
         headline()
         road()
         if (shown.hasBand) band()
-        setContentDescription(R.id.live_card, listOfNotNull(organization, title, steps).joinToString(". "))
+        setContentDescription(R.id.live_card, listOfNotNull(heading, title, steps).joinToString(". "))
         setOnClickPendingIntent(R.id.live_action, open)
     }
 
