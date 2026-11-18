@@ -35,6 +35,43 @@ class LiveTitlesTest {
     }
 
     @Test
+    fun `a title asked for before sign-out is never kept after it, in either order`() {
+        var key: String? = "key"
+        val current = { key }
+
+        // Asked, then signed out (the key goes, then the session ends), then the answer comes.
+        val gate = LiveTitles.Gate()
+        val before = gate.ask(current)!!
+        key = null
+        gate.end {}
+        var kept = false
+        gate.keepIf(before, current) { kept = true }
+        assertThat(kept).isFalse()
+
+        // Signed out first: there's no key to ask with.
+        assertThat(gate.ask(current)).isNull()
+
+        // The session ended while the key was still there (an older order): still dropped.
+        key = "key"
+        val other = LiveTitles.Gate()
+        val asked = other.ask(current)!!
+        other.end {}
+        other.keepIf(asked, current) { kept = true }
+        assertThat(kept).isFalse()
+
+        // Another key, as after signing in again: dropped too.
+        val third = LiveTitles.Gate()
+        val old = third.ask(current)!!
+        key = "new key"
+        third.keepIf(old, current) { kept = true }
+        assertThat(kept).isFalse()
+
+        // Nothing changed: kept.
+        third.keepIf(third.ask(current)!!, current) { kept = true }
+        assertThat(kept).isTrue()
+    }
+
+    @Test
     fun `asks only this build's server, for an id shaped like the server's`() {
         assertThat(
             LiveTitles.url("uEMJ-NNHE7_Vu--fBTj==")

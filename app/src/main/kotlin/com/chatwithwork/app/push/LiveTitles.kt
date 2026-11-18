@@ -58,9 +58,37 @@ object LiveTitles {
 
     private const val TIMEOUT_MS = 3_000
 
-    /** Goes up as the session ends, so a request begun before can't keep a title after it. */
-    @Volatile
-    private var session = 0
+    /**
+     * Whether a title asked for may still be kept: it's dropped once the
+     * session ends, or once the key it was asked with is gone or replaced.
+     * The session and the key are taken together, and sign-out removes the
+     * key before it ends the session ([PushNotifications.forget]), so no
+     * ordering of sign-out and a request under way leaves a title behind.
+     */
+    class Gate {
+        data class Ask(val session: Int, val key: String)
+
+        private var session = 0
+
+        /** The session and key to ask with, or null without a key. */
+        @Synchronized
+        fun ask(key: () -> String?): Ask? = key()?.let { Ask(session, it) }
+
+        /** Runs [keep] only if [ask]'s session and key are still the current ones. */
+        @Synchronized
+        fun keepIf(ask: Ask, key: () -> String?, keep: () -> Unit) {
+            if (ask.session == session && key() == ask.key) keep()
+        }
+
+        /** The session ended: runs [forget] as it does, so nothing asked before is kept after. */
+        @Synchronized
+        fun end(forget: () -> Unit) {
+            session++
+            forget()
+        }
+    }
+
+    private val gate = Gate()
     private const val PREFERENCES = "live_titles"
     private val ID = Regex("[A-Za-z0-9_=-]+")
     private val json = Json { ignoreUnknownKeys = true }
@@ -85,24 +113,20 @@ object LiveTitles {
     fun refresh(context: Context, progress: LiveProgress) {
         val id = progress.titleRef ?: return
         if (!needsFetch(kept(context, progress.thread), progress.run)) return
-        val key = PushNotifications.notificationKey(context) ?: return
-        val askedIn = session
-        val title = fetchWithin(id, key) ?: return
-        keep(context, progress.thread, progress.run, title, askedIn)
+        val key = { PushNotifications.notificationKey(context) }
+        val ask = gate.ask(key) ?: return
+        val title = fetchWithin(id, ask.key) ?: return
+        gate.keepIf(ask, key) { keep(context, progress.thread, progress.run, title) }
     }
 
-    /** Keeps what the server said of [thread]'s chat for [run], unless the session it was asked in has ended. */
-    @Synchronized
-    fun keep(context: Context, thread: String, run: String?, title: Title, askedIn: Int = session) {
-        if (askedIn != session) return
+    /** Keeps what the server said of [thread]'s chat for [run]. */
+    fun keep(context: Context, thread: String, run: String?, title: Title) {
         preferences(context).edit { putString(thread, json.encodeToString(Kept(run, title))) }
     }
 
     /** Signing out forgets every chat's title, and any still being asked for. */
-    @Synchronized
     fun forget(context: Context) {
-        session++
-        preferences(context).edit { clear() }
+        gate.end { preferences(context).edit(commit = true) { clear() } }
     }
 
     /**

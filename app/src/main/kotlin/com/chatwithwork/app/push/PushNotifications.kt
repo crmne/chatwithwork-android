@@ -174,14 +174,15 @@ object PushNotifications {
      * sign-in registers anew.
      */
     fun forget(context: Context) {
-        LiveUpdates.forget(context)
         val hadToken = lastToken(context) != null
-        preferences(context).edit {
+        // The key goes first, so a Live Update title asked for from here on can't be kept ([LiveTitles.Gate]).
+        preferences(context).edit(commit = true) {
             remove(KEY_TOKEN)
             remove(KEY_OPTED_IN)
             remove(KEY_NOTIFICATION_KEY)
             remove(KEY_NOTIFICATION_KEY_TOKEN)
         }
+        LiveUpdates.forget(context)
         if (!hadToken || !isAvailable(context)) return
         val messaging = FirebaseMessaging.getInstance()
         messaging.isAutoInitEnabled = false
