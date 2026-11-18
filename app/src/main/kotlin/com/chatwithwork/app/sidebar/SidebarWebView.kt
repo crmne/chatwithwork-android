@@ -57,6 +57,8 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
 
     private val state = SidebarPageState()
 
+    private var destroyed = false
+
     /** The page's path ("/482139075/sidebar"), once one was asked for. */
     val pagePath: String?
         get() = state.path
@@ -126,6 +128,18 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
         if (isShowing) webView.evaluateJavascript(SidebarPage.Script.REFRESH, null)
     }
 
+    /**
+     * The activity ending (a theme change makes another): stops the page and
+     * its streams, and lets go of the web view, which holds the activity.
+     * Nothing it posted runs after this.
+     */
+    fun destroy() {
+        destroyed = true
+        main.removeCallbacksAndMessages(null)
+        container.removeView(webView)
+        webView.destroy()
+    }
+
     fun answer(id: String, confirmed: Boolean) {
         webView.evaluateJavascript(SidebarPage.Script.answer(id, confirmed), null)
     }
@@ -173,7 +187,7 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
             val message = SidebarPage.parse(raw) ?: return
             val document = state.document
             main.post {
-                if (view !== webView || document != state.document) return@post
+                if (destroyed || view !== webView || document != state.document) return@post
                 val shown = view.url
                 if (shown != null && AppUrls.isAppUrl(shown)) receive(message, document, shown)
             }

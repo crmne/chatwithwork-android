@@ -336,6 +336,12 @@ class MainActivity :
         if (LiveTemplate.promotes) showLiveUpdate()
     }
 
+    override fun onDestroy() {
+        // The sidebar's own web view, which the navigators' teardown doesn't know about.
+        if (::sidebarPage.isInitialized) sidebarPage.destroy()
+        super.onDestroy()
+    }
+
     override fun onStop() {
         super.onStop()
         stopped = true
