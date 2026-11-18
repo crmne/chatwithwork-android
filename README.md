@@ -9,7 +9,7 @@ servers in Germany with every model in the EU, or on your own servers.
 The app is built with [Hotwire Native](https://native.hotwired.dev). Its
 screens are the web app's own pages, so every feature the web app gains
 reaches the app without a release, and it goes native wherever that makes it
-feel like an Android app: it opens on your Decisions or a new chat, with Material 3's navigation
+feel like an Android app: it opens by default on your Decisions or a new chat, with Material 3's navigation
 drawer holding the server's own sidebar (what waits for you, your chats and bots, projects),
 Material top app bars with the page's actions and overflow
 menu, a native composer (with the photo picker, camera, ML Kit's document

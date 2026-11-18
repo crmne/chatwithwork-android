@@ -22,8 +22,9 @@ Live Wire design system and the chat UI. Read the README here first, then
 
 ## Architecture rules
 
-- One activity (`MainActivity`) with one navigator, whose root is always a
-  chat, and the sidebar (`sidebar/`) in a `DrawerLayout`. Changes of
+- One activity (`MainActivity`) with one navigator, whose root is the
+  place showing (the organization's home, Decisions, a chat, a list: the
+  path configuration's `replace_root` rules), and the sidebar (`sidebar/`) in a `DrawerLayout`. Changes of
   session or organization reset the navigator rather than patching
   screens. The sidebar is the server's own sidebar page in a web view
   (`SidebarWebView`, docs/server-contract.md, "The sidebar page"), so a

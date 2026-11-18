@@ -904,7 +904,7 @@ without the page, and for older builds, which the server keeps serving.
   | Event | Data | The app |
   |---|---|---|
   | `ready` | | shows the page in place of the native sidebar, and answers with `current` |
-  | `visit` | `url` (absolute) | this server: opens it as a place, as a native row does (Places), and closes the drawer (at once, without sliding, when it opens a modal such as Rename or Move to project); the sign-in form (signing out from the person's menu) shows the welcome screen; another site, or a link the page marks `target="_blank"` (Help, which the page sends as an absolute https URL): a Chrome Custom Tab, never the drawer or the navigator |
+  | `visit` | `url` (absolute) | this server: opens it as a place, as a native row does (Places), and closes the drawer (at once, without sliding, when it opens a modal such as Rename or Move to project); the sign-in form (signing out from the person's menu) shows the welcome screen; another site (Help, which the page sends as an absolute https URL): a Chrome Custom Tab, never the drawer or the navigator. A link of this server the page marks `target="_blank"` is a page like any other: the navigator |
   | `close` | | closes the drawer (the page's header button) |
   | `confirm` | `id`, `title`, `description`, `confirm`, `dismiss`, `destructive` | a Material alert worded as `bridge--confirm`'s, the confirm button in the error colour when `destructive`, then `answer` |
 
