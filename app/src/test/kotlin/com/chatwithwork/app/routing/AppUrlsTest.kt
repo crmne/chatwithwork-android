@@ -116,6 +116,19 @@ class AppUrlsTest {
     }
 
     @Test
+    fun `reads the notice or alert a historical location carries`() {
+        assertThat(AppUrls.historicalNotice("$base/482139075/recede_historical_location?notice=Chat+renamed."))
+            .isEqualTo(AppUrls.Notice("Chat renamed.", long = false))
+        assertThat(AppUrls.historicalNotice("$base/refresh_historical_location?alert=Couldn%E2%80%99t+move+it"))
+            .isEqualTo(AppUrls.Notice("Couldn\u2019t move it", long = true))
+        assertThat(AppUrls.historicalNotice("$base/resume_historical_location?notice=&alert=No"))
+            .isEqualTo(AppUrls.Notice("No", long = true))
+        assertThat(AppUrls.historicalNotice("$base/recede_historical_location")).isNull()
+        assertThat(AppUrls.historicalNotice("$base/recede_historical_location?notice=")).isNull()
+        assertThat(AppUrls.historicalNotice("$base/482139075/chats/42?notice=Hi")).isNull()
+    }
+
+    @Test
     fun `knows Turbo's historical locations, files, and the home page`() {
         assertThat(AppUrls.isHistoricalLocation("$base/recede_historical_location?notice=Saved")).isTrue()
         assertThat(AppUrls.isHistoricalLocation("$base/refresh_historical_location")).isTrue()
@@ -123,6 +136,11 @@ class AppUrlsTest {
         assertThat(AppUrls.isRecede("$base/recede_historical_location?notice=Chat+renamed.")).isTrue()
         assertThat(AppUrls.isRecede("$base/refresh_historical_location")).isFalse()
         assertThat(AppUrls.isHistoricalLocation(AppUrls.resume)).isTrue()
+        // Account-scoped controllers send them under the organization's prefix.
+        assertThat(AppUrls.isHistoricalLocation("$base/482139075/recede_historical_location?notice=Moved")).isTrue()
+        assertThat(AppUrls.isRecede("$base/482139075/recede_historical_location")).isTrue()
+        assertThat(AppUrls.isRecede("$base/482139075/refresh_historical_location")).isFalse()
+        assertThat(AppUrls.isHistoricalLocation("https://chatwithwork.example/recede_historical_location")).isFalse()
         assertThat(AppUrls.isFile("$base/rails/active_storage/blobs/redirect/abc/report.pdf")).isTrue()
         assertThat(AppUrls.isFileViewer("$base/482139075/chats/42/files/abc")).isTrue()
         assertThat(AppUrls.isFileViewer("$base/482139075/chats/42")).isFalse()

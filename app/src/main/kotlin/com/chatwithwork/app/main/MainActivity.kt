@@ -14,6 +14,7 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
@@ -153,6 +154,9 @@ class MainActivity :
 
     /** Whether the app left the foreground since it last started, so the sidebar page may have missed something. */
     private var stopped = false
+
+    /** When the navigator last finished a visit (uptime), for a modal's notice to wait on. */
+    private var lastVisitCompletedAt = 0L
 
     private var keyboardVisible = false
 
@@ -1099,6 +1103,7 @@ class MainActivity :
 
     override fun onVisitCompleted(destination: HotwireDestination, location: String) {
         viewModel.firstPageShown = true
+        lastVisitCompletedAt = SystemClock.uptimeMillis()
 
         // The server may redirect a signed-out request to the sign-in form
         // instead of answering 401; the page then shows that form in place.
@@ -1171,7 +1176,9 @@ class MainActivity :
         val location = proposal.location
 
         if (AppUrls.isHistoricalLocation(location)) {
-            showNotice(location)
+            val closesModal = AppUrls.isRecede(location) && navigator?.currentDestination?.isModal == true
+            // From a modal, once the screen under it is back, so the snackbar sits above its composer.
+            if (closesModal) showNoticeAfterModal(location) else showNotice(location)
             if (viewModel.signingIn || viewModel.signedOut) {
                 didSignIn()
                 return Router.Decision.CANCEL
@@ -1180,8 +1187,8 @@ class MainActivity :
             // and nothing else, as on iOS: Hotwire Native would also go back
             // from the page under it. That page loads again, changed.
             val navigator = navigator
-            if (AppUrls.isRecede(location) && navigator?.currentDestination?.isModal == true) {
-                root.post { navigator.route(AppUrls.resume) }
+            if (closesModal) {
+                root.post { navigator?.route(AppUrls.resume) }
                 return Router.Decision.CANCEL
             }
             // A recede on the chat itself (deleted from its menu) has nothing
@@ -1242,15 +1249,26 @@ class MainActivity :
         return null
     }
 
+    /**
+     * A modal's notice, once the modal has gone and the page under it has
+     * loaded again, with its composer if it has one, so the snackbar sits
+     * above the composer rather than over it; at most [NOTICE_WAIT_MS] later
+     * whatever is showing.
+     */
+    private fun showNoticeAfterModal(location: String, since: Long = SystemClock.uptimeMillis()) {
+        val now = SystemClock.uptimeMillis()
+        val loaded = lastVisitCompletedAt > since && now - lastVisitCompletedAt >= NOTICE_SETTLE_MS
+        val settled = navigator?.currentDestination?.isModal == false && (visibleComposer() != null || loaded)
+        if (settled || now - since >= NOTICE_WAIT_MS) {
+            showNotice(location)
+        } else {
+            root.postDelayed({ showNoticeAfterModal(location, since) }, NOTICE_POLL_MS)
+        }
+    }
+
     /** `recede_or_redirect_to(url, notice: "...")` puts the notice on the URL; show it the native way. */
     private fun showNotice(location: String) {
-        val uri = location.toUri()
-        val notice = uri.getQueryParameter("notice")?.takeIf { it.isNotBlank() }
-        val alert = uri.getQueryParameter("alert")?.takeIf { it.isNotBlank() }
-        when {
-            notice != null -> showSnackbar(notice)
-            alert != null -> showSnackbar(alert, long = true)
-        }
+        AppUrls.historicalNotice(location)?.let { showSnackbar(it.message, it.long) }
     }
 
     // endregion
@@ -1412,8 +1430,15 @@ class MainActivity :
     // region Hosts for bridge components
 
     override fun showSnackbar(message: String, long: Boolean) {
-        Snackbar.make(root, message, if (long) Snackbar.LENGTH_LONG else Snackbar.LENGTH_SHORT).show()
+        Snackbar.make(root, message, if (long) Snackbar.LENGTH_LONG else Snackbar.LENGTH_SHORT)
+            .apply { visibleComposer()?.let { anchorView = it } }
+            .show()
     }
+
+    /** The native composer on screen, which a snackbar sits above rather than over. */
+    private fun visibleComposer(): View? = navigator?.currentDestination?.fragment?.view
+        ?.findViewById<ComposerView>(R.id.composer)
+        ?.takeIf { it.isVisible && it.isAttachedToWindow && it.height > 0 }
 
     /**
      * Once per install, when a page says it's a good moment (a change waits
@@ -1556,6 +1581,13 @@ class MainActivity :
 
     private companion object {
         const val NAVIGATOR = "main"
+
+        /** How often, and for how long at most, a modal's notice waits for the screen under it. */
+        const val NOTICE_POLL_MS = 100L
+        const val NOTICE_WAIT_MS = 2_000L
+
+        /** After a visit completes, how long its page's composer gets to connect before a notice shows anyway. */
+        const val NOTICE_SETTLE_MS = 300L
 
         /** The most photos one pick adds to the composer. */
         const val MAX_PICKED = 10
