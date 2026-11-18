@@ -45,7 +45,7 @@ open class WebFragment : HotwireWebFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        OfflineCopies.install(navigator.session.webView)
+        OfflineCopies.install(navigator.session.webView, navigator.session::reset)
         pathProperties.title?.let(fragmentViewModel::setTitle)
         fragmentViewModel.title.observe(viewLifecycleOwner) { title ->
             val clean = PageTitles.clean(title)
