@@ -11,20 +11,34 @@ it needs a Play service account key, which never goes in this repository).
 Version 1.2.9 (10209) shows the server's own sidebar in the drawer, the web
 sidebar's page in a web view of its own, so the sidebar changes with the
 server (docs/server-contract.md, "The sidebar page"), and keeps the native
-sidebar for servers without that page. It opens on the organization's home,
-as the web lands, and on New chat where the server has no home yet (a 404).
-It shows the notice a modal's form recedes with ("Chat renamed.", Move to
-project's), which builds up to 1.2.8 missed under an organization's prefix,
-and puts snackbars above the composer. What's new is in
-`changelogs/10209.txt`. Tag `v1.2.9` once the branch is merged.
+sidebar for servers without that page or while it can't load
+([#66](https://github.com/crmne/chatwithwork-android/pull/66)). It opens on
+the organization's home, as the web lands, and on New chat where the server
+has no home yet (a 404). It shows the notice a modal's form recedes with
+("Chat renamed.", Move to project's), which builds up to 1.2.8 missed under an
+organization's prefix, and puts snackbars above the composer. A wrong password
+now shows on the sign-in form, where it used to show the error screen ("This
+page didn't load", Error 422)
+([#67](https://github.com/crmne/chatwithwork-android/pull/67)). What's new is
+in `changelogs/10209.txt`. Tag `v1.2.9`.
 
-It needs the server's sidebar page (crmne/chatwithwork, branch
-`native-sidebar`) on production before it goes out: against a server without
-it the app shows the native sidebar as 1.2.8 does, so it is safe on older and
-self-hosted servers, but nothing changes for people until the page is there.
+The server's sidebar page is on production. Two server changes follow it and
+need no app release: the home rule anchored so a query naming `/home` doesn't
+make another page a place (`android_v2.json`, the same as the bundled file),
+and the sidebar's connect sent under the address Decisions settles on (until
+it lands, the first launch after signing in shows the native sidebar until
+another page is opened).
 
-Not built, uploaded or submitted yet. Build it with `script/bundle-release
-v1.2.9` from the tag, then Internal testing first, as 1.2.8 went.
+The signed, Firebase-enabled bundle was built with `script/bundle-release
+v1.2.9` on 2026-11-18 and its upload signature verified. It isn't uploaded
+yet: there's no Play service account for the Developer API, and the upload is
+made in Play Console. Upload it to Internal testing only, as 1.2.8 went.
+
+Validation: the debug build ran on the API 36 emulator against production
+with the App Review demo login (synthetic content): sign-in after a wrong
+password, the server's sidebar in the drawer, a chat, New chat and Decisions
+from it, the native sidebar offline, and the server's sidebar back as the
+drawer opened online. The release bundle wasn't tried on a device.
 
 ## Release 1.2.8
 
