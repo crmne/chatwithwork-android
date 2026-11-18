@@ -935,7 +935,11 @@ without the page, and for older builds, which the server keeps serving.
   ignored. A renderer that dies gets a new web view, and the page again as
   the drawer next opens.
 - **While it shows,** the app fetches no JSON (on opening, polling, or
-  `changed`), and the top bar's New chat opens `/<organization>/chats/new`.
+  `changed`), and the app's own New chat (the top bar, a chat deleted on
+  screen, the icon's shortcuts, the widget and tile, shared text) opens
+  `/<organization>/chats/new`, never the list the native sidebar last
+  chose. That holds from the moment a `connect` names the page, before it
+  draws.
 - **Phone proportions** are the page's (the server's `native_sidebar.css`):
   48dp rows and buttons, names and the search at 16px.
 - **What it shows (server, 2026-11-18).** The web sidebar's own partials:

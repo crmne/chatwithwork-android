@@ -623,9 +623,16 @@ class MainActivity :
         root.post { navigator?.route(newChatUrl()) }
     }
 
-    /** The new chat in the list the sidebar shows (or last showed) in the organization showing. */
+    /**
+     * The new chat in the list the native sidebar shows (or last showed) in
+     * the organization showing. While the sidebar is the server's page, the
+     * organization's own New chat: the native sidebar's saved list (a
+     * project chosen before) would otherwise outlive it, as nothing there
+     * updates it.
+     */
     private fun newChatUrl(): String {
         val account = viewModel.account ?: memory.lastAccount
+        if (sidebarPage.pagePath != null) return AppUrls.newChat(account)
         val path =
             viewModel.sidebar?.takeIf { it.organization.id == account }?.links?.newChat
                 ?: account?.let { memory.newChatPath(it) }
