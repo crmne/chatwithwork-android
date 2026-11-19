@@ -22,7 +22,6 @@ class PlacesTest {
     fun `a place the configuration replaces the root with is routed as it says`() {
         listOf(
             "/482139075/chats/42",
-            "/482139075/chats/new",
             "/482139075/decisions?decision=t7",
             "/482139075/bots",
             "/482139075/settings"
@@ -42,7 +41,9 @@ class PlacesTest {
             "/482139075/projects/new",
             "/482139075/chats/42/edit",
             "/482139075/chats/42/section/edit",
-            "/482139075/bots/new"
+            "/482139075/bots/new",
+            "/482139075/chats/new",
+            "/482139075/chats/new?project_id=3"
         )
             .forEach { assertWithMessage(it).that(opening(it)).isEqualTo(Places.Opening.ROUTE) }
     }

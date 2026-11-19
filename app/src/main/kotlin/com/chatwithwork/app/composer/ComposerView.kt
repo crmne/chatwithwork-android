@@ -719,6 +719,12 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         input.setSelection(joined.length)
     }
 
+    /** Replaces what's typed with [words] (New chat's draft coming back), the cursor at their end. */
+    fun replaceText(words: String) {
+        input.setText(words)
+        input.setSelection(words.length)
+    }
+
     fun clear() {
         input.setText("")
     }

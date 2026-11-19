@@ -6,18 +6,26 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.Animation
 import androidx.appcompat.R as AppCompatR
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
+import androidx.navigation.NavOptions
+import androidx.navigation.navOptions
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.chatwithwork.app.R
 import com.chatwithwork.app.routing.AppUrls
 import dev.hotwire.core.config.Hotwire
+import dev.hotwire.core.turbo.config.PathConfigurationProperties
 import dev.hotwire.core.turbo.config.context
+import dev.hotwire.core.turbo.config.presentation
 import dev.hotwire.core.turbo.config.title
 import dev.hotwire.core.turbo.errors.HttpError
 import dev.hotwire.core.turbo.errors.VisitError
+import dev.hotwire.core.turbo.nav.Presentation
 import dev.hotwire.core.turbo.nav.PresentationContext
+import dev.hotwire.core.turbo.visit.VisitAction
 import dev.hotwire.core.turbo.webview.HotwireWebChromeClient
 import dev.hotwire.navigation.R as HotwireR
 import dev.hotwire.navigation.destinations.HotwireDestination
@@ -160,6 +168,37 @@ open class WebFragment : HotwireWebFragment() {
     private fun isModalLocation(location: String): Boolean =
         Hotwire.config.pathConfiguration.properties(location).context == PresentationContext.MODAL
 
+    /**
+     * Modals move as Material 3's full-screen dialog (ModalMotion), and the
+     * screen one opens over is pictured for its frame (ModalBackdrop), unless
+     * the sidebar covers it.
+     */
+    override fun customNavigationOptions(
+        newLocation: String,
+        newPathProperties: PathConfigurationProperties,
+        action: VisitAction
+    ): NavOptions? {
+        val toModal = newPathProperties.context == PresentationContext.MODAL
+        val anims =
+            ModalMotion.anims(
+                fromModal = isModal,
+                toModal = toModal,
+                replacesRoot = newPathProperties.presentation == Presentation.REPLACE_ROOT,
+                replacesCurrent = action == VisitAction.REPLACE || samePage(newLocation, location)
+            ) ?: return null
+        if (toModal && !isModal && host?.coversPage != true) activity?.let { ModalBackdrop.capture(it, requireView()) }
+        return navOptions {
+            anim {
+                enter = anims.enter
+                exit = anims.exit
+                popEnter = anims.popEnter
+                popExit = anims.popExit
+            }
+        }
+    }
+
+    private fun samePage(first: String, second: String): Boolean = first.toUri().path == second.toUri().path
+
     // The bar shows the page's own name, tidied (see onViewCreated).
     override fun shouldObserveTitleChanges(): Boolean = false
 
@@ -223,8 +262,8 @@ open class WebFragment : HotwireWebFragment() {
         skeleton?.remove()
         super.onVisitErrorReceived(location, error)
         if (error is HttpError.ClientError.Unauthorized) host?.onSignedOut(this)
-        // A server from before the organization's home answers it 404: New chat, as earlier builds opened.
-        if (AppUrls.opensNewChatInstead(location, (error as? HttpError)?.statusCode)) host?.onHomeMissing(this)
+        // A server from before the organization's home answers it 404: the chat list instead.
+        if (AppUrls.homeMissing(location, (error as? HttpError)?.statusCode)) host?.onHomeMissing(this)
     }
 
     override fun onVisitRendered(location: String) {
@@ -243,11 +282,41 @@ open class WebFragment : HotwireWebFragment() {
 }
 
 /**
- * A page presented over the app: Settings, a form, signing in. It slides up
- * and has a close button.
+ * A page presented over the app: New chat, New bot, a form, signing in, a
+ * chat's file. Material 3's full-screen dialog, in a frame of its own
+ * (ModalFrame): it slides up over the screen it opened from, with a close
+ * button at the start of its bar, and closes by that, by back, or by a
+ * predictive back gesture that shrinks it; on a large window it's a dialog
+ * over that screen instead.
  */
 @HotwireDestinationDeepLink(uri = "hotwire://fragment/web/modal")
-class WebModalFragment : WebFragment()
+class WebModalFragment : WebFragment() {
+    /** The frame the page sits in, while this view lasts. */
+    var frame: ModalFrame? = null
+        private set
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        val page = checkNotNull(super.onCreateView(inflater, container, savedInstanceState))
+        return ModalFrame(inflater.context, page) { if (isAdded) navigator.pop() }.also { frame = it }
+    }
+
+    override fun onDestroyView() {
+        frame = null
+        super.onDestroyView()
+    }
+
+    /** The frame moves its card itself as the modal opens and closes (ModalMotion); the fragment's own animation only holds it. */
+    override fun onCreateAnimation(transit: Int, enter: Boolean, nextAnim: Int): Animation? {
+        val frame = frame
+        if (frame != null) {
+            when (nextAnim) {
+                R.anim.modal_present -> frame.animateIn()
+                R.anim.modal_dismiss -> frame.animateOut()
+            }
+        }
+        return super.onCreateAnimation(transit, enter, nextAnim)
+    }
+}
 
 /** Implemented by the activity, which reacts to what pages do. */
 interface WebScreenHost {
@@ -262,11 +331,14 @@ interface WebScreenHost {
 
     fun startNewChat()
 
-    /** The organization's home, in [destination], answered 404 (a server from before it): open New chat instead. */
+    /** The organization's home, in [destination], answered 404 (a server from before it): open the chat list instead. */
     fun onHomeMissing(destination: HotwireDestination)
 
     /** A page's skeleton is up: something page-shaped is on screen. */
     fun onSkeletonShown()
+
+    /** Whether something of the app's own (the sidebar) covers the page, so a picture of it would show that too. */
+    val coversPage: Boolean
 }
 
 /**

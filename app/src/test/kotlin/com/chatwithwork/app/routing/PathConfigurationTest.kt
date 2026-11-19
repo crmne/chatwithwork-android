@@ -15,7 +15,7 @@ import org.junit.Test
 
 /**
  * The bundled path configuration, read the way Hotwire Native reads it. The
- * server's android_v2.json must give the same answers (docs/server-contract.md).
+ * server's android_v3.json must give the same answers (docs/server-contract.md).
  */
 class PathConfigurationTest {
     private val json = File("src/main/assets/json/path-configuration.json").readText()
@@ -52,9 +52,7 @@ class PathConfigurationTest {
     fun `a chat replaces the root and refreshes in place when pulled`() {
         listOf(
             "/482139075/chats/42",
-            "/482139075/chats/42#tool_call_7",
-            "/chats/new",
-            "/482139075/chats/new?project_id=3"
+            "/482139075/chats/42#tool_call_7"
         )
             .forEach { path ->
                 properties(path).let {
@@ -66,6 +64,29 @@ class PathConfigurationTest {
             }
         assertThat(properties("/shared/abc123")["pull_to_refresh_enabled"]).isEqualTo(false)
         assertThat(properties("/shared/abc123")["presentation"]).isNull()
+    }
+
+    @Test
+    fun `New chat is a modal over the place on screen, like New bot`() {
+        listOf(
+            "/chats/new",
+            "/482139075/chats/new",
+            "/482139075/chats/new?project_id=3",
+            "/482139075/chats/new?text=hi&title=Q3"
+        ).forEach { path ->
+            properties(path).let {
+                assertWithMessage(path).that(it["context"]).isEqualTo("modal")
+                assertWithMessage(path).that(it["uri"]).isEqualTo("hotwire://fragment/web/modal")
+                assertWithMessage(path).that(it["presentation"]).isNull()
+                assertWithMessage(path).that(it["pull_to_refresh_enabled"]).isEqualTo(false)
+                assertWithMessage(path).that(it["skeleton"]).isEqualTo("new_chat")
+            }
+        }
+        // New bot, for comparison: the same presentation.
+        assertThat(properties("/482139075/chats/new")["uri"]).isEqualTo(properties("/482139075/bots/new")["uri"])
+        assertThat(
+            properties("/482139075/chats/new")["context"]
+        ).isEqualTo(properties("/482139075/bots/new")["context"])
     }
 
     @Test

@@ -2,6 +2,8 @@ package com.chatwithwork.app.bridge
 
 import android.net.Uri
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.lifecycleScope
 import com.chatwithwork.app.R
 import com.chatwithwork.app.composer.AttachSheet
@@ -11,7 +13,9 @@ import com.chatwithwork.app.composer.ComposerFiles
 import com.chatwithwork.app.composer.ComposerState
 import com.chatwithwork.app.composer.ComposerView
 import com.chatwithwork.app.composer.ModelLogo
+import com.chatwithwork.app.composer.NewChatDrafts
 import com.chatwithwork.app.composer.PendingShares
+import com.chatwithwork.app.routing.AppUrls
 import dev.hotwire.core.bridge.BridgeComponent
 import dev.hotwire.core.bridge.BridgeComponentFactory
 import dev.hotwire.core.bridge.BridgeDelegate
@@ -60,16 +64,46 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
     }
 
     /**
-     * Files shared into a new chat, dictation from the widget, and the
-     * assistant's focus wait for the composer that takes them.
+     * New chat's draft (NewChatDrafts), files shared into a new chat,
+     * dictation from the widget, and the assistant's focus wait for the
+     * composer that takes them.
      */
     private fun onConnected(state: ComposerState) {
+        if (AppUrls.isNewChat(location)) keepDraft()
         if (state.acceptsFiles) PendingShares.takeFiles()?.let(::attachFiles)
         if (PendingShares.takeDictation() && state.dictation != null) dictate()
         if (PendingShares.takeFocus(bridgeDelegate.destination.location)) view?.focusField()
     }
 
-    override fun send(text: String) = reply("send") { put("text", text) }
+    override fun send(text: String) {
+        NewChatDrafts.clear(location)
+        reply("send") { put("text", text) }
+    }
+
+    private val location: String get() = bridgeDelegate.destination.location
+
+    private var keepingDraft = false
+
+    /**
+     * Puts New chat's draft back in the field, joined with any words a share
+     * put there, and keeps what's in the field as the draft when the screen
+     * goes (closed, a rotation, or the chat sent, which leaves it empty).
+     */
+    private fun keepDraft() {
+        val view = view ?: return
+        NewChatDrafts.joined(NewChatDrafts.take(location), view.text)?.let(view::replaceText)
+        if (keepingDraft) return
+        keepingDraft = true
+        val location = location
+        fragment.viewLifecycleOwner.lifecycle.addObserver(
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_DESTROY) {
+                    this.view?.text?.let { NewChatDrafts.keep(location, it) }
+                    keepingDraft = false
+                }
+            }
+        )
+    }
 
     override fun stop() = reply("stop")
 

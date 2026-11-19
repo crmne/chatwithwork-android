@@ -9,7 +9,7 @@ into the Rails app. Implement that once and both apps work.
 
 This document follows the same sections and says, for each, what Android
 needs on top or does differently, plus the three things the iOS contract
-leaves to Android: the path configuration file (`android_v1.json`), App
+leaves to Android: the path configuration file (`android_v3.json`), App
 Links (`assetlinks.json`), and sending pushes through Firebase Cloud
 Messaging.
 
@@ -23,7 +23,7 @@ version it.
 |---|---|---|
 | 1 | [Recognize the apps](#1-recognize-the-apps), [layout](#2-the-layout-in-the-apps), [native.css](#3-the-stylesheet) | the iOS steps, plus `overflow-x: clip` |
 | 2 | [Authentication](#4-authentication) | nothing beyond iOS |
-| 3 | [Path configuration](#5-path-configuration) | `public/configurations/android_v1.json` |
+| 3 | [Path configuration](#5-path-configuration) | `public/configurations/android_v3.json` (and v1, v2 for older builds) |
 | 4 | [Bridge components](#6-bridge-components), [page by page](#7-page-by-page) | nothing beyond iOS: the same controllers drive both apps |
 | 5 | [App Links](#8-app-links) | `/.well-known/assetlinks.json` |
 | 6 | [Push notifications](#9-push-notifications) | FCM HTTP v1 sending |
@@ -69,18 +69,21 @@ Everything in the iOS contract's section 2 applies (`data-native-app` on
 document scrolls, no environment label, `bridge--confirm` on `<body>`,
 flashes as toasts). What differs on Android:
 
-- **No tabs: one root screen and a sidebar.** The app opens on a chat (a
-  new one, or one the person left answering under ten minutes ago).
-  Everything reached from the sidebar is a place, never a step: a chat, New
+- **No tabs: one root screen and a sidebar.** The app opens on the
+  organization's home, which the server sends on to Decisions, or on a chat
+  (one it was sent to, or one the person left answering under ten minutes
+  ago). Everything reached from the sidebar is a place, never a step: a
   chat, Decisions, Bots, a bot, Projects, a project, Settings,
-  Instructions. A place replaces the one root screen, which has the
+  Instructions. New chat is the exception: a modal over the place on
+  screen, as New bot is (section 5, "New chat is a modal"). A place replaces the one root screen, which has the
   sidebar's menu button and never back, so places never stack and there's
   no history of them to walk back through (Carmine, 2026-11-05). Only a
   drill-down is pushed over a place, with back to it (a bot from Bots, a
   Settings tab from the Settings list); forms and pickers are modals
   (section 5). The system back at a place leaves the app, as at any root:
-  a drawer's start destination here would be an empty new chat, one more
-  stop on the way out, and the app keeps no history of places. The
+  a drawer's start destination here would be one more stop on the way
+  out, and the app keeps no history of places. Back on a modal closes it,
+  never the app. The
   sidebar, Material 3's modal navigation drawer, opens from the menu
   button on the root or a swipe from the edge, and the app draws it from
   the server's JSON (section 11). Every screen but a modal has New chat in
@@ -99,7 +102,7 @@ flashes as toasts). What differs on Android:
   how much of the page the bar covers (status bar included, in CSS pixels;
   `0px` on a page that starts below it). A chat always runs under it; any
   other page only where the path configuration's `page_under_top_bar` is
-  `true`, which `android_v2.json` sets for every page once the server's
+  `true`, which `android_v3.json` (and `android_v2.json` before it) sets for every page once the server's
   `native.css` keeps every page's start, and anything sticky at its top,
   clear of the bar. A server whose configuration doesn't say so gets
   pages that start below the bar, with the fade's last 20dp coming in over
@@ -178,7 +181,7 @@ How the Android app reads it:
 |---|---|
 | answers the chat or a page with `401` | shows its welcome screen; if someone was signed in, opens the sign-in form over it |
 | redirects a page to `/users/sign_in` instead | the same, so the app works before the `401` ships |
-| sends `/recede_historical_location` while signing in | starts again on a new chat (now signed in), then opens any link that waited |
+| sends `/recede_historical_location` while signing in | starts again on the organization's home (now signed in), then opens any link that waited, New chat among them |
 | moves the sign-in form on to a page inside an organization, or `/accounts` | the same as a recede (a chat list it lands on isn't opened: the sidebar is the list) |
 | redirects the logout form to `/users/sign_in` | shows the welcome screen without opening the sign-in form |
 | renders a Devise page again (wrong password) | keeps the sign-in form open |
@@ -189,14 +192,19 @@ never moves to another phone.
 
 ## 5. Path configuration
 
-Serve `public/configurations/android_v2.json` as a static file, an exact
+Serve `public/configurations/android_v3.json` as a static file, an exact
 copy of [`app/src/main/assets/json/path-configuration.json`](../app/src/main/assets/json/path-configuration.json)
-in this repository (the server's test compares them). The app fetches it on
-every launch from `https://chatwithwork.com/configurations/android_v2.json`
+in this repository (the server's test reads which version `AppConfig.kt`
+names and compares the bundled copy with it). The app fetches it on every
+launch from `https://chatwithwork.com/configurations/android_v3.json`
 (staging and development builds from their own server), caches it, and the
 server's copy **replaces** the bundled one entirely. Change both together;
 bump the name only when old builds must not read the new rules, and keep
-serving the old file for them: the tab builds read `android_v1.json`.
+serving the old file for them: the sidebar builds before New chat became a
+modal read `android_v2.json` (v3 without the modal: `/chats/new` is in the
+chats' `replace_root` rule there), and the tab builds read
+`android_v1.json`. v2 can't become v3 in place: those builds start the
+navigator on New chat, and a modal can't be the first screen.
 
 The rules, in order (later matches override earlier ones; patterns are
 regular expressions searched for in the path and query, unanchored unless
@@ -207,11 +215,11 @@ written with `^`):
 | `.*` | default | push | on | `uri: hotwire://fragment/web`; `query_string_presentation: replace`, so a visit to the page on screen with another query (a bot's tabs, a form redirecting back) replaces it rather than stacking a copy |
 | `/new(\?\|$)`, `/edit(\?\|$)` | modal | | off | every new and edit form; `uri: hotwire://fragment/web/modal` |
 | `^/users/sign_in`, `^/users/sign_up`, `^/users(\?\|$)`, `^/users/password...`, `^/users/confirmation...`, `^/users/unlock...` | modal | | off | the sign-in pages |
-| `/chats/new(\?\|$)`, `/chats/\d+(\?\|#\|$)` | default | `replace_root` | on | a chat is always the one screen; the pull brings it up to date in place, keeping what's typed |
+| `/chats/\d+(\?\|#\|$)` | default | `replace_root` | on | a chat is always the one screen; the pull brings it up to date in place, keeping what's typed. New chat (`/chats/new`, with `?project_id=`, `?text=&title=`) isn't here: the `/new` rule makes it a modal, like New bot |
 | `/chats/\d+\?(.*&)?from=` | default | push (`presentation: default`) | on | a chat a page opens about something on it (a bot's "Change it in a chat", its runs, Decisions' "Open chat", a side chat), pushed with back to that page |
 | `^/shared/` | default | push | off | |
 | `/settings\?` | default | push | on | a Settings tab, pushed over the Settings list (`query_string_presentation: default`, since the list and its tabs share `/settings`) |
-| `^(/[0-9]+)?/home(\?\|$)` (anchored: a `return_to=/home` in another page's query isn't the home), `/decisions(\?\|$)`, `/bots(\?\|$)`, `/chats(\?\|$)`, `/projects(\?\|$)`, `/settings$` | default | `replace_root` | on | the places: the organization's home (where the app opens, which the server sends on to Decisions or New chat; a server without it answers 404, and the app opens New chat instead, below), Decisions, Bots, the chat lists, Projects, the Settings list |
+| `^(/[0-9]+)?/home(\?\|$)` (anchored: a `return_to=/home` in another page's query isn't the home), `/decisions(\?\|$)`, `/bots(\?\|$)`, `/chats(\?\|$)`, `/projects(\?\|$)`, `/settings$` | default | `replace_root` | on | the places: the organization's home (where the app opens, which the server sends on to Decisions; a server without it answers 404, and the app opens the chat list instead, below), Decisions, Bots, the chat lists, Projects, the Settings list |
 | `/chats/\d+/files/` | modal | | off | a chat's file in its viewer, a full-screen modal over the chat (iOS contract, "A file") |
 | files and the marketing site | | `none` | | `open_in_browser: true`: a Chrome Custom Tab |
 
@@ -248,11 +256,13 @@ Compared with `ios_v2.json`:
 - The patterns and the order are the same, so a page is pushed, modal, or
   refreshable alike on both phones.
 - `uri` picks the Android screen: `hotwire://fragment/web` or
-  `hotwire://fragment/web/modal`. Modals are full-screen on Android, not
-  Hotwire Native's bottom sheets: Joe Masilotti's form, menu, share and
-  button components crash in those (Cluster Headache Tracker's app found
-  out), and this app's put their actions in a top app bar, which a sheet
-  doesn't have.
+  `hotwire://fragment/web/modal`. Modals are full-screen fragments on
+  Android, not Hotwire Native's bottom sheets: Joe Masilotti's form, menu,
+  share and button components crash in those (Cluster Headache Tracker's
+  app found out), and this app's put their actions in a top app bar, which
+  a sheet doesn't have. Inside its fragment a modal is Material 3's
+  full-screen dialog (below, "How a modal looks"), where iOS has its page
+  sheet.
 - `modal_style` and `modal_dismiss_gesture_enabled` are iOS's and Android
   ignores them; `uri` and `open_in_browser` are Android's and iOS ignores
   them.
@@ -266,8 +276,61 @@ Compared with `ios_v2.json`:
 
 Hotwire Native adds its own rules for `/recede_historical_location`,
 `/resume_historical_location` and `/refresh_historical_location` after
-these. A recede on the chat itself (deleting it from its menu) has nothing
-to go back to: the app starts a new chat instead.
+these. A recede on the chat itself (deleting it from its menu, on a
+server that recedes rather than sending Decisions) has nothing to go back
+to: the app opens the organization's home instead, never New chat, a modal
+with nothing under it.
+
+**New chat is a modal (v3, 2026-11-19).** New chat, New bot and every
+`/new` and `/edit` form come up the same way, over the place on screen
+(Carmine: "New chat and New bot as a modal should be the same on
+Android"). So:
+
+- The navigator never starts on New chat. A cold start from the New chat
+  shortcut, the widget, the tile, the assistant or a share opens the
+  organization's home and then New chat over it; signed out, it waits as
+  the link to open after signing in; moving to another organization starts
+  on its home with New chat over it. Only a chat that exists is a start.
+- The bar's New chat, the sidebar's, Decisions' and a project's links all
+  open the modal through the path configuration. Opening New chat while
+  one is up (the shortcut, the widget, the tile, a share) doesn't stack a
+  second: it replaces the page in place, keeping what's typed, and a
+  share's words join it.
+- Sending the first message: the server redirects to `/chats/<n>`, whose
+  `replace_root` rule closes the modal and makes the chat the place, at
+  once, with no slide away from a page it then covers (also from a modal
+  over a pushed project page).
+- What's typed in New chat and not sent is kept per organization when the
+  modal closes (its close button, back, a predictive back gesture), and
+  comes back in the next New chat there, a project's too. It survives a
+  rotation, a theme change and the process ending (the activity's saved
+  state; a force stop forgets it). Sending clears it, and signing out
+  forgets every organization's. A share's words join
+  it rather than replacing it. The web keeps no draft of a chat that
+  doesn't exist yet, so this is the app's (`NewChatDrafts`).
+- The composer inside works as on a chat: files and the + sheet,
+  dictation, the model picker, web search, Narrow, permission modes, the
+  keyboard.
+
+**How a modal looks.** Material 3's full-screen dialog (`ModalFrame`,
+`ModalMotion`): on a phone, and on any window under 600dp wide or 480dp
+tall (a phone on its side), the modal fills the window, edge to edge, with
+a close icon at the start of its top app bar and the page's title beside
+it. It slides up over a still screen in 500 ms with Material's emphasized
+decelerate easing and slides away in 200 ms with emphasized accelerate.
+Back, the close icon and a predictive back gesture close it; during the
+gesture it shrinks to 90%, leans away from the edge, rounds its corners and
+shows the screen it came over behind a scrim (a still picture taken as it
+opened, since the navigator has no view of that screen any more), and
+springs back if the gesture is let go. On a medium or expanded window (a
+tablet, an unfolded phone) it's a dialog instead: centred, at most 560dp
+wide and 840dp tall, with 28dp corners, over a scrim and the screen it came
+over, fading and growing in; a tap on the scrim closes it. A step inside a
+modal (sign-up after sign-in, a recipe's proposal from New chat) slides in
+from the side with back to the step before; the same page again (New chat
+with shared words) swaps in place. The keyboard pushes the composer up and
+the page stays edge to edge, as on any screen. Nothing changes on the
+server: v3 only moved `/chats/new` to the modal rule.
 
 ## 6. Bridge components
 
@@ -329,12 +392,13 @@ way):
 The iOS contract's section 7 is the source for what each page renders in
 the apps. On Android:
 
-- **New chat and a chat** (`chats/new`, `chats/show`): the app's root.
-  The top app bar has the sidebar's menu button, the page's title, New
-  chat, and the chat's own actions: Pin, Share link, Rename, Move to
-  project and Delete in the overflow menu, Delete in red, behind the native
-  confirm. After the first message the server redirects to the new chat,
-  which replaces the new chat page. A message's "More actions" button opens
+- **A chat** (`chats/show`): the app's root. The top app bar has the
+  sidebar's menu button, the page's title, New chat, and the chat's own
+  actions: Pin, Share link, Rename, Move to project and Delete in the
+  overflow menu, Delete in red, behind the native confirm. **New chat**
+  (`chats/new`) is a modal over the place on screen (section 5), its bar a
+  close icon and its title. After the first message the server redirects
+  to the new chat, which closes the modal and becomes the root. A message's "More actions" button opens
   the context menu as a popup at the button. The approval and composer
   haptics vibrate as in the table above. The composer's keyboard-shortcut
   hint (`.kbd-hint`) stays in the markup: native.css hides it in the apps.
@@ -395,11 +459,11 @@ the apps. On Android:
   the app stops it, to match iOS.) A create that redirects to the new
   record closes the modal and pushes it.
 - **Deleting** a chat from its menu: the server answers sidebar builds with
-  a new chat in the deleted chat's list (`/chats/new?project_id=...`, which
-  replaces the root) and "Chat deleted." as a snackbar, so nothing of the
-  deleted chat, its title included, stays. A recede that still reaches the
-  root (an older server) starts a new chat too. Deleting another chat
-  leaves the screen as it is.
+  Decisions (`/decisions`, which replaces the root) and "Chat deleted." as a
+  snackbar, so nothing of the deleted chat, its title included, stays; the
+  sidebar page's own "chat on screen deleted" visit goes to Decisions too.
+  A recede that still reaches the root (an older server) opens the
+  organization's home. Deleting another chat leaves the screen as it is.
 - **Billing**: Google Play requires its own billing for digital
   subscriptions sold in an app in most countries. Until that's decided,
   render Settings › Billing in the Android app without checkout, top-ups or
@@ -455,7 +519,7 @@ Links the app handles itself:
 - A link to a place replaces the root screen; a link to any other page
   pushes it over the screen it's on, with back.
 - A link into another organization starts the app over there: on that
-  chat, or on its new chat with the page on top.
+  chat, or on its home with the page on top (New chat as a modal over it).
 - `notice` and `alert` on `/recede_historical_location`,
   `/resume_historical_location` and `/refresh_historical_location` show as
   snackbars, `alert` for longer. Account-scoped controllers send them under
@@ -468,10 +532,13 @@ Links the app handles itself:
 - Snackbars sit above the native composer where a screen has one, never
   over it (1.2.9).
 - **Where the app opens (1.2.9).** `/<organization>/home` (`/home` before
-  the app knows the organization), which the server sends on to Decisions or
-  New chat. A server from before 2026-11-17, every self-hosted release up to
-  v0.15.0 among them, answers it 404: the app then opens the organization's
-  New chat (the list the sidebar last chose), as earlier builds did. A 404
+  the app knows the organization), which the server sends on to Decisions
+  (its All clear carries New chat's composer, suggestions and recipes when
+  nothing waits). A server from before 2026-11-17, every self-hosted release
+  up to v0.15.0 among them, answers it 404: the app then opens the
+  organization's chat list, a place (earlier builds opened New chat, which is
+  now a modal and needs a place under it). Such a server serves no
+  `android_v3.json` either, so the bundled configuration holds. A 404
   on `/<organization>/home` (or `/home`) does this whenever it comes, as
   long as that page is still the one on screen and someone is signed in
   (signed out, the next sign-in starts on the home again). A 401 there
@@ -910,7 +977,7 @@ On Android:
   `http://10.0.2.2:3000` (the emulator's view of your computer; Android 17
   asks for the local network permission first).
 - **Rails tests**: the iOS contract's request tests, once more with
-  `ANDROID_UA` (section 1), and a test that `/configurations/android_v1.json`
+  `ANDROID_UA` (section 1), and a test that `/configurations/android_v3.json`
   is the Android repository's file and `/.well-known/assetlinks.json`
   answers JSON without a redirect.
 

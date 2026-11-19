@@ -25,16 +25,16 @@ class AppUrlsTest {
     }
 
     @Test
-    fun `a server without a home sends the app to New chat`() {
-        assertThat(AppUrls.opensNewChatInstead("$base/482139075/home", 404)).isTrue()
-        assertThat(AppUrls.opensNewChatInstead("$base/home", 404)).isTrue()
-        assertThat(AppUrls.opensNewChatInstead("$base/home?x=1", 404)).isTrue()
+    fun `a server without a home sends the app to its chat list, a place`() {
+        assertThat(AppUrls.homeMissing("$base/482139075/home", 404)).isTrue()
+        assertThat(AppUrls.homeMissing("$base/home", 404)).isTrue()
+        assertThat(AppUrls.homeMissing("$base/home?x=1", 404)).isTrue()
         // Any other failure, or any other page, is the error screen as before.
-        assertThat(AppUrls.opensNewChatInstead("$base/482139075/home", 500)).isFalse()
-        assertThat(AppUrls.opensNewChatInstead("$base/482139075/home", null)).isFalse()
-        assertThat(AppUrls.opensNewChatInstead("$base/482139075/chats/42", 404)).isFalse()
-        assertThat(AppUrls.opensNewChatInstead("$base/482139075/bots/home", 404)).isFalse()
-        assertThat(AppUrls.opensNewChatInstead("https://chatwithwork.example/home", 404)).isFalse()
+        assertThat(AppUrls.homeMissing("$base/482139075/home", 500)).isFalse()
+        assertThat(AppUrls.homeMissing("$base/482139075/home", null)).isFalse()
+        assertThat(AppUrls.homeMissing("$base/482139075/chats/42", 404)).isFalse()
+        assertThat(AppUrls.homeMissing("$base/482139075/bots/home", 404)).isFalse()
+        assertThat(AppUrls.homeMissing("https://chatwithwork.example/home", 404)).isFalse()
     }
 
     @Test
@@ -70,6 +70,11 @@ class AppUrlsTest {
         assertThat(AppUrls.isChat("$base/482139075/bots")).isFalse()
         assertThat(AppUrls.isNewChat("$base/482139075/chats/new?project_id=3")).isTrue()
         assertThat(AppUrls.isNewChat("$base/482139075/chats/42")).isFalse()
+        // Only a chat that exists is a place the navigator starts on; New chat is a modal over one.
+        assertThat(AppUrls.isOpenChat("$base/482139075/chats/42")).isTrue()
+        assertThat(AppUrls.isOpenChat("$base/482139075/chats/new")).isFalse()
+        assertThat(AppUrls.isOpenChat("$base/482139075/chats/new?project_id=3")).isFalse()
+        assertThat(AppUrls.chats("482139075")).isEqualTo("$base/482139075/chats")
     }
 
     @Test

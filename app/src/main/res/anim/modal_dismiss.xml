@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A modal closing: holds the frame while ModalFrame slides or fades its card away (ModalFrame.EXIT_MS). -->
+<alpha xmlns:android="http://schemas.android.com/apk/res/android"
+    android:duration="200"
+    android:fromAlpha="1.0"
+    android:toAlpha="1.0" />
