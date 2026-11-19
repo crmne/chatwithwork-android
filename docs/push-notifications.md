@@ -168,8 +168,11 @@ that chat, in Chats, inside the right organization.
   expanded card and cuts it after that; collapsed it's one line.
   Below Android 16 the collapsed card's one line is the title, then the
   step's words, cut at the end. At large text sizes the drawn card cuts the
-  title short at its end to leave the steps count its room, and the step's
-  words beside the clock likewise, rather than shrinking either. TalkBack
+  title short at its end rather than shrinking it, and where the steps count
+  would leave it only a few letters the count gives way (the road's ticks
+  show the steps); the step's words beside the clock shrink to 60% of their
+  size at most, then are cut at the end; and a logo that would leave the
+  step's words a few letters goes, the words reading plain. TalkBack
   hears the title first in every state (starting, working, agents, writing, a
   decision, a question, finished, failed, stopped, a phase this build doesn't
   know), through the notification's ticker and the drawn card's

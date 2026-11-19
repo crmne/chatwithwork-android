@@ -54,17 +54,28 @@ class LiveCard(
         val headingInk = if (shown.chatTitle != null) R.color.road_ink else R.color.road_ink_muted
         // The steps count first: with large text it can outgrow the room kept for it, and the heading (the chat's
         // title) is cut short at its end to leave that room rather than shrunk or pushed out.
+        // Where even that would leave the title only a few letters, the count gives way: the road's ticks show the steps,
+        // and the title is the headline.
         val stepsWidth = words(R.id.live_steps, steps.orEmpty(), STEPS, R.color.road_ink_muted)
-        val besideSteps = if (steps != null) STEPS_GAP + stepsWidth else 0f
-        words(
+        val besideSteps = if (steps !=
+            null
+        ) {
+            STEPS_GAP + stepsWidth.width / context.resources.displayMetrics.density
+        } else {
+            0f
+        }
+        val room = contentWidth(context) - HEADING_MARK
+        val withSteps = words(
             R.id.live_organization,
             heading,
             ORGANIZATION,
             headingInk,
             maxWidthDp =
-                contentWidth(context) - HEADING_MARK - maxOf(HEADING_STEPS, besideSteps)
+                room - maxOf(HEADING_STEPS, besideSteps)
         )
-        setViewVisibility(R.id.live_steps, visible(steps != null))
+        val crowded = steps != null && withSteps.shown != heading && withSteps.shown.length <= MIN_TITLE_LETTERS
+        if (crowded) words(R.id.live_organization, heading, ORGANIZATION, headingInk, maxWidthDp = room)
+        setViewVisibility(R.id.live_steps, visible(steps != null && !crowded))
         setViewVisibility(R.id.live_headline, visible(!shown.hasBand))
         setViewVisibility(R.id.live_band, visible(shown.hasBand))
         headline()
@@ -84,12 +95,12 @@ class LiveCard(
         after: String? = null,
         logoSizeSp: Float = 0f,
         maxWidthDp: Float? = null
-    ): Float {
+    ): LiveArtwork.Picture {
         val picture = LiveArtwork.words(context, text, type, color(color), logo, after, logoSizeSp, maxWidthDp)
         setImageViewIcon(view, picture.icon)
         setInt(view, "setMaxHeight", picture.height)
         setContentDescription(view, listOfNotNull(text, after).joinToString(" "))
-        return picture.width / context.resources.displayMetrics.density
+        return picture
     }
 
     private fun RemoteViews.headline() {
@@ -101,8 +112,8 @@ class LiveCard(
             else -> R.color.road_ink
         }
         val logo = shown.service.takeIf { working && LiveServices.of(it)?.logo != null }
-        // Beside the clock the step's words are cut short at their end, not shrunk to a size nobody reads, which large
-        // text would otherwise do.
+        // Beside the clock the step's words shrink to fit, as they always have, but never below HEADLINE_LEAST of their
+        // size, which large text would otherwise take them to: past that they're cut short at their end.
         val clockRoom = if (clock is Clock.Hidden || shown.hasBand) 0f else CLOCK_GAP + clockWidth()
         words(
             R.id.live_title,
@@ -112,7 +123,7 @@ class LiveCard(
             logo,
             split?.second,
             HEADLINE_LOGO,
-            maxWidthDp = contentWidth(context) - clockRoom
+            maxWidthDp = (contentWidth(context) - clockRoom) / HEADLINE_LEAST
         )
         setTextColor(R.id.live_clock, color(color))
         setTextColor(R.id.live_time, color(color))
@@ -225,10 +236,16 @@ class LiveCard(
         private const val HEADING_STEPS = 88f
         private const val STEPS_GAP = 8f
 
+        /** A title cut to this many letters or fewer beside the steps count takes the count's room instead. */
+        private const val MIN_TITLE_LETTERS = 10
+
         /** The clock beside the headline (notification_live_card.xml): its gap and text size, and its widest time. */
         private const val CLOCK_GAP = 12f
         private const val CLOCK_SP = 20f
         private const val CLOCK_SAMPLE = "00:00"
+
+        /** The least the step's words beside the clock shrink to, as a share of their size. */
+        const val HEADLINE_LEAST = 0.6f
         private const val BAND_LOGO = 14f
 
         /** What the shade's sides and the card's own padding leave of the screen: Android 16's indent is wider. */

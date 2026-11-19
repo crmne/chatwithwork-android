@@ -56,6 +56,10 @@ object LiveArtwork {
     private const val DOT_GAP = 9f
     private const val PNG_QUALITY = 100
     private const val LOGO_GAP = 6f
+
+    /** Fewer of the first words' letters than this beside a logo, and the words go plain, without it. */
+    private const val MIN_LETTERS = 6
+    private const val ELLIPSIS = "\u2026"
     private val RAINBOW =
         intArrayOf(0xFF44FF9A.toInt(), 0xFF44B0FF.toInt(), 0xFF8B44FF.toInt(), 0xFFFF6644.toInt(), 0xFFEBFF70.toInt())
 
@@ -70,8 +74,11 @@ object LiveArtwork {
     /** A style of the card's words. Views in notifications can't load the app's fonts, but a picture can. */
     data class Type(@param:FontRes val font: Int, val sizeSp: Float, val tracking: Float = 0f)
 
-    /** Words as an image, and their height in pixels, which caps how far a view may stretch them. */
-    class Picture(val icon: Icon, val height: Int, val width: Int = 0)
+    /**
+     * Words as an image, and their height in pixels, which caps how far a view may stretch them; [width] in pixels,
+     * and [shown], the words drawn first, cut short where they didn't fit.
+     */
+    class Picture(val icon: Icon, val height: Int, val width: Int = 0, val shown: String = "")
 
     /** A run of the card's words, with [logo]'s service between [words] and [after]. */
     fun words(
@@ -93,15 +100,28 @@ object LiveArtwork {
         }
         val logoSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, logoSizeSp, metrics)
         val gap = LOGO_GAP * metrics.density
-        val hasLogo = logoSize > 0 && LiveServices.of(logo) != null
+        val maxWidth = maxWidthDp?.let { it * metrics.density }
+        var hasLogo = logoSize > 0 && LiveServices.of(logo) != null
+        var after = after
+        var words = words
+        // Where the logo and the words after it would leave the first words only a few letters (large text), they
+        // all go as plain words instead: "Searching Tod…" reads, "…" and a logo don't.
+        if (maxWidth != null && (hasLogo || after != null)) {
+            val extras = (if (hasLogo) gap + logoSize else 0f) + (after?.let { gap + paint.measureText(it) } ?: 0f)
+            if (maxWidth - extras < paint.measureText(words.take(MIN_LETTERS) + ELLIPSIS)) {
+                words = listOfNotNull(words, after).joinToString(" ")
+                after = null
+                hasLogo = false
+            }
+        }
         val fit = paint.fontMetrics
         val height = ceil(max(fit.descent - fit.ascent, logoSize)).toInt()
         // Words that may run long (a chat's title, a step with large text) are cut short at the end rather than
         // shrunk to fit, leaving room for the logo and the words after them.
         val extras = (if (hasLogo) gap + logoSize else 0f) + (after?.let { gap + paint.measureText(it) } ?: 0f)
-        val words =
-            maxWidthDp?.let {
-                val room = (it * metrics.density - extras).coerceAtLeast(0f)
+        words =
+            maxWidth?.let {
+                val room = (it - extras).coerceAtLeast(0f)
                 TextUtils.ellipsize(words, paint, room, TextUtils.TruncateAt.END).toString()
             }
                 ?: words
@@ -118,7 +138,7 @@ object LiveArtwork {
             x += logoSize + gap
         }
         after?.let { canvas.drawText(it, x, baseline, paint) }
-        return Picture(bitmap.toIcon(), height, bitmap.width)
+        return Picture(bitmap.toIcon(), height, bitmap.width, words)
     }
 
     /** The card is dark in both themes, so its logos are too. */

@@ -55,22 +55,31 @@ class LiveCardLargeTextTest {
     }
 
     @Test
-    fun `expanded, at 200 percent, the title is cut at its end before it pushes the steps count out`() {
+    fun `expanded, at 200 percent, the title is cut at its end, never shrunk or pushed down to a few letters`() {
         listOf("answering", "approval_waiting", "input_requested", "answered", "failed", "stopped").forEach { phase ->
             val shown = LivePresentation(phase, "search", steps = 12, trail = "ssssssssssss", chatTitle = title)
             val view = apply(card(shown).expanded())
             val density = view.resources.displayMetrics.density
             val heading = view.findViewById<ImageView>(R.id.live_organization).drawable.intrinsicWidth / density
-            val steps = view.findViewById<ImageView>(R.id.live_steps).drawable.intrinsicWidth / density
-            // The mark and its gap (22dp), the heading, the steps' gap (8dp) and the steps fit the card's width.
-            assertThat(22 + heading + 8 + steps).isAtMost(LiveCard.contentWidth(view.context) + 1)
-            assertThat(heading).isGreaterThan(40f)
+            val stepsView = view.findViewById<ImageView>(R.id.live_steps)
+            // The steps count keeps its place beside the title unless it would leave the title a few letters.
+            val steps = if (stepsView.visibility ==
+                View.VISIBLE
+            ) {
+                8 + stepsView.drawable.intrinsicWidth / density
+            } else {
+                0f
+            }
+            // The mark and its gap (22dp), the heading, and the steps with their gap fit the card's width.
+            assertThat(22 + heading + steps).isAtMost(LiveCard.contentWidth(view.context) + 1)
+            // More than a few letters of the title: half the card's width at least.
+            assertThat(heading).isAtLeast(LiveCard.contentWidth(view.context) / 2)
             assertThat(view.findViewById<View>(R.id.live_card).contentDescription.toString()).startsWith(title)
         }
     }
 
     @Test
-    fun `at 200 percent the step's words beside the clock are cut short at their end, not shrunk`() {
+    fun `at 200 percent the step's words beside the clock shrink only so far, then are cut short at their end`() {
         val shown =
             LivePresentation("answering", "search", steps = 3, trail = "sss", service = "todoist", chatTitle = title)
         val view = apply(card(shown).expanded())
@@ -85,7 +94,9 @@ class LiveCardLargeTextTest {
             )
             typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
         }.measureText("00:00") / density
-        // Drawn at its full size, the picture and the clock share the card's width, so nothing scales it down.
-        assertThat(headline + 12 + clock).isAtMost(LiveCard.contentWidth(view.context) + 1)
+        // The picture shrinks to share the card's width with the clock, but never below 60% of its size: what's past
+        // that is cut short, so the words stay large enough to read.
+        val room = LiveCard.contentWidth(view.context) - 12 - clock
+        assertThat(headline * LiveCard.HEADLINE_LEAST).isAtMost(room + 1)
     }
 }
