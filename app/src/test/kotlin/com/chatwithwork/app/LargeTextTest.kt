@@ -140,6 +140,12 @@ class LargeTextTest {
         val chip = composer.findViewById<ViewGroup>(R.id.composer_files).getChildAt(0) as ViewGroup
         assertThat(chip.height).isGreaterThan((48 * chip.resources.displayMetrics.density).toInt())
         assertNothingClips(chip)
+        // Remove sits flush with the chip's end: its 48dp grows inward, where the chip gets the touches.
+        val remove = chip.findViewById<View>(R.id.composer_file_remove)
+        val area = (chip.touchDelegate as com.chatwithwork.app.main.TouchTargets).area(remove)
+        val min = (48 * chip.resources.displayMetrics.density).toInt()
+        assertThat(area.width()).isAtLeast(min)
+        assertThat(area.right).isAtMost(chip.width)
     }
 
     @Test

@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
+import kotlin.math.ceil
 
 /**
  * Grows small controls' touch areas inside [parent] to [minDp] square, centred
@@ -38,6 +39,13 @@ class TouchTargets(
         return handled
     }
 
+    /** TalkBack's touch exploration finds a control from the space around it as a tap would (API 29 and later). */
+    override fun onTouchExplorationHoverEvent(event: MotionEvent): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+        val (view, area) = nearest(event.x.toInt(), event.y.toInt()) ?: return false
+        return TouchDelegate(area, view).onTouchExplorationHoverEvent(event)
+    }
+
     /** The grown areas, so accessibility services know where each control can be touched (API 29 and later). */
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun getTouchDelegateInfo(): AccessibilityNodeInfo.TouchDelegateInfo {
@@ -56,15 +64,29 @@ class TouchTargets(
             dx * dx + dy * dy
         }
 
-    /** [view]'s bounds in [parent]'s coordinates, grown to [minDp] each way where it's smaller. */
+    /**
+     * [view]'s bounds in [parent]'s coordinates, grown to [minDp] each way where it's smaller, and moved back inside
+     * [parent] where it would reach past an edge, since touches there never reach [parent]: a button flush with its
+     * parent's end grows inward instead. A parent smaller than [minDp] keeps it to its own size.
+     */
     fun area(view: View): Rect {
         val bounds = Rect(0, 0, view.width, view.height)
         parent.offsetDescendantRectToMyCoords(view, bounds)
         val min = (minDp * parent.resources.displayMetrics.density).toInt()
         val growX = ((min - bounds.width()) / 2f).coerceAtLeast(0f)
         val growY = ((min - bounds.height()) / 2f).coerceAtLeast(0f)
-        bounds.inset(-kotlin.math.ceil(growX).toInt(), -kotlin.math.ceil(growY).toInt())
+        bounds.inset(-ceil(growX).toInt(), -ceil(growY).toInt())
+        bounds.offset(inside(bounds.left, bounds.right, parent.width), inside(bounds.top, bounds.bottom, parent.height))
+        bounds.intersect(0, 0, parent.width, parent.height)
         return bounds
+    }
+
+    /** How far to move a span from [start] to [end] so it lies within 0 to [size], where it can. */
+    private fun inside(start: Int, end: Int, size: Int): Int = when {
+        end - start >= size -> 0
+        start < 0 -> -start
+        end > size -> size - end
+        else -> 0
     }
 
     companion object {
