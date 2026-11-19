@@ -294,17 +294,36 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             val view = holder.itemView
             when (val row = getItem(position)) {
                 is SidebarRow.Head -> bindHead(view, row)
+
                 is SidebarRow.Search -> bindSearch(view as EditText, row)
+
                 is SidebarRow.SeeAll -> bindSeeAll(view as TextView, row)
-                is SidebarRow.Section -> (view as TextView).text = row.title
-                is SidebarRow.Empty -> (view as TextView).text = emptyText(row)
+
+                // The same view shows a section's title, a heading for TalkBack, or a list's empty state, which isn't.
+                is SidebarRow.Section -> (view as TextView).apply {
+                    text = row.title
+                    ViewCompat.setAccessibilityHeading(this, true)
+                }
+
+                is SidebarRow.Empty -> (view as TextView).apply {
+                    text = emptyText(row)
+                    ViewCompat.setAccessibilityHeading(this, false)
+                }
+
                 is SidebarRow.Nav -> bindNav(view, row)
+
                 is SidebarRow.ChatRow -> bindChat(view, row)
+
                 is SidebarRow.ChatSection -> bindChatSection(view, row.section)
+
                 is SidebarRow.BotsCard -> bindBotsCard(view, row)
+
                 is SidebarRow.Views -> bindViews(view, row)
+
                 is SidebarRow.Decisions -> bindDecisions(view, row)
+
                 is SidebarRow.BotRow -> bindBot(view, row)
+
                 is SidebarRow.NoBots -> bindNoBots(view, row)
             }
         }

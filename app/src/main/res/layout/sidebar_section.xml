@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A heading in the sidebar's list: Pinned, Needs you, Other chats... -->
+<!-- A heading in the sidebar's list: Pinned, Needs you, Other chats... (a heading for TalkBack, set when bound), or a list's empty state. -->
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:accessibilityHeading="true"
     android:paddingHorizontal="10dp"
     android:paddingTop="12dp"
     android:paddingBottom="4dp"
