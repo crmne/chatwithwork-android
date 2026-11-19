@@ -155,18 +155,25 @@ class LargeTextTest {
         val root = composer.parent as ViewGroup
         val chip = composer.findViewById<ViewGroup>(R.id.composer_files).getChildAt(0) as ViewGroup
         val remove = chip.findViewById<View>(R.id.composer_file_remove)
-        var removed = 0
-        remove.setOnClickListener { removed++ }
+        // The composer's own listener, reporting to its actions as the screen's would.
+        val removed = mutableListOf<String>()
+        composer.actions = java.lang.reflect.Proxy.newProxyInstance(
+            ComposerView.Actions::class.java.classLoader,
+            arrayOf(ComposerView.Actions::class.java)
+        ) { _, method, args ->
+            if (method.name == "remove") removed += args[0] as String
+            null
+        } as ComposerView.Actions
         val bounds = android.graphics.Rect(0, 0, remove.width, remove.height)
         root.offsetDescendantRectToMyCoords(remove, bounds)
         // 8dp before the button, over the file's name: outside the button, inside its grown target.
         val x = bounds.left - 8 * composer.resources.displayMetrics.density
         val y = bounds.exactCenterY()
         tap(root, x, y)
-        assertThat(removed).isEqualTo(1)
+        assertThat(removed).containsExactly("1")
         // Further along the name, past 48dp, nothing happens.
         tap(root, bounds.left - 20 * composer.resources.displayMetrics.density, y)
-        assertThat(removed).isEqualTo(1)
+        assertThat(removed).containsExactly("1")
     }
 
     @Test
