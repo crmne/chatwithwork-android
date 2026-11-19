@@ -93,6 +93,28 @@ class LiveCardLargeTextTest {
         assertThat(headline * LiveCard.HEADLINE_LEAST).isAtMost(room + 1)
     }
 
+    @Test
+    fun `25 minutes on, with no update, the clock passes an hour and the step line keeps 60 percent`() {
+        val shown = LivePresentation("answering", "search", steps = 3, trail = "sss", chatTitle = title)
+        val view = apply(card(shown, since = System.currentTimeMillis() - 40 * 60 * 1000L).expanded())
+        org.robolectric.shadows.ShadowSystemClock.advanceBy(java.time.Duration.ofMinutes(25))
+        val clock = view.findViewById<android.widget.Chronometer>(R.id.live_clock)
+        // As the running clock reads by itself, the card never reposted.
+        clock.base = clock.base
+        assertThat(clock.text.toString()).matches("1:0\\d:\\d\\d")
+        val density = view.resources.displayMetrics.density
+        val row = view.findViewById<View>(R.id.live_headline)
+        val width = (LiveCard.contentWidth(view.context) * density).toInt()
+        row.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        row.layout(0, 0, row.measuredWidth, row.measuredHeight)
+        val headline = view.findViewById<ImageView>(R.id.live_title)
+        // The step's words get at least 60% of their drawn width beside the clock's hours.
+        assertThat(headline.width.toFloat()).isAtLeast(headline.drawable.intrinsicWidth * LiveCard.HEADLINE_LEAST - 2)
+    }
+
     private fun clockWidth(view: View, sample: String): Float = android.text.TextPaint().apply {
         textSize = android.util.TypedValue.applyDimension(
             android.util.TypedValue.COMPLEX_UNIT_SP,
