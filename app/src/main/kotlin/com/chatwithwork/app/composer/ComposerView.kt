@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.animation.LinearInterpolator
+import android.view.animation.PathInterpolator
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -21,6 +22,7 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.ToggleButton
+import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
 import androidx.core.view.AccessibilityDelegateCompat
 import androidx.core.view.ViewCompat
@@ -99,8 +101,19 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private val box by lazy { findViewById<View>(R.id.composer_box) }
     private val boxBounds = Rect()
     private var look = ComposerLook()
+
+    /** What the rainbow shows now, for tests. */
+    @VisibleForTesting
+    internal val shownLook: ComposerLook get() = look
     private var glowOpacity = look.glowOpacity
-    private var glowFade: ValueAnimator? = null
+    private var lookFade: ValueAnimator? = null
+
+    // A question on its way, from Send until the server's composer says it's answering (or locked, or hidden).
+    private var sending = false
+    private val sendingOver = Runnable {
+        sending = false
+        updateLook()
+    }
     private var flow: ValueAnimator? = null
     private val stopRing = StopRing(context)
     private var ringSpin: ValueAnimator? = null
@@ -228,6 +241,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     fun show(state: ComposerState, connecting: Boolean = false) {
         this.state = state
+        if (sending && (state.working || state.waiting || state.locked || !state.visible)) endSending()
         updateLook()
         // A new composer may already hold words (shared in, or a draft): the field starts with them.
         if (connecting && text.isBlank() && !state.text.isNullOrBlank()) {
@@ -287,36 +301,53 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     }
 
     private fun updateLook() {
-        val wanted = ComposerLook.of(state, input.hasFocus())
+        val wanted = ComposerLook.of(state, input.hasFocus(), sending)
         if (wanted == look) return
         val edgeChanged = wanted.edge != look.edge
         look = wanted
         composerBackground.look = wanted
-        fadeGlow(wanted.glowOpacity)
+        fade(wanted)
         if (edgeChanged) {
-            // The amber or rainbow bitmap, and the shadow's place, are drawn here.
+            // The glow takes the edge's new shader or amber here.
             invalidate()
             updateFlow()
         }
     }
 
-    /** With the web's --duration-base. Animations off, the animator lands at once. */
-    private fun fadeGlow(opacity: Float) {
-        glowFade?.cancel()
-        if (opacity == glowOpacity) return
-        glowFade = ValueAnimator.ofFloat(glowOpacity, opacity).apply {
+    /**
+     * The edge and the glow ease to [to]'s opacities together, with the web's
+     * `transition: opacity var(--duration-base) ease`. Animations off, the
+     * animator lands at once.
+     */
+    private fun fade(to: ComposerLook) {
+        lookFade?.cancel()
+        val glowFrom = glowOpacity
+        val edgeFrom = composerBackground.edgeOpacity
+        if (glowFrom == to.glowOpacity && edgeFrom == to.edgeOpacity) return
+        lookFade = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = LOOK_FADE_MS
+            interpolator = PathInterpolator(0.25f, 0.1f, 0.25f, 1f)
             addUpdateListener {
-                glowOpacity = it.animatedValue as Float
+                val t = it.animatedValue as Float
+                glowOpacity = glowFrom + (to.glowOpacity - glowFrom) * t
+                composerBackground.edgeOpacity = edgeFrom + (to.edgeOpacity - edgeFrom) * t
                 invalidate()
             }
             start()
         }
     }
 
+    private fun endSending() {
+        sending = false
+        removeCallbacks(sendingOver)
+    }
+
     /**
-     * The edge flows on screen while an answer runs, one loop in 5 seconds, and
-     * stands still with animations off, the system's reduced motion.
+     * The edge and the glow flow on screen while an answer runs, one loop in 5
+     * seconds, and stand still on the loop's first frame with animations off,
+     * the system's reduced motion. One animator moves the one shader both
+     * paint with, so a frame redraws the stroke and the glow's texture and
+     * nothing is measured or laid out.
      */
     private fun updateFlow() {
         val flowing = look.edge == ComposerLook.Edge.FLOWING && onScreen && ValueAnimator.areAnimatorsEnabled()
@@ -324,12 +355,16 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             flow?.cancel()
             flow = null
             composerBackground.flow = 0f
+            invalidate()
         } else if (flow == null) {
             flow = ValueAnimator.ofFloat(0f, 1f).apply {
                 duration = FLOW_MS
                 interpolator = LinearInterpolator()
                 repeatCount = ValueAnimator.INFINITE
-                addUpdateListener { composerBackground.flow = it.animatedFraction }
+                addUpdateListener {
+                    composerBackground.flow = it.animatedFraction
+                    invalidate()
+                }
                 start()
             }
         }
@@ -371,7 +406,13 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     override fun dispatchDraw(canvas: Canvas) {
         if (box.isVisible) {
             box.getHitRect(boxBounds)
-            composerGlow.draw(canvas, boxBounds, look, glowOpacity)
+            composerGlow.draw(
+                canvas,
+                boxBounds,
+                composerBackground.edgeShader,
+                composerBackground.attentionColor,
+                glowOpacity
+            )
         }
         super.dispatchDraw(canvas)
     }
@@ -636,6 +677,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     }
 
     override fun onDetachedFromWindow() {
+        endSending()
         onScreen = false
         updateFlow()
         updateRing()
@@ -797,6 +839,11 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             }
         )
         actions?.send(text)
+        // As the web form flows while it's aria-busy: pressing Send looks answered at once.
+        sending = true
+        removeCallbacks(sendingOver)
+        postDelayed(sendingOver, SENDING_LIMIT_MS)
+        updateLook()
         clear()
     }
 
@@ -895,9 +942,12 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         // The pill keeps its words readable while dimmed, so it says which mode a locked chat holds.
         const val MODE_LOCKED_ALPHA = 0.4f
 
-        // --duration-base, and rainbow-flow's 5s.
+        // --duration-base, and composer-flow's 5s.
         const val LOOK_FADE_MS = 220L
         const val FLOW_MS = 5000L
+
+        // How long Send's flow waits for the server's composer to say the answer runs.
+        const val SENDING_LIMIT_MS = 10_000L
 
         // .chat-prompt__ring's spin, and its slower one while the answer stops.
         const val RING_MS = 2400L

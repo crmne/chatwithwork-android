@@ -4,7 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
-import android.graphics.LinearGradient
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
@@ -13,87 +13,72 @@ import androidx.core.content.ContextCompat
 import com.chatwithwork.app.R
 
 /**
- * What the composer's box throws around itself: the web's `.rainbow-glow`
- * (0.4rem past the box, a 28 radius, blur 20px) and `--shadow-float`.
+ * What the composer's box throws around itself: the web's `.composer` glow,
+ * which is the edge's own layer blurred (the box itself, its 20 radius, the
+ * same gradient at the same place, blur 22px), and `--shadow-float` over it.
  *
  * A blur is the one expensive thing here, so it happens once for a width, in
- * software on a small bitmap (a pixel to the dp: it's all soft), which works
- * the same on every Android version the app runs on, where RenderEffect would
- * start at 12 and redo the blur on each frame it draws. The bitmap's middle
- * row stretches for a taller box, so new lines, keystrokes and the keyboard
- * only draw a texture. The box covers that row where the page would see it.
+ * software on a small alpha-only bitmap (a pixel to the dp: it's all soft),
+ * which works the same on every Android version the app runs on, where
+ * RenderEffect would start at 12 and redo the blur on each frame it draws.
+ * The colour isn't in the bitmap: it's drawn with the edge's own shader
+ * ([ComposerBackground.edgeShader]), so under any point of the edge the glow
+ * is that point's colour, and while the edge flows the glow moves with it at
+ * the cost of a texture, never a new blur. The bitmap's middle row stretches
+ * for a taller box, so new lines, keystrokes and the keyboard only draw a
+ * texture. The box covers that row where the page would see it.
  */
 class ComposerGlow(context: Context) {
     private val density = context.resources.displayMetrics.density
-    private val attention = ContextCompat.getColor(context, R.color.lw_attention)
     private val shadowColor = ContextCompat.getColor(context, R.color.lw_shadow)
     private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val source = Rect()
     private val target = RectF()
     private var drawnWidth = 0
-    private var rainbow: Bitmap? = null
-    private var amber: Bitmap? = null
+    private var glow: Bitmap? = null
     private var shadow: Bitmap? = null
 
-    /** Draws around [box], in the same coordinates, before the box itself. */
-    fun draw(canvas: Canvas, box: Rect, look: ComposerLook, glowOpacity: Float) {
+    /**
+     * Draws around [box], in the same coordinates, before the box itself: the glow in
+     * [edgeShader], the edge's rainbow (or [attention] while it has none), then the shadow.
+     */
+    fun draw(canvas: Canvas, box: Rect, edgeShader: Shader?, attention: Int, glowOpacity: Float) {
         val width = (box.width() / density).toInt()
         if (width <= 0) return
         if (width != drawnWidth) {
             drawnWidth = width
-            rainbow = null
-            amber = null
+            glow = null
             shadow = null
         }
-        val shadow = shadow ?: shadowBitmap(width).also { shadow = it }
-        val glow = if (look.edge == ComposerLook.Edge.ATTENTION) {
-            amber ?: glowBitmap(width, true).also { amber = it }
-        } else {
-            rainbow ?: glowBitmap(width, false).also { rainbow = it }
-        }
-        draw(canvas, shadow, box, SHADOW_MARGIN, SHADOW_OFFSET_DP, 1f)
-        draw(canvas, glow, box, GLOW_MARGIN, 0f, glowOpacity)
+        val glow = glow ?: blurred(width, GLOW_HEIGHT_DP, GLOW_MARGIN, 0f, GLOW_RADIUS_DP, GLOW_SIGMA_DP)
+            .also { glow = it }
+        val shadow = shadow ?: blurred(width, SHADOW_HEIGHT_DP, SHADOW_MARGIN, -SHADOW_SPREAD_DP, 0f, SHADOW_SIGMA_DP)
+            .also { shadow = it }
+
+        // The edge's shader is laid out in the box's own coordinates.
+        canvas.save()
+        canvas.translate(box.left.toFloat(), box.top.toFloat())
+        paint.color = if (edgeShader == null) attention else Color.BLACK
+        paint.shader = edgeShader
+        paint.alpha = (glowOpacity * 255).toInt()
+        draw(canvas, glow, box.width(), box.height(), GLOW_MARGIN, 0f)
+        paint.shader = null
+        paint.color = shadowColor
+        draw(canvas, shadow, box.width(), box.height(), SHADOW_MARGIN, SHADOW_OFFSET_DP)
+        canvas.restore()
     }
 
-    private fun glowBitmap(width: Int, amber: Boolean): Bitmap =
-        blurred(width, GLOW_HEIGHT_DP, GLOW_MARGIN, GLOW_OUTSET_DP, GLOW_RADIUS_DP, GLOW_SIGMA_DP) { body ->
-            if (amber) {
-                color = attention
-            } else {
-                shader = LinearGradient(
-                    body.left - body.width() * 0.0055f,
-                    0f,
-                    body.left + body.width() * 0.9934f,
-                    0f,
-                    ComposerBackground.COLORS,
-                    ComposerBackground.POSITIONS,
-                    Shader.TileMode.CLAMP
-                )
-            }
-        }
-
-    private fun shadowBitmap(width: Int): Bitmap =
-        blurred(width, SHADOW_HEIGHT_DP, SHADOW_MARGIN, -SHADOW_SPREAD_DP, 0f, SHADOW_SIGMA_DP) { color = shadowColor }
-
-    private fun blurred(
-        width: Int,
-        height: Int,
-        margin: Float,
-        outset: Float,
-        radius: Float,
-        sigma: Float,
-        fill: Paint.(RectF) -> Unit
-    ): Bitmap {
+    /** An alpha-only bitmap of a blurred round rect: drawn, it takes the paint's colour or shader. */
+    private fun blurred(width: Int, height: Int, margin: Float, outset: Float, radius: Float, sigma: Float): Bitmap {
         val bitmap = Bitmap.createBitmap(
             (width + margin * 2).toInt(),
             (height + margin * 2).toInt(),
-            Bitmap.Config.ARGB_8888
+            Bitmap.Config.ALPHA_8
         )
         val inset = margin - outset
         val body = RectF(inset, inset, bitmap.width - inset, bitmap.height - inset)
         val blur = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             maskFilter = BlurMaskFilter(radiusFor(sigma), BlurMaskFilter.Blur.NORMAL)
-            fill(body)
         }
         Canvas(bitmap).drawRoundRect(body, radius, radius, blur)
         bitmap.prepareToDraw()
@@ -101,16 +86,15 @@ class ComposerGlow(context: Context) {
     }
 
     /** The bitmap's top, its middle row stretched over the box's extra height, and its bottom. */
-    private fun draw(canvas: Canvas, bitmap: Bitmap, box: Rect, margin: Float, offset: Float, opacity: Float) {
+    private fun draw(canvas: Canvas, bitmap: Bitmap, width: Int, height: Int, margin: Float, offset: Float) {
         val outside = margin * density
-        val left = box.left - outside
-        val right = box.right + outside
-        val top = box.top - outside + offset * density
-        val bottom = box.bottom + outside + offset * density
+        val left = -outside
+        val right = width + outside
+        val top = -outside + offset * density
+        val bottom = height + outside + offset * density
         val middle = bitmap.height / 2
         val cap = middle * density
 
-        paint.alpha = (opacity * 255).toInt()
         source.set(0, 0, bitmap.width, middle)
         target.set(left, top, right, top + cap)
         canvas.drawBitmap(bitmap, source, target, paint)
@@ -128,9 +112,10 @@ class ComposerGlow(context: Context) {
         private const val GLOW_HEIGHT_DP = 80
         private const val SHADOW_HEIGHT_DP = 100
 
-        private const val GLOW_OUTSET_DP = 6.4f
-        private const val GLOW_RADIUS_DP = 28f
-        private const val GLOW_SIGMA_DP = 20f
+        // The web's .composer: --rainbow-glow-inset 0, its radius the box's, blur(22px), whose
+        // length is the Gaussian's sigma. Three sigmas reach every visible pixel.
+        const val GLOW_RADIUS_DP = ComposerBackground.RADIUS_DP
+        const val GLOW_SIGMA_DP = 22f
         private const val GLOW_MARGIN = 67f
 
         // --shadow-float: 0 20px 50px -24px, whose blur is a sigma of half that.

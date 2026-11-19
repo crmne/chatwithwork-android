@@ -1368,14 +1368,23 @@ rainbow stops, with 70% opacity at rest and full opacity while editing.
 **The rainbow (2026-11-01).** The composer is the app's clearest mark, and it
 follows the web's `.composer` from `state` alone: `locked`, `working` and
 `waiting` need nothing new. A 2dp edge at 70% (full with focus, 60% locked),
-flowing to the right, one loop in 5 seconds, while `working`; a blurred glow
-around the box at 14% (30% with focus, 5% locked); and both amber while
-`waiting`, which outranks `working` and the glow's lock. With animations off
-in the system's settings the edge stands still on the loop's first frame. The
-glow and the box's `--shadow-float` are blurred once for a width and cached
-(`ComposerGlow`), so typing and the keyboard only draw a texture. Colours are
-`--rainbow`, `--rainbow-loop`, `--attention` and `--shadow-float`: change them
-on the web first.
+flowing to the right, one loop in 5 seconds, while `working` and from Send
+until the state says it is (the web form's `aria-busy`; at most 10 seconds,
+and never once it's `locked` or hidden); a blurred glow around the box at 16%
+(30% with focus, 5% locked); and both amber while `waiting`, the glow at 14%,
+which outranks `working` and the glow's lock. Both opacities ease over 220ms.
+
+**The glow is the edge blurred (2026-11-19).** As the web's composer since
+that day, the glow is the box itself (no inset, its 20dp corners) blurred by
+22dp, painted with the edge's own shader: under any point of the edge the glow
+is that point's colour, and while the edge flows the glow flows with it, in
+the same phase, since one animator moves the one shader both use. The blur is
+an alpha-only mask made once for a width and cached (`ComposerGlow`), so
+typing, the keyboard and each frame of the flow only draw a texture. With
+animations off in the system's settings both stand still on the loop's first
+frame, and the flow stops while the composer is off screen or the app is in
+the background. Colours are `--rainbow`, `--rainbow-loop`, `--attention` and
+`--shadow-float`: change them on the web first.
 
 
 **Overlay layout (2026-10-29).** The server advertises `overlay: true` in
