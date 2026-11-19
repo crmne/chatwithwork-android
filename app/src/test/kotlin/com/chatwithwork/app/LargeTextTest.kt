@@ -2,6 +2,7 @@ package com.chatwithwork.app
 
 import android.os.Looper
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -61,7 +62,7 @@ class LargeTextTest {
 
     private fun activity(fontScale: Float): AppCompatActivity {
         RuntimeEnvironment.setFontScale(fontScale)
-        val activity = Robolectric.buildActivity(AppCompatActivity::class.java).create().get()
+        val activity = Robolectric.buildActivity(AppCompatActivity::class.java).setup().get()
         activity.setTheme(R.style.Theme_ChatWithWork)
         return activity
     }
@@ -146,6 +147,69 @@ class LargeTextTest {
         val min = (48 * chip.resources.displayMetrics.density).toInt()
         assertThat(area.width()).isAtLeast(min)
         assertThat(area.right).isAtMost(chip.width)
+    }
+
+    @Test
+    fun `a tap beside the file's remove button, inside its 48dp, removes the file`() {
+        val composer = composer(1f)
+        val root = composer.parent as ViewGroup
+        val chip = composer.findViewById<ViewGroup>(R.id.composer_files).getChildAt(0) as ViewGroup
+        val remove = chip.findViewById<View>(R.id.composer_file_remove)
+        var removed = 0
+        remove.setOnClickListener { removed++ }
+        val bounds = android.graphics.Rect(0, 0, remove.width, remove.height)
+        root.offsetDescendantRectToMyCoords(remove, bounds)
+        // 8dp before the button, over the file's name: outside the button, inside its grown target.
+        val x = bounds.left - 8 * composer.resources.displayMetrics.density
+        val y = bounds.exactCenterY()
+        tap(root, x, y)
+        assertThat(removed).isEqualTo(1)
+        // Further along the name, past 48dp, nothing happens.
+        tap(root, bounds.left - 20 * composer.resources.displayMetrics.density, y)
+        assertThat(removed).isEqualTo(1)
+    }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun `TalkBack's exploration enters the control it finds around it and exits the one it leaves`() {
+        val composer = composer(1f)
+        val box = composer.findViewById<ViewGroup>(R.id.composer_box)
+        val targets = box.touchDelegate as com.chatwithwork.app.main.TouchTargets
+        val plus = composer.findViewById<View>(R.id.composer_plus)
+        val dictate = composer.findViewById<View>(R.id.composer_dictate)
+        val seen = mutableListOf<String>()
+        fun watch(view: View, name: String) = view.setOnHoverListener { _, event ->
+            seen += "$name ${MotionEvent.actionToString(event.actionMasked)}"
+            true
+        }
+        watch(plus, "plus")
+        watch(dictate, "dictate")
+        val plusArea = targets.area(plus)
+        val dictateArea = targets.area(dictate)
+        // Just below each button, in the box's padding, where only the grown target reaches.
+        val below = plusArea.bottom - 1f
+        fun hover(action: Int, x: Float) = targets.onTouchExplorationHoverEvent(
+            MotionEvent.obtain(0, 0, action, x, below, 0)
+        )
+        hover(MotionEvent.ACTION_HOVER_ENTER, plusArea.exactCenterX())
+        hover(MotionEvent.ACTION_HOVER_MOVE, plusArea.exactCenterX() + 1)
+        hover(MotionEvent.ACTION_HOVER_MOVE, dictateArea.exactCenterX())
+        hover(MotionEvent.ACTION_HOVER_MOVE, box.width / 2f + box.width / 4f)
+        hover(MotionEvent.ACTION_HOVER_EXIT, box.width / 2f + box.width / 4f)
+        assertThat(seen).containsExactly(
+            "plus ACTION_HOVER_ENTER",
+            "plus ACTION_HOVER_MOVE",
+            "plus ACTION_HOVER_EXIT",
+            "dictate ACTION_HOVER_ENTER",
+            "dictate ACTION_HOVER_EXIT"
+        ).inOrder()
+    }
+
+    private fun tap(root: ViewGroup, x: Float, y: Float) {
+        listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP).forEach { action ->
+            root.dispatchTouchEvent(MotionEvent.obtain(0, 0, action, x, y, 0))
+        }
+        shadowOf(Looper.getMainLooper()).idle()
     }
 
     @Test

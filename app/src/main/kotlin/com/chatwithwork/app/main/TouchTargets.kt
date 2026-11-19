@@ -26,6 +26,7 @@ class TouchTargets(
     private val targets: () -> List<View>
 ) : TouchDelegate(Rect(), parent) {
     private var current: TouchDelegate? = null
+    private var hovered: Pair<View, Rect>? = null
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.actionMasked == MotionEvent.ACTION_DOWN) {
@@ -39,11 +40,34 @@ class TouchTargets(
         return handled
     }
 
-    /** TalkBack's touch exploration finds a control from the space around it as a tap would (API 29 and later). */
+    /**
+     * TalkBack's touch exploration finds a control from the space around it as
+     * a tap would (API 29 and later). The control under the finger is entered,
+     * and the one it leaves, moving to another or to nothing, is exited, so no
+     * control keeps a hover that's gone.
+     */
     override fun onTouchExplorationHoverEvent(event: MotionEvent): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
-        val (view, area) = nearest(event.x.toInt(), event.y.toInt()) ?: return false
-        return TouchDelegate(area, view).onTouchExplorationHoverEvent(event)
+        val target =
+            if (event.actionMasked == MotionEvent.ACTION_HOVER_EXIT) {
+                null
+            } else {
+                nearest(event.x.toInt(), event.y.toInt())
+            }
+        val previous = hovered
+        if (previous != null && previous.first !== target?.first) hover(previous, event, MotionEvent.ACTION_HOVER_EXIT)
+        hovered = target
+        if (target == null) return previous != null
+        val action = if (previous?.first === target.first) event.actionMasked else MotionEvent.ACTION_HOVER_ENTER
+        return hover(target, event, action)
+    }
+
+    /** Hands a control a copy of [event] as [action], through a [TouchDelegate] for its area, which centres it. */
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun hover(target: Pair<View, Rect>, event: MotionEvent, action: Int): Boolean {
+        val copy = MotionEvent.obtain(event)
+        copy.action = action
+        return TouchDelegate(target.second, target.first).onTouchExplorationHoverEvent(copy).also { copy.recycle() }
     }
 
     /** The grown areas, so accessibility services know where each control can be touched (API 29 and later). */
