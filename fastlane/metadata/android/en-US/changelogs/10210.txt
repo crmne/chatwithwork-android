@@ -1,0 +1,1 @@
+The sidebar is now the one you use on the web, and the app opens where the web does. Pull down on any page, chats included, to bring it up to date in place, keeping what you've typed. A running answer's Live Update now shows its chat's title, and the bot in the status bar is no longer cut off. A wrong password shows on the sign-in form instead of an error screen.

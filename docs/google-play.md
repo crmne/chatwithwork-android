@@ -6,6 +6,46 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.10
+
+Version 1.2.10 (10210) brings a page up to date in place when it's pulled
+down, calling the page's `window.chatWithWork.refresh()` instead of Hotwire
+Native's cold reload, so what's typed, the focus and the scroll stay
+([#69](https://github.com/crmne/chatwithwork-android/pull/69)), and turns the
+pull on for chats, New chat and a chat a page opens
+([#70](https://github.com/crmne/chatwithwork-android/pull/70)). A running
+answer's Live Update is headed by its chat's title, and the bot in the status
+bar icon is no longer cut off
+([#68](https://github.com/crmne/chatwithwork-android/pull/68)). 1.2.9 went to
+Internal testing only, so the What's new in `changelogs/10210.txt` also
+covers its sidebar and sign-in changes for testers coming from 1.2.8. Tag
+`v1.2.10`.
+
+The server serves the same rules as `android_v2.json` (crmne/chatwithwork
+47c5200d), so builds in people's hands get the pull on chats too. Builds
+before 1.2.10 do Hotwire Native's cold reload there: on the API 36 emulator,
+1.2.9 against those rules reloaded a chat at its latest message, and its
+composer kept what was typed, while a file waiting in the composer was
+dropped; 1.2.10 kept both, and the scroll.
+
+The signed, Firebase-enabled bundle was built with `script/bundle-release
+v1.2.10` on 2026-11-19 and its upload signature verified (sha256
+`5ec63cc681e8a772564452ac7d6f595337e6d90fc0db60fd1360f2de9598c68b`). It isn't
+uploaded yet: there's no Play service account for the Developer API, and the
+upload is made in Play Console. Upload it to Internal testing only, as 1.2.9
+went.
+
+Validation, on the API 36 emulator against production with the App Review
+demo login (synthetic content): a release APK built from the same commit and
+key signed in after a wrong password (shown on the form), opened Decisions
+and the server's sidebar in the drawer, and a running answer's Live Update
+read the chat's title ("Bookkeeper onboarding checklist") with Settings >
+Notifications' "Show the chat and its answer" on, and the step's words
+without it. The debug build pulled Decisions and a chat up to date in place
+(no reload). Against a local server, the debug build kept a typed draft and
+a file waiting in the composer through a pull on a chat. The bundle itself
+wasn't tried on a device.
+
 ## Release 1.2.9
 
 Version 1.2.9 (10209) shows the server's own sidebar in the drawer, the web
