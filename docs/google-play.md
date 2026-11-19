@@ -6,7 +6,38 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
-## Release 1.2.10
+## Release 1.2.11
+
+Version 1.2.11 (10211) opens New chat as a modal over the place on screen,
+like New bot, every modal now Material 3's full-screen dialog (a centred
+dialog on large windows) with predictive back, and New chat's draft kept per
+organization when it closes
+([#72](https://github.com/crmne/chatwithwork-android/pull/72)). The native
+pieces hold up at the largest text sizes, with 48dp touch targets and
+TalkBack names ([#71](https://github.com/crmne/chatwithwork-android/pull/71)),
+and a Live Update keeps its chat's title at every text size, with TalkBack
+hearing it in every state
+([#73](https://github.com/crmne/chatwithwork-android/pull/73)). What's new is
+`changelogs/10211.txt`. Tag `v1.2.11`.
+
+It reads `android_v3.json`, which the server serves from crmne/chatwithwork
+794fe31a (live with 7353b620); the bundled copy is byte-identical to
+production's and staging's. Builds before 1.2.11 keep reading
+`android_v2.json`, where New chat stays a place.
+
+The signed, Firebase-enabled bundle was built with `script/bundle-release
+v1.2.11` from 842a2c0 on 2026-11-19 (sha256
+`038429eda738ca1c880254643eacf9da64038f5903acafe9a360bc2da51b9da1`), signed
+with the same upload key as 1.2.10; bundletool reads versionCode 10211 and
+versionName 1.2.11. `testDebugUnitTest lintDebug spotlessCheck` passed (309
+tests). Upload it to Internal testing only, as 1.2.10 went.
+
+Validation, on the API 36 emulator against production with the App Review
+demo login (synthetic content): a universal APK made from the bundle itself
+by bundletool (so signed with the debug key) signed in from the sign-in
+modal, opened on Decisions, opened New chat as a modal with its close icon,
+closed it back to Decisions, and showed the server's sidebar in the drawer.
+The bundle wasn't tried on a device.
 
 Version 1.2.10 (10210) brings a page up to date in place when it's pulled
 down, calling the page's `window.chatWithWork.refresh()` instead of Hotwire

@@ -1,0 +1,1 @@
+New chat now opens over the page you're on, like New bot, and closes with back, its close button or a swipe, keeping what you typed for next time. The app's own pieces stay readable at the largest text sizes, with bigger touch targets and clearer TalkBack labels. A running answer's Live Update keeps its chat's title at every text size, and TalkBack reads it.
