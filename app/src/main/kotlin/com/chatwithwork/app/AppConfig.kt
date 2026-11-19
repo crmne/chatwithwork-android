@@ -16,11 +16,13 @@ object AppConfig {
     /**
      * The path configuration the server serves for this app. The version is in
      * the name: a change the installed apps can't read gets a new file while
-     * old installs keep reading theirs. v2 is the sidebar's: every place (a
-     * chat, Decisions, Bots, Settings) replaces the one root screen; the tab
-     * builds read v1.
+     * old installs keep reading theirs. v3: every place (a chat, Decisions,
+     * Bots, Settings) replaces the one root screen, and New chat is a modal
+     * over it, like New bot. The sidebar builds before it read v2, where New
+     * chat is a place (they start the navigator on it, which a modal can't
+     * be); the tab builds read v1.
      */
-    val remotePathConfigurationUrl: String = "$baseUrl/configurations/android_v2.json"
+    val remotePathConfigurationUrl: String = "$baseUrl/configurations/android_v3.json"
 
     const val BUNDLED_PATH_CONFIGURATION = "json/path-configuration.json"
 

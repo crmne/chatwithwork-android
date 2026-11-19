@@ -23,6 +23,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.TextView
+import androidx.activity.BackEventCompat
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.IntentSenderRequest
@@ -63,7 +64,11 @@ import com.chatwithwork.app.bridge.SnackbarHost
 import com.chatwithwork.app.bridge.SymbolDrawable
 import com.chatwithwork.app.composer.ComposerFiles
 import com.chatwithwork.app.composer.ComposerView
+import com.chatwithwork.app.composer.NewChatDrafts
 import com.chatwithwork.app.composer.PendingShares
+import com.chatwithwork.app.fragments.ModalBackdrop
+import com.chatwithwork.app.fragments.ModalFrame
+import com.chatwithwork.app.fragments.WebModalFragment
 import com.chatwithwork.app.fragments.WebScreenHost
 import com.chatwithwork.app.push.LiveAlertsTip
 import com.chatwithwork.app.push.LiveTemplate
@@ -104,10 +109,12 @@ import kotlinx.coroutines.launch
 
 /**
  * The app's one activity: the sidebar shell. One navigator, whose root is
- * the place on screen: a chat (a new one, or one picked in the sidebar),
- * Decisions, Bots, Settings, or whatever else the sidebar opened (Places).
- * Drill-downs from it (a bot from Bots) are pushed over it with back, and
- * forms are modals. Back at the root leaves the app. The sidebar is
+ * the place on screen: a chat picked in the sidebar, Decisions, Bots,
+ * Settings, or whatever else the sidebar opened (Places). Drill-downs from it
+ * (a bot from Bots) are pushed over it with back, and New chat, New bot and
+ * the forms are modals over it (Material 3's full-screen dialog, ModalFrame),
+ * which back and a predictive back gesture close. Back at the root leaves the
+ * app. The sidebar is
  * Material 3's modal navigation drawer, holding the server's sidebar page
  * (SidebarWebView), or, from a server without one, drawn natively from its
  * JSON (SidebarDrawer). The welcome screen covers it all when nobody is signed in.
@@ -120,7 +127,7 @@ import kotlinx.coroutines.launch
  * - `/recede_historical_location`, or the sign-in modal moving on to a page
  *   inside the app, means signing in worked: start afresh.
  * - A link into another organization means the person switched: the
- *   navigator starts afresh inside it, on its new chat (or the chat linked).
+ *   navigator starts afresh inside it, on its home (or the chat linked).
  * - A form in a modal that recedes closes the modal.
  * - The page's hidden `sidebar` component says when the chat lists changed.
  *
@@ -249,6 +256,36 @@ class MainActivity :
             if (granted) delegate.resetNavigators()
         }
 
+    /**
+     * Back on a modal closes it, following a predictive back gesture as it goes
+     * (ModalFrame). Added after Hotwire's own, so it goes first.
+     */
+    private val closeModal =
+        object : OnBackPressedCallback(false) {
+            private var frame: ModalFrame? = null
+
+            override fun handleOnBackStarted(backEvent: BackEventCompat) {
+                frame = currentModal()?.frame
+                frame?.backStarted(backEvent)
+            }
+
+            override fun handleOnBackProgressed(backEvent: BackEventCompat) {
+                frame?.backProgressed(backEvent)
+            }
+
+            override fun handleOnBackCancelled() {
+                frame?.backCancelled()
+                frame = null
+            }
+
+            override fun handleOnBackPressed() {
+                frame = null
+                navigator?.pop()
+            }
+        }
+
+    private fun currentModal(): WebModalFragment? = navigator?.currentDestination?.fragment as? WebModalFragment
+
     /** Back closes the sidebar first. Added after Hotwire's own, so it goes first. */
     private val closeSidebar =
         object : OnBackPressedCallback(false) {
@@ -260,6 +297,7 @@ class MainActivity :
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
         enableEdgeToEdge()
+        NewChatDrafts.restore(savedInstanceState)
         val link = takeLink(intent, restored = savedInstanceState != null)
         // A chat linked on a cold start (a notification) is where the navigator starts.
         LaunchLinks.startsAt(link, restored = savedInstanceState != null)?.let { chat ->
@@ -282,6 +320,7 @@ class MainActivity :
         setUpSidebar()
         setUpWelcome()
         setUpInsets()
+        onBackPressedDispatcher.addCallback(this, closeModal)
         onBackPressedDispatcher.addCallback(this, closeSidebar)
 
         if (savedInstanceState == null && !memory.hasSignedIn) {
@@ -297,6 +336,15 @@ class MainActivity :
             activity = this,
             requiredVersion = WebViewInfo.REQUIRED_WEBVIEW_VERSION
         )
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        // What's typed in New chat, if it's up, outlives the process too (never once signed out).
+        navigator?.currentDestination?.takeUnless { viewModel.signedOut }?.let { destination ->
+            visibleComposer()?.let { NewChatDrafts.keep(destination.location, it.text) }
+        }
+        NewChatDrafts.save(outState)
+        super.onSaveInstanceState(outState)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -424,8 +472,8 @@ class MainActivity :
     /**
      * Where the app opens: a chat it was sent to, else the chat the person
      * left under ten minutes ago while it was still answering, else the
-     * organization's home, which the server sends on to Decisions or New
-     * chat, as the web lands. Before the app knows an organization, the
+     * organization's home, which the server sends on to Decisions (never New
+     * chat, a modal, which needs a place under it). Before the app knows an organization, the
      * unprefixed home, which the server redirects into the one used last.
      */
     private fun startLocation(): String {
@@ -435,7 +483,7 @@ class MainActivity :
             .answeringChatLeftSince(System.currentTimeMillis(), RESUME_WITHIN_MS)
             ?.takeIf { account == null || AppUrls.account(it) == account }
             ?.let { return it }
-        // With no connection New chat can't load, but the chat last shown may
+        // With no connection the home can't load, but the chat last shown may
         // have a copy kept for reading offline (docs/server-contract.md).
         if (!isOnline()) account?.let(memory::lastChat)?.let { return it }
         return AppUrls.home(account)
@@ -612,22 +660,38 @@ class MainActivity :
 
     /**
      * Starts a new chat in the list the sidebar shows, as the web's New chat
-     * does. It replaces the root (the path configuration), so nothing stacks.
+     * does: a modal over the place on screen (the path configuration). One
+     * already up keeps what's typed, rather than another stacking on it.
      */
     override fun startNewChat() {
         closeSidebarNow()
-        navigator?.route(newChatUrl())
+        val navigator = navigator ?: return
+        if (navigator.currentDestination?.location?.let(AppUrls::isNewChat) == true) {
+            visibleComposer()?.focusField()
+            return
+        }
+        navigator.route(newChatUrl())
     }
 
+    /**
+     * A server without the organization's home (a self-hosted one from before
+     * it, which has no v3 path configuration either, so the bundled one
+     * holds): the chat list, a place, opens instead. Not New chat, a modal,
+     * which would have nothing under it.
+     */
     override fun onHomeMissing(destination: HotwireDestination) {
-        // Signed out, New chat would read as a session (routeDecision); signing in starts on the home again.
+        // Signed out, the list would read as a session (routeDecision); signing in starts on the home again.
         if (viewModel.signedOut || viewModel.signingIn) return
+        val account = AppUrls.account(destination.location) ?: viewModel.account ?: memory.lastAccount
         root.post {
             // Only while that home still shows: a link opened since stays.
             val navigator = navigator ?: return@post
-            if (navigator.currentDestination === destination) navigator.route(newChatUrl())
+            if (navigator.currentDestination === destination) navigator.route(AppUrls.chats(account))
         }
     }
+
+    override val coversPage: Boolean
+        get() = drawer.isDrawerVisible(GravityCompat.START)
 
     /**
      * The new chat in the list the native sidebar shows (or last showed) in
@@ -1001,6 +1065,8 @@ class MainActivity :
         val destination = navigator?.currentDestination
         val modal = destination?.pathProperties?.context == PresentationContext.MODAL
         val atRoot = navigator?.isAtStartDestination() != false && !modal
+        closeModal.isEnabled = modal && navigator?.isAtStartDestination() == false
+        if (!modal) ModalBackdrop.clear()
         drawer.setDrawerLockMode(
             if (atRoot &&
                 !viewModel.signedOut
@@ -1102,6 +1168,8 @@ class MainActivity :
             sidebarPage.reset()
             memory.hasSignedIn = false
             memory.forgetLastChats()
+            // Words typed by whoever was signed in never wait for the next person.
+            NewChatDrafts.clearAll()
             PushNotifications.forget(this)
         }
 
@@ -1192,15 +1260,15 @@ class MainActivity :
 
     /**
      * Starts the navigator over inside [account], on [location] when it's a
-     * chat, else on the organization's new chat with [location] opened on
-     * top of it.
+     * chat, else on the organization's home with [location] opened on top of
+     * it (New chat among them, a modal over the home).
      */
     private fun moveToOrganization(account: String, location: String) {
         viewModel.account = account
         viewModel.sidebar = null
         memory.lastAccount = account
         sidebarPage.show(memory.sidebarPage(account))
-        if (AppUrls.isChat(location)) {
+        if (AppUrls.isOpenChat(location)) {
             viewModel.startLocation = location
             viewModel.pendingLink = null
         } else {
@@ -1232,11 +1300,13 @@ class MainActivity :
                 root.post { navigator?.route(AppUrls.resume) }
                 return Router.Decision.CANCEL
             }
-            // A recede on the chat itself (deleted from its menu) has nothing
-            // to go back to: a new chat takes its place.
+            // A recede on the chat itself (deleted from its menu, on a server
+            // that recedes rather than sending Decisions) has nothing to go
+            // back to: the organization's home takes its place.
             if (AppUrls.isRecede(location) && navigator?.isAtStartDestination() == true) {
                 viewModel.sidebarStale = true
-                root.post { startNewChat() }
+                val home = AppUrls.home(viewModel.account ?: memory.lastAccount)
+                root.post { this.navigator?.route(home) }
                 return Router.Decision.CANCEL
             }
             return null
@@ -1258,7 +1328,9 @@ class MainActivity :
             if (!AppUrls.isAuthentication(location) && isSignedInPage(location)) {
                 // Leaving the sign-in pages for a page inside the app means
                 // the server signed someone in, even if it didn't recede.
-                viewModel.pendingLink = viewModel.pendingLink ?: location.takeIf { opensOnTop(it) }
+                // Where the server lands people (its home, once the New chat) isn't a link to open.
+                viewModel.pendingLink =
+                    viewModel.pendingLink ?: location.takeIf { opensOnTop(it) && !AppUrls.isNewChat(it) }
                 didSignIn()
                 return Router.Decision.CANCEL
             }
@@ -1405,9 +1477,9 @@ class MainActivity :
                 // A password reset or confirmation link: show it over the welcome screen.
                 presentSignIn(url)
             } else {
-                // A chat (or a new chat holding shared words) is where the
-                // app starts once signed in; anything else opens on top.
-                if (AppUrls.isChat(url)) viewModel.startLocation = url else viewModel.pendingLink = url
+                // A chat is where the app starts once signed in; anything else
+                // (a new chat holding shared words among them) opens on top.
+                if (AppUrls.isOpenChat(url)) viewModel.startLocation = url else viewModel.pendingLink = url
                 presentSignIn()
             }
             return
@@ -1420,8 +1492,10 @@ class MainActivity :
             // the first page that finishes opens it.
             viewModel.pendingLink = url
         } else {
-            // A chat replaces the root (the path configuration); a link into
-            // another organization starts over there (routeDecision).
+            // A chat replaces the root, New chat comes up over it, or in
+            // place of a New chat already up, with what's typed there kept
+            // (the path configuration); a link into another organization
+            // starts over there (routeDecision).
             navigator.route(url, VisitOptions())
         }
     }
@@ -1459,12 +1533,13 @@ class MainActivity :
     }
 
     /**
-     * Pages opened on top of the root after signing in: not the new chat (the
-     * root already is one), and not the chat list the server lands people on
-     * (the sidebar is the app's list).
+     * Pages opened on top of the root after signing in or moving to another
+     * organization, New chat among them (a modal over the home): not the
+     * sign-in pages, and not the chat list the server lands people on (the
+     * sidebar is the app's list).
      */
     private fun opensOnTop(url: String): Boolean =
-        !AppUrls.isNewChat(url) && !AppUrls.isAuthentication(url) && AppUrls.pathWithinAccount(url) != "/chats"
+        !AppUrls.isAuthentication(url) && AppUrls.pathWithinAccount(url) != "/chats"
 
     // endregion
 
@@ -1477,7 +1552,7 @@ class MainActivity :
     }
 
     /** The native composer on screen, which a snackbar sits above rather than over. */
-    private fun visibleComposer(): View? = navigator?.currentDestination?.fragment?.view
+    private fun visibleComposer(): ComposerView? = navigator?.currentDestination?.fragment?.view
         ?.findViewById<ComposerView>(R.id.composer)
         ?.takeIf { it.isVisible && it.isAttachedToWindow && it.height > 0 }
 

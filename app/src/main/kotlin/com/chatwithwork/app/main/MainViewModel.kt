@@ -10,9 +10,10 @@ class MainViewModel : ViewModel() {
     var account: String? = null
 
     /**
-     * Where the navigator starts the next time it starts over: a chat or new
-     * chat, after moving to another organization or from a notification.
-     * Null starts on the remembered new chat.
+     * Where the navigator starts the next time it starts over: a chat, after
+     * moving to another organization or from a notification. Never New chat,
+     * a modal, which opens over the home instead (pendingLink). Null starts
+     * on the organization's home.
      */
     var startLocation: String? = null
 

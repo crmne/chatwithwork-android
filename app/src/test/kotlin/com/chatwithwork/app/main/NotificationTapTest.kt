@@ -41,6 +41,9 @@ class NotificationTapTest {
         assertThat(LaunchLinks.startsAt("$base/482139075/decisions", restored = false)).isNull()
         assertThat(LaunchLinks.startsAt("$base$path", restored = true)).isNull()
         assertThat(LaunchLinks.startsAt(null, restored = false)).isNull()
+        // New chat is a modal: it opens over the home, never as the place the app starts on.
+        assertThat(LaunchLinks.startsAt("$base/482139075/chats/new", restored = false)).isNull()
+        assertThat(LaunchLinks.startsAt("$base/482139075/chats/new?text=hi", restored = false)).isNull()
     }
 
     @Test

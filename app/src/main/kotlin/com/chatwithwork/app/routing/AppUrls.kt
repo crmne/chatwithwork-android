@@ -36,10 +36,13 @@ object AppUrls {
 
     /**
      * Where the app opens: the organization's home, which the server sends on
-     * to Decisions once it has something to show, else New chat, as signing
-     * in on the web does (docs/server-contract.md, "Places").
+     * to Decisions, whose "All clear" carries New chat's composer when nothing
+     * waits (docs/server-contract.md, "Places").
      */
     fun home(account: String?): String = page("/home", account)
+
+    /** The organization's chat list, a place: where the app opens on a server without the home. */
+    fun chats(account: String?): String = page("/chats", account)
 
     /** The organization's home ("/482139075/home") or the unprefixed one ("/home"), on this server. */
     fun isStartHome(url: String): Boolean = isAppUrl(url) && pathWithinAccount(url) == "/home"
@@ -47,9 +50,10 @@ object AppUrls {
     /**
      * Whether [url] answering [status] means the server has no home yet (one
      * from before 2026-11-17, a self-hosted release among them), so the app
-     * opens New chat instead, as earlier builds did.
+     * opens the chat list instead: a place, where New chat, a modal, would
+     * have nothing under it.
      */
-    fun opensNewChatInstead(url: String, status: Int?): Boolean = status == HTTP_NOT_FOUND && isStartHome(url)
+    fun homeMissing(url: String, status: Int?): Boolean = status == HTTP_NOT_FOUND && isStartHome(url)
 
     /** The Decisions page, inside [account] when it's known. */
     fun decisions(account: String?): String = page("/decisions", account)
@@ -117,8 +121,11 @@ object AppUrls {
     fun chatNumber(url: String): Long? =
         Regex("^/chats/(\\d+)$").find(pathWithinAccount(url))?.groupValues?.get(1)?.toLongOrNull()
 
-    /** A chat's page, or the new chat page: the screens that replace the root. */
-    fun isChat(url: String): Boolean = isNewChat(url) || Regex("^/chats/\\d+$").matches(pathWithinAccount(url))
+    /** A chat's page, or the new chat page: the pages with a composer that run under the top bar. */
+    fun isChat(url: String): Boolean = isNewChat(url) || isOpenChat(url)
+
+    /** A chat's page, a place the navigator can start on (New chat is a modal over one). */
+    fun isOpenChat(url: String): Boolean = Regex("^/chats/\\d+$").matches(pathWithinAccount(url))
 
     fun isNewChat(url: String): Boolean = pathWithinAccount(url) == "/chats/new"
 
