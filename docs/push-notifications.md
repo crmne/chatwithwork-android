@@ -166,6 +166,21 @@ that chat, in Chats, inside the right organization.
   docs/server-contract.md, "The chat's title"), and the step's words go
   under it. Android 16's template wraps a long title to two lines in the
   expanded card and cuts it after that; collapsed it's one line.
+  Below Android 16 the collapsed card's one line is the title, then the
+  step's words, cut at the end. At large text sizes the drawn card cuts the
+  title short at its end rather than shrinking it, and where the steps count
+  would leave it only a few letters the count gives way (the road's ticks
+  show the steps); the step's words beside the clock shrink to 60% of their
+  size at most, then are cut at the end; and a logo that would leave the
+  step's words a few letters goes, the words reading plain. TalkBack
+  hears the title first in every state (starting, working, agents, writing, a
+  decision, a question, finished, failed, stopped, a phase this build doesn't
+  know), through the notification's ticker and the drawn card's
+  descriptions (`LivePresentation.spoken`); without a title, as for someone
+  who keeps words out of notifications, it hears the organization and the
+  step, as the card shows. Android has no stale card: a Live Update the
+  server stops updating times out after 30 minutes (the heartbeat comes every
+  4), so there's no "Open to check" line to keep.
   The status bar masks (`live_mark_*` on Android 16, `live_chip_*` below)
   are the bot mark drawn on a 24dp canvas, the bubble's 16 squares scaled
   1.2 and centred on the circle around it, so the whole bot sits inside the

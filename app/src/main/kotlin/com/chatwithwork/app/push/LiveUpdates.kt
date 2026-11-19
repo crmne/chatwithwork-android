@@ -49,7 +49,8 @@ import kotlinx.serialization.json.putJsonObject
  * that run shows none again, while a later answer does.
  */
 object LiveUpdates {
-    private const val TIMEOUT_MS = 30 * 60 * 1000L
+    /** How long an ongoing card stays without word from the server ([LiveCard] keeps its clock room for it). */
+    const val TIMEOUT_MS = 30 * 60 * 1000L
     private const val ENDED_SHOWN_MS = 15 * 60 * 1000L
     private const val FOLLOW_TIMEOUT_MS = 10_000
     private const val STARTING_MS = 15_000L
@@ -450,6 +451,8 @@ object LiveUpdates {
                 .setSubText(organization)
                 .setContentTitle(title)
                 .setContentText(line)
+                // What accessibility services announce as it's posted: the chat's title in every state it's known.
+                .setTicker(shown.spoken(step, text, organization))
                 .setColor(ContextCompat.getColor(context, shown.color))
                 .setOnlyAlertOnce(true)
                 .addExtras(

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A Live Update in as little as Android leaves it: its words and its clock. -->
+<!-- A Live Update in as little as Android leaves it: the chat's title and the step's words on one line, and its clock. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/live_collapsed"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
