@@ -26,7 +26,11 @@ import org.robolectric.annotation.GraphicsMode
 class LiveCardLargeTextTest {
     private val title = "Acme renewal and the Q3 pricing review with legal"
 
-    private fun card(shown: LivePresentation, steps: String? = "12 steps"): LiveCard {
+    private fun card(
+        shown: LivePresentation,
+        steps: String? = "12 steps",
+        since: Long = System.currentTimeMillis()
+    ): LiveCard {
         RuntimeEnvironment.setFontScale(2f)
         val context = RuntimeEnvironment.getApplication()
         val open = PendingIntent.getActivity(context, 0, Intent(), PendingIntent.FLAG_IMMUTABLE)
@@ -36,7 +40,7 @@ class LiveCardLargeTextTest {
             shown.title("Searching Todoist and Google Drive for the pricing sheet") { "Working" },
             shown.chatTitle ?: "Northwind Studio",
             steps,
-            LiveCard.Clock.Running(System.currentTimeMillis()),
+            LiveCard.Clock.Running(since),
             open
         )
     }
@@ -77,6 +81,26 @@ class LiveCardLargeTextTest {
             assertThat(view.findViewById<View>(R.id.live_card).contentDescription.toString()).startsWith(title)
         }
     }
+
+    @Test
+    fun `a card that could pass an hour before it times out keeps room for the clock's hours`() {
+        val shown = LivePresentation("answering", "search", steps = 3, trail = "sss", chatTitle = title)
+        // 40 minutes in: the next update may never come, and the clock reads 1:00:00 before the card goes at 70.
+        val view = apply(card(shown, since = System.currentTimeMillis() - 40 * 60 * 1000L).expanded())
+        val density = view.resources.displayMetrics.density
+        val headline = view.findViewById<ImageView>(R.id.live_title).drawable.intrinsicWidth / density
+        val room = LiveCard.contentWidth(view.context) - 12 - clockWidth(view, "0:00:00")
+        assertThat(headline * LiveCard.HEADLINE_LEAST).isAtMost(room + 1)
+    }
+
+    private fun clockWidth(view: View, sample: String): Float = android.text.TextPaint().apply {
+        textSize = android.util.TypedValue.applyDimension(
+            android.util.TypedValue.COMPLEX_UNIT_SP,
+            20f,
+            view.resources.displayMetrics
+        )
+        typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+    }.measureText(sample) / view.resources.displayMetrics.density
 
     @Test
     fun `before the first step, with no count, the title has the whole row`() {

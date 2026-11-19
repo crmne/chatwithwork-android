@@ -143,7 +143,8 @@ class LiveCard(
 
     /**
      * The widest the clock will read: a fixed time as it's written, a running one as minutes and seconds, or with
-     * hours once it's been going [CLOCK_HOURS_AFTER_MS] (it keeps counting between updates).
+     * hours where it could reach an hour before the card times out without another update ([CLOCK_HOURS_AFTER_MS]),
+     * since it keeps counting by itself.
      */
     private fun clockSample(): String = when (val clock = clock) {
         is Clock.Fixed -> DateUtils.formatElapsedTime(clock.millis / MILLIS)
@@ -257,7 +258,7 @@ class LiveCard(
         private const val CLOCK_SP = 20f
         private const val CLOCK_SAMPLE = "00:00"
         private const val CLOCK_SAMPLE_HOURS = "0:00:00"
-        private const val CLOCK_HOURS_AFTER_MS = 50 * 60 * 1000L
+        private const val CLOCK_HOURS_AFTER_MS = 60 * 60 * 1000L - LiveUpdates.TIMEOUT_MS
 
         /** The least the step's words beside the clock shrink to, as a share of their size. */
         const val HEADLINE_LEAST = 0.6f
