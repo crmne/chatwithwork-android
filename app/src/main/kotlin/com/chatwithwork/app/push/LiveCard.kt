@@ -42,28 +42,35 @@ class LiveCard(
     }
 
     fun collapsed() = RemoteViews(context.packageName, R.layout.notification_live_collapsed).apply {
-        setTextViewText(R.id.live_title, title)
+        setTextViewText(R.id.live_title, shown.collapsedLine(title))
+        setContentDescription(R.id.live_collapsed, spoken)
         setTime(this, R.id.live_clock, R.id.live_time)
     }
 
+    /** What TalkBack reads for either size of the card: the chat's title in every state where it's known. */
+    private val spoken: String get() = shown.spoken(title, steps, heading)
+
     fun expanded() = RemoteViews(context.packageName, R.layout.notification_live_card).apply {
         val headingInk = if (shown.chatTitle != null) R.color.road_ink else R.color.road_ink_muted
+        // The steps count first: with large text it can outgrow the room kept for it, and the heading (the chat's
+        // title) is cut short at its end to leave that room rather than shrunk or pushed out.
+        val stepsWidth = words(R.id.live_steps, steps.orEmpty(), STEPS, R.color.road_ink_muted)
+        val besideSteps = if (steps != null) STEPS_GAP + stepsWidth else 0f
         words(
             R.id.live_organization,
             heading,
             ORGANIZATION,
             headingInk,
             maxWidthDp =
-                roadWidth(context) - HEADING_BESIDE
+                contentWidth(context) - HEADING_MARK - maxOf(HEADING_STEPS, besideSteps)
         )
-        words(R.id.live_steps, steps.orEmpty(), STEPS, R.color.road_ink_muted)
         setViewVisibility(R.id.live_steps, visible(steps != null))
         setViewVisibility(R.id.live_headline, visible(!shown.hasBand))
         setViewVisibility(R.id.live_band, visible(shown.hasBand))
         headline()
         road()
         if (shown.hasBand) band()
-        setContentDescription(R.id.live_card, listOfNotNull(heading, title, steps).joinToString(". "))
+        setContentDescription(R.id.live_card, spoken)
         setOnClickPendingIntent(R.id.live_action, open)
     }
 
@@ -77,11 +84,12 @@ class LiveCard(
         after: String? = null,
         logoSizeSp: Float = 0f,
         maxWidthDp: Float? = null
-    ) {
+    ): Float {
         val picture = LiveArtwork.words(context, text, type, color(color), logo, after, logoSizeSp, maxWidthDp)
         setImageViewIcon(view, picture.icon)
         setInt(view, "setMaxHeight", picture.height)
         setContentDescription(view, listOfNotNull(text, after).joinToString(" "))
+        return picture.width / context.resources.displayMetrics.density
     }
 
     private fun RemoteViews.headline() {
@@ -93,10 +101,33 @@ class LiveCard(
             else -> R.color.road_ink
         }
         val logo = shown.service.takeIf { working && LiveServices.of(it)?.logo != null }
-        words(R.id.live_title, split?.first ?: title, HEADLINE, color, logo, split?.second, HEADLINE_LOGO)
+        // Beside the clock the step's words are cut short at their end, not shrunk to a size nobody reads, which large
+        // text would otherwise do.
+        val clockRoom = if (clock is Clock.Hidden || shown.hasBand) 0f else CLOCK_GAP + clockWidth()
+        words(
+            R.id.live_title,
+            split?.first ?: title,
+            HEADLINE,
+            color,
+            logo,
+            split?.second,
+            HEADLINE_LOGO,
+            maxWidthDp = contentWidth(context) - clockRoom
+        )
         setTextColor(R.id.live_clock, color(color))
         setTextColor(R.id.live_time, color(color))
         setTime(this, R.id.live_clock, R.id.live_time, !shown.hasBand)
+    }
+
+    /** How wide the clock beside the headline draws, in dp: "00:00" at its 20sp, which follows the system's text size. */
+    private fun clockWidth(): Float {
+        val metrics = context.resources.displayMetrics
+        val paint = android.text.TextPaint().apply {
+            textSize =
+                android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, CLOCK_SP, metrics)
+            typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+        }
+        return paint.measureText(CLOCK_SAMPLE) / metrics.density
     }
 
     private fun RemoteViews.road() {
@@ -189,8 +220,15 @@ class LiveCard(
         private val BAND_ACTION = LiveArtwork.Type(R.font.geist_semibold, 13.5f)
         private const val HEADLINE_LOGO = 20f
 
-        /** What shares the heading's row, in dp: the mark, its gap, and room for the steps count. */
-        private const val HEADING_BESIDE = 15f + 7f + 88f
+        /** What shares the heading's row, in dp: the mark and its gap, and room for the steps count at least. */
+        private const val HEADING_MARK = 15f + 7f
+        private const val HEADING_STEPS = 88f
+        private const val STEPS_GAP = 8f
+
+        /** The clock beside the headline (notification_live_card.xml): its gap and text size, and its widest time. */
+        private const val CLOCK_GAP = 12f
+        private const val CLOCK_SP = 20f
+        private const val CLOCK_SAMPLE = "00:00"
         private const val BAND_LOGO = 14f
 
         /** What the shade's sides and the card's own padding leave of the screen: Android 16's indent is wider. */
@@ -198,9 +236,15 @@ class LiveCard(
         private const val INSETS_BAKLAVA = 120 + 28
 
         /** The road's width in dp. It's drawn to fit and scales down if a shade is narrower than this phone's. */
-        fun roadWidth(context: Context): Float {
+        fun roadWidth(context: Context): Float = contentWidth(context).coerceAtLeast(MIN_WIDTH)
+
+        /**
+         * The card's width for words, in dp: the road's, without its least width, which a phone at its largest
+         * display size goes under (the road, a picture, scales down to fit; words are cut short to fit instead).
+         */
+        fun contentWidth(context: Context): Float {
             val insets = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) INSETS_BAKLAVA else INSETS
-            return (context.resources.configuration.screenWidthDp - insets).toFloat().coerceIn(MIN_WIDTH, MAX_WIDTH)
+            return (context.resources.configuration.screenWidthDp - insets).toFloat().coerceAtMost(MAX_WIDTH)
         }
     }
 }

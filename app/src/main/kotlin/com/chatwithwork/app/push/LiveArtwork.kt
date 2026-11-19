@@ -71,7 +71,7 @@ object LiveArtwork {
     data class Type(@param:FontRes val font: Int, val sizeSp: Float, val tracking: Float = 0f)
 
     /** Words as an image, and their height in pixels, which caps how far a view may stretch them. */
-    class Picture(val icon: Icon, val height: Int)
+    class Picture(val icon: Icon, val height: Int, val width: Int = 0)
 
     /** A run of the card's words, with [logo]'s service between [words] and [after]. */
     fun words(
@@ -96,10 +96,13 @@ object LiveArtwork {
         val hasLogo = logoSize > 0 && LiveServices.of(logo) != null
         val fit = paint.fontMetrics
         val height = ceil(max(fit.descent - fit.ascent, logoSize)).toInt()
-        // Words that may run long (a chat's title) are cut short at the end rather than shrunk to fit.
+        // Words that may run long (a chat's title, a step with large text) are cut short at the end rather than
+        // shrunk to fit, leaving room for the logo and the words after them.
+        val extras = (if (hasLogo) gap + logoSize else 0f) + (after?.let { gap + paint.measureText(it) } ?: 0f)
         val words =
             maxWidthDp?.let {
-                TextUtils.ellipsize(words, paint, it * metrics.density, TextUtils.TruncateAt.END).toString()
+                val room = (it * metrics.density - extras).coerceAtLeast(0f)
+                TextUtils.ellipsize(words, paint, room, TextUtils.TruncateAt.END).toString()
             }
                 ?: words
         val first = paint.measureText(words)
@@ -115,7 +118,7 @@ object LiveArtwork {
             x += logoSize + gap
         }
         after?.let { canvas.drawText(it, x, baseline, paint) }
-        return Picture(bitmap.toIcon(), height)
+        return Picture(bitmap.toIcon(), height, bitmap.width)
     }
 
     /** The card is dark in both themes, so its logos are too. */

@@ -450,6 +450,8 @@ object LiveUpdates {
                 .setSubText(organization)
                 .setContentTitle(title)
                 .setContentText(line)
+                // What accessibility services announce as it's posted: the chat's title in every state it's known.
+                .setTicker(shown.spoken(step, text, organization))
                 .setColor(ContextCompat.getColor(context, shown.color))
                 .setOnlyAlertOnce(true)
                 .addExtras(

@@ -308,6 +308,24 @@ data class LivePresentation(
         else -> R.string.live_update_unknown
     }
 
+    /**
+     * What TalkBack is given for the card, in every state: the chat's title
+     * first where the app knows it and the person shows words in notifications
+     * ([chatTitle] is null otherwise), else [fallback] (the organization, as the
+     * card heads itself), then the step's words ([step]) and [text] (steps, or
+     * what it waits for).
+     */
+    fun spoken(step: String, text: String?, fallback: String): String =
+        listOfNotNull(chatTitle ?: fallback.takeIf { it.isNotBlank() }, step, text?.takeIf { it.isNotBlank() })
+            .distinct()
+            .joinToString(". ")
+
+    /**
+     * The collapsed card's one line: the chat's title, then the step's words,
+     * cut at the end where there's no room, so the title is the last to go.
+     */
+    fun collapsedLine(step: String): String = listOfNotNull(chatTitle, step).joinToString(" · ")
+
     /** Only a working step uses the server's content-free activity label. */
     fun title(message: String?, string: (Int) -> String): String {
         val named = LiveServices.of(service)?.name?.takeIf { it.isNotEmpty() }
