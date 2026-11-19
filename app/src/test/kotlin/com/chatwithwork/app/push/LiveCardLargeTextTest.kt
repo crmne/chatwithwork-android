@@ -79,6 +79,18 @@ class LiveCardLargeTextTest {
     }
 
     @Test
+    fun `before the first step, with no count, the title has the whole row`() {
+        val shown = LivePresentation("answering", "answer", chatTitle = title)
+        val view = apply(card(shown, steps = null).expanded())
+        val density = view.resources.displayMetrics.density
+        val heading = view.findViewById<ImageView>(R.id.live_organization).drawable.intrinsicWidth / density
+        assertThat(view.findViewById<View>(R.id.live_steps).visibility).isEqualTo(View.GONE)
+        // Beyond what the 88dp kept for a count would have left it.
+        assertThat(heading).isGreaterThan(LiveCard.contentWidth(view.context) - 22 - 88)
+        assertThat(22 + heading).isAtMost(LiveCard.contentWidth(view.context) + 1)
+    }
+
+    @Test
     fun `at 200 percent the step's words beside the clock shrink only so far, then are cut short at their end`() {
         val shown =
             LivePresentation("answering", "search", steps = 3, trail = "sss", service = "todoist", chatTitle = title)

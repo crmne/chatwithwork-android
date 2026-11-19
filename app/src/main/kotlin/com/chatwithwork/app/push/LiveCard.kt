@@ -70,8 +70,8 @@ class LiveCard(
             heading,
             ORGANIZATION,
             headingInk,
-            maxWidthDp =
-                room - maxOf(HEADING_STEPS, besideSteps)
+            // Without a count (before the first step) the title has the whole row.
+            maxWidthDp = if (steps == null) room else room - maxOf(HEADING_STEPS, besideSteps)
         )
         val crowded = steps != null && withSteps.shown != heading && withSteps.shown.length <= MIN_TITLE_LETTERS
         if (crowded) words(R.id.live_organization, heading, ORGANIZATION, headingInk, maxWidthDp = room)
@@ -138,7 +138,20 @@ class LiveCard(
                 android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, CLOCK_SP, metrics)
             typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
         }
-        return paint.measureText(CLOCK_SAMPLE) / metrics.density
+        return paint.measureText(clockSample()) / metrics.density
+    }
+
+    /**
+     * The widest the clock will read: a fixed time as it's written, a running one as minutes and seconds, or with
+     * hours once it's been going [CLOCK_HOURS_AFTER_MS] (it keeps counting between updates).
+     */
+    private fun clockSample(): String = when (val clock = clock) {
+        is Clock.Fixed -> DateUtils.formatElapsedTime(clock.millis / MILLIS)
+
+        is Clock.Running ->
+            if (System.currentTimeMillis() - clock.since >= CLOCK_HOURS_AFTER_MS) CLOCK_SAMPLE_HOURS else CLOCK_SAMPLE
+
+        Clock.Hidden -> ""
     }
 
     private fun RemoteViews.road() {
@@ -243,6 +256,8 @@ class LiveCard(
         private const val CLOCK_GAP = 12f
         private const val CLOCK_SP = 20f
         private const val CLOCK_SAMPLE = "00:00"
+        private const val CLOCK_SAMPLE_HOURS = "0:00:00"
+        private const val CLOCK_HOURS_AFTER_MS = 50 * 60 * 1000L
 
         /** The least the step's words beside the clock shrink to, as a share of their size. */
         const val HEADLINE_LEAST = 0.6f
