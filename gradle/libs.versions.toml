@@ -25,6 +25,7 @@ ktlint = "1.8.0"
 junit = "4.13.2"
 truth = "1.4.5"
 gson = "2.15.0"
+robolectric = "4.17"
 
 [libraries]
 hotwire-core = { module = "dev.hotwire:core", version.ref = "hotwire" }
@@ -51,6 +52,7 @@ firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 junit = { module = "junit:junit", version.ref = "junit" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

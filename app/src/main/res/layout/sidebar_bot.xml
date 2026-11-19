@@ -120,7 +120,8 @@
             <TextView
                 android:id="@+id/sidebar_bot_count"
                 android:layout_width="wrap_content"
-                android:layout_height="18dp"
+                android:layout_height="wrap_content"
+                android:minHeight="18dp"
                 android:layout_marginStart="6dp"
                 android:background="@drawable/sidebar_decisions_count"
                 android:fontFamily="@font/geist_mono_medium"

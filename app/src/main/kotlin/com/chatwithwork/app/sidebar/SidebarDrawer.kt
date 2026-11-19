@@ -33,6 +33,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.SymbolDrawable
+import com.chatwithwork.app.main.TouchTargets
 import com.google.android.material.color.MaterialColors
 
 /**
@@ -293,17 +294,36 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             val view = holder.itemView
             when (val row = getItem(position)) {
                 is SidebarRow.Head -> bindHead(view, row)
+
                 is SidebarRow.Search -> bindSearch(view as EditText, row)
+
                 is SidebarRow.SeeAll -> bindSeeAll(view as TextView, row)
-                is SidebarRow.Section -> (view as TextView).text = row.title
-                is SidebarRow.Empty -> (view as TextView).text = emptyText(row)
+
+                // The same view shows a section's title, a heading for TalkBack, or a list's empty state, which isn't.
+                is SidebarRow.Section -> (view as TextView).apply {
+                    text = row.title
+                    ViewCompat.setAccessibilityHeading(this, true)
+                }
+
+                is SidebarRow.Empty -> (view as TextView).apply {
+                    text = emptyText(row)
+                    ViewCompat.setAccessibilityHeading(this, false)
+                }
+
                 is SidebarRow.Nav -> bindNav(view, row)
+
                 is SidebarRow.ChatRow -> bindChat(view, row)
+
                 is SidebarRow.ChatSection -> bindChatSection(view, row.section)
+
                 is SidebarRow.BotsCard -> bindBotsCard(view, row)
+
                 is SidebarRow.Views -> bindViews(view, row)
+
                 is SidebarRow.Decisions -> bindDecisions(view, row)
+
                 is SidebarRow.BotRow -> bindBot(view, row)
+
                 is SidebarRow.NoBots -> bindNoBots(view, row)
             }
         }
@@ -355,6 +375,8 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             val botsInk = if (row.view == SidebarRow.View.BOTS) chosen else muted
             val chats = view.findViewById<View>(R.id.sidebar_view_chats)
             val bots = view.findViewById<View>(R.id.sidebar_view_bots)
+            // Each half is 28dp to the eye; touches anywhere on the switch's track reach the nearer half.
+            view.touchDelegate = TouchTargets(view as ViewGroup) { listOf(chats, bots) }
             view.findViewById<ImageView>(R.id.sidebar_view_chats_icon)
                 .setImageDrawable(symbol("forum", chatsInk, sizeDp = 18f))
             view.findViewById<ImageView>(R.id.sidebar_view_bots_icon)
@@ -540,6 +562,8 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                 null
             )
             button.setOnClickListener { row.url?.let(actions::openPath) }
+            // The 32dp button takes touches from the space around it, up to 48dp.
+            view.touchDelegate = TouchTargets(view as ViewGroup) { listOf(button) }
         }
 
         private fun bindHead(view: View, row: SidebarRow.Head) {

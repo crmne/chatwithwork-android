@@ -23,7 +23,8 @@
     <FrameLayout
         android:id="@+id/sidebar_view_chats"
         android:layout_width="0dp"
-        android:layout_height="28dp"
+        android:layout_height="wrap_content"
+        android:minHeight="28dp"
         android:layout_weight="1"
         android:background="@drawable/sidebar_view_segment"
         android:focusable="true">
@@ -61,7 +62,8 @@
         android:id="@+id/sidebar_view_bots"
         android:layout_marginStart="2dp"
         android:layout_width="0dp"
-        android:layout_height="28dp"
+        android:layout_height="wrap_content"
+        android:minHeight="28dp"
         android:layout_weight="1"
         android:background="@drawable/sidebar_view_segment"
         android:clipChildren="false"

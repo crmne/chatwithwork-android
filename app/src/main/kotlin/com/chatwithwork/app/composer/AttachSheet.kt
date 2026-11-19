@@ -53,7 +53,7 @@ object AttachSheet {
         val dialog = BottomSheetDialog(context)
         val inflater = LayoutInflater.from(context)
         val content = inflater.inflate(R.layout.sheet_attach, null)
-        val tiles = content.findViewById<LinearLayout>(R.id.attach_tiles)
+        val tiles = content.findViewById<AttachTiles>(R.id.attach_tiles)
         val ink = MaterialColors.getColor(content, com.google.android.material.R.attr.colorOnSurface)
 
         fun tile(symbol: String, label: Int, action: () -> Unit) {

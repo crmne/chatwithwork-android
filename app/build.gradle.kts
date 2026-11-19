@@ -112,6 +112,8 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+        // Robolectric inflates the native layouts at large font scales (LargeTextTest).
+        unitTests.isIncludeAndroidResources = true
     }
 
     lint {
@@ -163,4 +165,6 @@ dependencies {
     testImplementation(libs.truth)
     // Reads the bundled path configuration the way Hotwire Native does.
     testImplementation(libs.gson)
+    // Inflates and measures the native views at the system's large text sizes.
+    testImplementation(libs.robolectric)
 }

@@ -55,16 +55,19 @@ object ComposerBar {
 
     /**
      * What shows in a bar [widthDp] wide (inside the composer's box), most used first, with a pill [modeDp] wide
-     * beside them, 0 without one. "+", the pill, the model chip at its narrowest with its gap, and Send come first.
+     * beside them, 0 without one. "+", the pill, the model chip at its narrowest with its gap, and Send come first;
+     * without [modelInBar], when large text puts the model on a row of its own, the chip takes no room here.
      */
     fun inBar(
         widthDp: Int,
         state: ComposerState,
         dictationSupported: Boolean = Dictation.supported,
-        modeDp: Int = 0
+        modeDp: Int = 0,
+        modelInBar: Boolean = true
     ): Set<Control> {
         val offered = offered(state, dictationSupported)
-        val taken = BUTTON_DP + modeDp + chipMinDp(modeDp) + CHIP_GAP_DP + BUTTON_DP
+        val chip = if (modelInBar) chipMinDp(modeDp) + CHIP_GAP_DP else 0
+        val taken = BUTTON_DP + modeDp + chip + BUTTON_DP
         val room = ((widthDp - taken) / BUTTON_DP).coerceAtLeast(0)
         return offered.filter { it != Control.WEB_SEARCH || widthDp >= WEB_SEARCH_MIN_DP }.take(room).toSet()
     }

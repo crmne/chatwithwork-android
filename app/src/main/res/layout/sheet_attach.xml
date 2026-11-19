@@ -23,11 +23,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <LinearLayout
+        <!-- One row of tiles, on more rows only when large text would cut their labels. -->
+        <com.chatwithwork.app.composer.AttachTiles
             android:id="@+id/attach_tiles"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal" />
+            android:layout_height="wrap_content" />
 
         <LinearLayout
             android:id="@+id/attach_web_search"
@@ -78,7 +78,8 @@
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/attach_web_search_switch"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/composer_web_search" />
 
         </LinearLayout>
 
@@ -100,6 +101,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:accessibilityHeading="true"
                 android:paddingHorizontal="24dp"
                 android:text="@string/composer_permissions"
                 android:textAppearance="?attr/textAppearanceLabelSmall"

@@ -131,8 +131,21 @@
             android:textColor="?attr/colorOnSurface"
             android:textColorHint="@color/lw_ink_faint" />
 
+        <!--
+          The model on a row of its own, above the bar, only when the system's text is so large that its name
+          would be cut to a few letters beside the bar's buttons (ComposerView.renderBar).
+        -->
+        <LinearLayout
+            android:id="@+id/composer_model_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end|center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone" />
+
         <!-- The bar: "+"'s web search badge reaches 1dp past it, as the web's does, so nothing here clips. -->
         <LinearLayout
+            android:id="@+id/composer_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:clipChildren="false"
@@ -165,17 +178,19 @@
                 android:visibility="gone"
                 tools:visibility="visible" />
 
-            <!-- The mode, unless it's Ask first: a 34dp pill, as tall as the ghost buttons, in its 44dp target. -->
+            <!-- The mode, unless it's Ask first: a 34dp pill, as tall as the ghost buttons, in its 44dp target, taller only with
+                 the system's large text. -->
             <TextView
                 android:id="@+id/composer_mode"
                 android:layout_width="wrap_content"
-                android:layout_height="44dp"
+                android:layout_height="wrap_content"
                 android:background="@drawable/composer_mode"
                 android:drawablePadding="4dp"
                 android:ellipsize="end"
                 android:focusable="true"
                 android:gravity="center_vertical"
                 android:maxLines="1"
+                android:minHeight="44dp"
                 android:paddingStart="9dp"
                 android:paddingEnd="11dp"
                 android:textAppearance="?attr/textAppearanceLabelLarge"
@@ -199,13 +214,14 @@
             <TextView
                 android:id="@+id/composer_model"
                 android:layout_width="wrap_content"
-                android:layout_height="44dp"
+                android:layout_height="wrap_content"
                 android:background="@drawable/composer_chip"
                 android:drawablePadding="4dp"
                 android:ellipsize="end"
                 android:focusable="true"
                 android:gravity="center_vertical"
                 android:maxLines="1"
+                android:minHeight="44dp"
                 android:maxWidth="180dp"
                 android:paddingStart="8dp"
                 android:paddingEnd="7dp"
