@@ -15,9 +15,21 @@ import com.chatwithwork.app.routing.AppUrls
 object NewChatDrafts {
     private val drafts = mutableMapOf<String, String>()
 
-    /** Keeps [text] as New chat's draft in [location]'s organization, or forgets it when there's nothing. */
-    fun keep(location: String, text: String) {
-        if (!AppUrls.isNewChat(location)) return
+    /**
+     * Which session the drafts belong to: signing out moves it on, so a
+     * field still on screen from before (its view goes later) can't keep
+     * its words for whoever signs in next.
+     */
+    var session: Int = 0
+        private set
+
+    /**
+     * Keeps [text] as New chat's draft in [location]'s organization, or
+     * forgets it when there's nothing; not when it was typed in an earlier
+     * [session].
+     */
+    fun keep(location: String, text: String, typedIn: Int = session) {
+        if (!AppUrls.isNewChat(location) || typedIn != session) return
         if (text.isBlank()) drafts.remove(key(location)) else drafts[key(location)] = text
     }
 
@@ -30,7 +42,10 @@ object NewChatDrafts {
     }
 
     /** Signed out: every organization's draft goes. */
-    fun clearAll() = drafts.clear()
+    fun clearAll() {
+        drafts.clear()
+        session++
+    }
 
     /**
      * What the field should say once [draft] comes back to it holding

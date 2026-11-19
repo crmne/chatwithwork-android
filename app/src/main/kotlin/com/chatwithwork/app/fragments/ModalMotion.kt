@@ -14,7 +14,8 @@ import dev.hotwire.navigation.R as HotwireR
  *   back at once beneath it.
  * - A screen pushed inside a modal (sign-up after sign-in) slides in from the
  *   side, with back, as a step does; one replacing the modal's page (New chat
- *   opened again, with shared words) swaps in place.
+ *   opened again, with shared words) swaps in place, and slides away
+ *   when closed as any modal does.
  * - A modal giving way to a place (New chat's first message, New bot's
  *   sentence: the server sends the chat, which replaces the root) shows the
  *   place at once, never the form sliding away from a page it then covers.
@@ -30,7 +31,7 @@ object ModalMotion {
     fun anims(fromModal: Boolean, toModal: Boolean, replacesRoot: Boolean, replacesCurrent: Boolean): Anims? = when {
         !fromModal && toModal -> Anims(R.anim.modal_present, R.anim.modal_under, NONE, R.anim.modal_dismiss)
 
-        fromModal && toModal && replacesCurrent -> Anims(NONE, NONE, NONE, NONE)
+        fromModal && toModal && replacesCurrent -> Anims(NONE, NONE, NONE, R.anim.modal_dismiss)
 
         fromModal && toModal ->
             Anims(

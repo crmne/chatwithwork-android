@@ -95,10 +95,11 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
         if (keepingDraft) return
         keepingDraft = true
         val location = location
+        val session = NewChatDrafts.session
         fragment.viewLifecycleOwner.lifecycle.addObserver(
             LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_DESTROY) {
-                    this.view?.text?.let { NewChatDrafts.keep(location, it) }
+                    this.view?.text?.let { NewChatDrafts.keep(location, it, typedIn = session) }
                     keepingDraft = false
                 }
             }

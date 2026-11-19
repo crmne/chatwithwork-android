@@ -55,6 +55,16 @@ class NewChatDraftsTest {
     }
 
     @Test
+    fun `a field from before signing out can't keep its words for the next person`() {
+        val typedIn = NewChatDrafts.session
+        NewChatDrafts.clearAll()
+
+        NewChatDrafts.keep(newChat, "Still on screen", typedIn = typedIn)
+
+        assertThat(NewChatDrafts.take(newChat)).isNull()
+    }
+
+    @Test
     fun `only New chat keeps a draft, never a chat's own composer`() {
         NewChatDrafts.keep("$base/482139075/chats/42", "A reply")
 

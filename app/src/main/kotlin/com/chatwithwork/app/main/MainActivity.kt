@@ -339,8 +339,8 @@ class MainActivity :
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        // What's typed in New chat, if it's up, outlives the process too.
-        navigator?.currentDestination?.let { destination ->
+        // What's typed in New chat, if it's up, outlives the process too (never once signed out).
+        navigator?.currentDestination?.takeUnless { viewModel.signedOut }?.let { destination ->
             visibleComposer()?.let { NewChatDrafts.keep(destination.location, it.text) }
         }
         NewChatDrafts.save(outState)

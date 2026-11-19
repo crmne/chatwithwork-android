@@ -27,9 +27,9 @@ class ModalMotionTest {
     }
 
     @Test
-    fun `the same modal page again swaps in place, and a step inside a modal slides in from the side`() {
+    fun `the same modal page again swaps in place yet slides away when closed, a step slides in from the side`() {
         assertThat(ModalMotion.anims(fromModal = true, toModal = true, replacesRoot = false, replacesCurrent = true))
-            .isEqualTo(ModalMotion.Anims(0, 0, 0, 0))
+            .isEqualTo(ModalMotion.Anims(0, 0, 0, R.anim.modal_dismiss))
         assertThat(
             ModalMotion.anims(fromModal = true, toModal = true, replacesRoot = false, replacesCurrent = false)!!.enter
         )
