@@ -105,9 +105,9 @@ class TouchTargets(
         return bounds
     }
 
-    /** How far to move a span from [start] to [end] so it lies within 0 to [size], where it can. */
+    /** How far to move a span from [start] to [end] so it lies within 0 to [size], or starts at 0 when it's as big. */
     private fun inside(start: Int, end: Int, size: Int): Int = when {
-        end - start >= size -> 0
+        end - start >= size -> -start
         start < 0 -> -start
         end > size -> size - end
         else -> 0

@@ -212,6 +212,23 @@ class LargeTextTest {
         ).inOrder()
     }
 
+    @Test
+    fun `a control in a parent no bigger than 48dp gets the whole parent to touch`() {
+        val activity = activity(1f)
+        val density = activity.resources.displayMetrics.density
+        val parent = FrameLayout(activity)
+        val button = View(activity).apply { isClickable = true }
+        parent.addView(button, FrameLayout.LayoutParams((36 * density).toInt(), (36 * density).toInt()))
+        activity.setContentView(parent, ViewGroup.LayoutParams((48 * density).toInt(), (48 * density).toInt()))
+        parent.layout(0, 0, (48 * density).toInt(), (48 * density).toInt())
+        // Flush with the parent's end: 12dp to 48dp.
+        button.layout((12 * density).toInt(), 0, (48 * density).toInt(), (36 * density).toInt())
+        val area = com.chatwithwork.app.main.TouchTargets(parent) { listOf(button) }.area(button)
+        assertThat(area.left).isEqualTo(0)
+        assertThat(area.right).isEqualTo((48 * density).toInt())
+        assertThat(area.height()).isEqualTo((48 * density).toInt())
+    }
+
     private fun tap(root: ViewGroup, x: Float, y: Float) {
         listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP).forEach { action ->
             root.dispatchTouchEvent(MotionEvent.obtain(0, 0, action, x, y, 0))
