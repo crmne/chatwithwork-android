@@ -1421,6 +1421,11 @@ What the app does with it:
   at the same width, dictation folds if it must, and the model chip's name gives
   way first, down to its logo and chevron (56dp, only while the pill shows), so
   Send and the pill stay on the bar. Nothing new comes from the server.
+  With the system's text larger than standard, a name that would show fewer
+  than six letters beside the bar's buttons moves the model to a row of its
+  own above the bar instead, where it reads whole; at the standard size the
+  bar is as above. The pill, the chip and a file's chip grow with large text
+  rather than clip, and the bar's 34dp buttons take touches 48dp around them.
 - **Dictation**: Android 10 and later record OGG/Opus (at most five
   minutes), never Android's speech recognizer. While it listens, and while
   it transcribes, its line takes the field's place, as the web composer's

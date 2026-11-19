@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.animation.LinearInterpolator
+import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -34,6 +35,7 @@ import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.SymbolDrawable
+import com.chatwithwork.app.main.TouchTargets
 import com.google.android.material.color.MaterialColors
 import kotlin.math.ceil
 import kotlinx.coroutines.CoroutineScope
@@ -105,6 +107,11 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private val webSearchBadge = WebSearchBadge(context)
     private var onScreen = false
     private val model by lazy { findViewById<TextView>(R.id.composer_model) }
+    private val bar by lazy { findViewById<LinearLayout>(R.id.composer_bar) }
+    private val modelRow by lazy { findViewById<LinearLayout>(R.id.composer_model_row) }
+
+    // The model sits on its own row above the bar when large text would cut its name to a few letters there.
+    private var modelOnOwnRow = false
     private val stop by lazy { findViewById<ImageButton>(R.id.composer_stop) }
     private val send by lazy { findViewById<ImageButton>(R.id.composer_send) }
     private val filesScroll by lazy { findViewById<View>(R.id.composer_files_scroll) }
@@ -139,7 +146,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     /** What "+" holds now: attaching, whatever didn't fit in the bar, and the modes. */
     val sheet: ComposerBar.Sheet get() = ComposerBar.inSheet(state, bar())
 
-    private fun bar(): Set<ComposerBar.Control> = ComposerBar.inBar(barWidthDp, state, modeDp = modeWidthDp)
+    private fun bar(modelInBar: Boolean = !modelOnOwnRow): Set<ComposerBar.Control> =
+        ComposerBar.inBar(barWidthDp, state, modeDp = modeWidthDp, modelInBar = modelInBar)
 
     val text: String get() = input.text?.toString().orEmpty()
 
@@ -193,6 +201,12 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             }
         )
         model.setOnClickListener { actions?.chooseModel() }
+        // The model and the mode are drawn as text, and open a sheet: TalkBack says they're buttons.
+        listOf(model, mode).forEach { ViewCompat.setAccessibilityDelegate(it, ButtonRole) }
+        // The bar's buttons are 34dp in 44dp; a thumb gets 48dp around each, the box's padding taking the rest.
+        box.touchDelegate = TouchTargets(box as ViewGroup) {
+            listOf(plus, dictateButton, webSearchButton, mode, dictationCancel, model, send, stop, dictationStop)
+        }
         stop.setOnClickListener { onStop() }
         stop.foreground = stopRing
         send.setOnClickListener { onSend() }
@@ -371,6 +385,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
      */
     private fun renderBar() {
         renderMode()
+        placeModel()
         val bar = bar()
         val sheet = sheet
         val ink = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface)
@@ -424,13 +439,51 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
         val buttons = listOf(plus, dictateButton, webSearchButton).count { it.isVisible }
         val density = resources.displayMetrics.density
-        val modelMaxDp = ComposerBar.modelMaxWidthDp(barWidthDp, buttons, modeWidthDp)
-        model.maxWidth = (modelMaxDp * density).toInt()
-        val modelChromeDp = ((model.compoundPaddingStart + model.compoundPaddingEnd) / density).toInt()
-        // Without a logo to say which model it is, its name stays, cut short if it must.
-        val hasLogo = model.compoundDrawablesRelative[0] != null
-        model.text =
-            state.selectedModel?.name?.takeIf { !hasLogo || ComposerBar.modelNameFits(modelMaxDp, modelChromeDp) }
+        if (modelOnOwnRow) {
+            // A row of its own: the whole bar's width for the name.
+            model.maxWidth = (barWidthDp * density).toInt()
+            model.text = state.selectedModel?.name
+        } else {
+            val modelMaxDp = ComposerBar.modelMaxWidthDp(barWidthDp, buttons, modeWidthDp)
+            model.maxWidth = (modelMaxDp * density).toInt()
+            val modelChromeDp = ((model.compoundPaddingStart + model.compoundPaddingEnd) / density).toInt()
+            // Without a logo to say which model it is, its name stays, cut short if it must.
+            val hasLogo = model.compoundDrawablesRelative[0] != null
+            model.text =
+                state.selectedModel?.name?.takeIf { !hasLogo || ComposerBar.modelNameFits(modelMaxDp, modelChromeDp) }
+        }
+        modelRow.isVisible = modelOnOwnRow && model.isVisible
+    }
+
+    /**
+     * With the system's text larger than standard, the model's name beside the
+     * bar's buttons can shrink to a letter and an ellipsis. Then the model
+     * takes a row of its own above the bar, where its name reads whole; at the
+     * standard size, and whenever its name keeps [MODEL_NAME_MIN_CHARS] letters
+     * in the bar, it stays in the bar as it always has.
+     */
+    private fun placeModel() {
+        val name = state.selectedModel?.name
+        val ownRow =
+            if (name.isNullOrEmpty() || barWidthDp <= 0 || resources.configuration.fontScale <= 1f) {
+                false
+            } else {
+                val inBar = bar(modelInBar = true)
+                val buttons = 1 + inBar.size
+                val density = resources.displayMetrics.density
+                val roomPx = ComposerBar.modelMaxWidthDp(barWidthDp, buttons, modeWidthDp) * density -
+                    model.compoundPaddingStart - model.compoundPaddingEnd
+                val paint = model.paint
+                val wanted = minOf(
+                    paint.measureText(name),
+                    paint.measureText(name.take(MODEL_NAME_MIN_CHARS) + ELLIPSIS)
+                )
+                roomPx < wanted
+            }
+        if (ownRow == modelOnOwnRow && (model.parent == if (ownRow) modelRow else bar)) return
+        modelOnOwnRow = ownRow
+        (model.parent as? ViewGroup)?.removeView(model)
+        if (ownRow) modelRow.addView(model) else bar.addView(model, bar.indexOfChild(send))
     }
 
     /**
@@ -665,6 +718,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         )
         dictationSpinner.isVisible = transcribing
         model.isVisible = state.selectedModel != null && !state.locked && !state.working && !on
+        modelRow.isVisible = modelOnOwnRow && model.isVisible
         renderButtons()
         if (!on) input.requestFocus()
     }
@@ -791,7 +845,10 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
                 isVisible = file.uploading
                 progress = file.progress.toInt()
             }
-            chip.findViewById<ImageButton>(R.id.composer_file_remove).apply {
+            val remove = chip.findViewById<ImageButton>(R.id.composer_file_remove)
+            // Its 28dp square sits in a 36dp target; the chip gives it 48dp to touch.
+            chip.touchDelegate = TouchTargets(chip as ViewGroup) { listOf(remove) }
+            remove.apply {
                 setImageDrawable(
                     SymbolDrawable(
                         context,
@@ -807,7 +864,19 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         }
     }
 
+    /** A control drawn as text that acts as a button, announced as one. */
+    private object ButtonRole : AccessibilityDelegateCompat() {
+        override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfoCompat) {
+            super.onInitializeAccessibilityNodeInfo(host, info)
+            info.className = Button::class.java.name
+        }
+    }
+
     private companion object {
+        // Fewer letters of the model's name than this, with large text, and it moves to a row of its own.
+        const val MODEL_NAME_MIN_CHARS = 6
+        const val ELLIPSIS = "\u2026"
+
         const val TRANSCRIBING_ALPHA = 0.5f
         const val KEYBOARD_ATTEMPTS = 8
         const val KEYBOARD_RETRY_MS = 400L

@@ -33,6 +33,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.SymbolDrawable
+import com.chatwithwork.app.main.TouchTargets
 import com.google.android.material.color.MaterialColors
 
 /**
@@ -355,6 +356,8 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
             val botsInk = if (row.view == SidebarRow.View.BOTS) chosen else muted
             val chats = view.findViewById<View>(R.id.sidebar_view_chats)
             val bots = view.findViewById<View>(R.id.sidebar_view_bots)
+            // Each half is 28dp to the eye; touches anywhere on the switch's track reach the nearer half.
+            view.touchDelegate = TouchTargets(view as ViewGroup) { listOf(chats, bots) }
             view.findViewById<ImageView>(R.id.sidebar_view_chats_icon)
                 .setImageDrawable(symbol("forum", chatsInk, sizeDp = 18f))
             view.findViewById<ImageView>(R.id.sidebar_view_bots_icon)
@@ -540,6 +543,8 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
                 null
             )
             button.setOnClickListener { row.url?.let(actions::openPath) }
+            // The 32dp button takes touches from the space around it, up to 48dp.
+            view.touchDelegate = TouchTargets(view as ViewGroup) { listOf(button) }
         }
 
         private fun bindHead(view: View, row: SidebarRow.Head) {
