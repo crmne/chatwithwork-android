@@ -19,6 +19,7 @@ import androidx.navigation.navOptions
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.R
+import com.chatwithwork.app.bridge.ComposerHost
 import com.chatwithwork.app.composer.ComposerView
 import com.chatwithwork.app.routing.AppUrls
 import dev.hotwire.core.config.Hotwire
@@ -292,7 +293,10 @@ open class WebFragment : HotwireWebFragment() {
 
     // The chrome client belongs to the screen showing the web view, so a page
     // that retitles itself (a chat's automatic title) retitles this screen.
-    override fun createWebChromeClient(): HotwireWebChromeClient = AppWebChromeClient(navigator.session) { title ->
+    override fun createWebChromeClient(): HotwireWebChromeClient = AppWebChromeClient(
+        navigator.session,
+        host = { activity as? ComposerHost }
+    ) { title ->
         if (isAdded && view != null) fragmentViewModel.setTitle(title)
     }
 

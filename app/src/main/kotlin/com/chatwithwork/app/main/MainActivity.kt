@@ -1688,6 +1688,8 @@ class MainActivity :
         } catch (_: ActivityNotFoundException) {
             cameraResult = null
             showSnackbar(getString(R.string.external_link_failed))
+            // Whoever asked still hears back (a page's file input waits for an answer).
+            onResult(null)
         }
     }
 
@@ -1702,7 +1704,10 @@ class MainActivity :
             .addOnSuccessListener { sender ->
                 scanResult = onResult
                 scanner.launch(IntentSenderRequest.Builder(sender).build())
-            }.addOnFailureListener { showSnackbar(getString(R.string.composer_scan_unavailable), long = true) }
+            }.addOnFailureListener {
+                showSnackbar(getString(R.string.composer_scan_unavailable), long = true)
+                onResult(null)
+            }
     }
 
     override fun chooseSaveLocation(name: String, type: String, onResult: (Uri?) -> Unit) {
