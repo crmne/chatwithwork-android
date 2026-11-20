@@ -6,6 +6,35 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.14
+
+Version 1.2.14 (10214) keeps the web composer and brings back what the
+native one drove ([#77](https://github.com/crmne/chatwithwork-android/pull/77)):
+Live Updates for an answer left running, files shared into a new chat (kept
+for the next New chat when the composer can't take them), the widget's and a
+shortcut's Dictate, Back closing the composer's menus first, Decisions at the
+end of the bar with how many wait, New chat and New bot opened in place from
+a page, the composer following the keyboard, and Camera, Photos, Files and
+Scan for the composer's files. What's new is `changelogs/10214.txt`. Tag
+`v1.2.14`.
+
+The signed, Firebase-enabled bundle was built with `script/bundle-release
+v1.2.14` from f629d04 on 2026-11-20 (sha256
+`90541a482702b2d081fb18a98364f1527963dd9b205424eab3ad20ecbd8efbd4`), signed
+with the same upload key as 1.2.13; bundletool reads versionCode 10214 and
+versionName 1.2.14, and its `android_v4.json` is byte-identical to the one
+production serves (crmne/chatwithwork 3d7fba29). The same tree passed
+`testDebugUnitTest lintDebug spotlessCheck assembleDebug assembleStaging
+assembleRelease` (367 tests) before #77 merged. Upload it to Internal testing
+only.
+
+Validation, on the Mac mini's `oppo` emulator (Android 17 QPR, WebView 149)
+against production with the App Review demo login (synthetic content): a
+universal APK made from the bundle signed in, the sidebar's New chat opened
+as the place with the web composer and the keyboard up, and the bar's
+Decisions (7 waiting) went to Decisions. Nothing was sent. The bundle wasn't
+tried on a device.
+
 ## Release 1.2.13
 
 Version 1.2.13 (10213) is a trial of the web composer: New chat and New bot
