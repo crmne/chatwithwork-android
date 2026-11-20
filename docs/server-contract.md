@@ -1475,7 +1475,7 @@ gutters. The page leaves room to scroll its last answer above the box.
 
 | Event | Direction | Data |
 |---|---|---|
-| `connect`, then `state` | web to app | `{overlay?, visible?, placeholder, text?, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb, iconName?, icon?, invertIcon?}], permissionModes?, webSearch: {on, disabled, note} \| null, narrowing?: {title, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
+| `connect`, then `state` | web to app | `{overlay?, visible?, placeholder, text?, fill?, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb, iconName?, icon?, invertIcon?}], permissionModes?, webSearch: {on, disabled, note} \| null, narrowing?: {title, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
 | reply to `connect` | app to web | `{action: "send", text}`, `{action: "stop"}`, `{action: "model", index}`, `{action: "permissionMode", value}`, `{action: "webSearch", on}`, `{action: "narrow"}`, `{action: "attach", files: [{name, type, data}]}` (data base64), `{action: "remove", id}`, `{action: "text", text}`, `{action: "layout", height, width}` |
 
 A chat draws its composer again as an answer starts and ends; each new one
@@ -1485,7 +1485,14 @@ without a composer never connects, and the native one stays hidden there.
 What the app does with it:
 
 - **The field** starts with `text` on `connect` when it's empty (words
-  shared in, or a draft the web restored), and keeps what's typed until Send, which sends `send {text}`
+  shared in, or a draft the web restored). A suggestion pressed under the
+  composer (New chat's, Decisions' All clear; the server's
+  `prompt_suggestions_controller.js`) connects again with its words as
+  `text` and `fill: true`: the field takes them in place of whatever it
+  holds, never joined to it or to New chat's kept draft, with the caret at
+  their end, the focus and the keyboard, as the web's composer takes them
+  (from 2026-11-20; builds before it take them as any connect's, into an
+  empty field, with no keyboard). The field keeps what's typed until Send, which sends `send {text}`
   (with a confirming haptic) and clears it. Send needs words or a file and
   waits while a file uploads (the web would refuse). While `working`, an
   empty field shows Stop alone (`stop`, disabled while `stopping`); once

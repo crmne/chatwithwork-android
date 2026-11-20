@@ -69,7 +69,7 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
      * composer that takes them.
      */
     private fun onConnected(state: ComposerState) {
-        if (AppUrls.isNewChat(location)) keepDraft()
+        if (AppUrls.isNewChat(location)) keepDraft(filled = state.fill)
         if (state.acceptsFiles) PendingShares.takeFiles()?.let(::attachFiles)
         if (PendingShares.takeDictation() && state.dictation != null) dictate()
         if (PendingShares.takeFocus(bridgeDelegate.destination.location)) view?.focusField()
@@ -86,12 +86,14 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
 
     /**
      * Puts New chat's draft back in the field, joined with any words a share
-     * put there, and keeps what's in the field as the draft when the screen
+     * put there (not when a pressed suggestion [filled] it), and keeps what's in the field as the draft when the screen
      * goes (closed, a rotation, or the chat sent, which leaves it empty).
      */
-    private fun keepDraft() {
+    private fun keepDraft(filled: Boolean) {
         val view = view ?: return
-        NewChatDrafts.joined(NewChatDrafts.take(location), view.text)?.let(view::replaceText)
+        val draft = NewChatDrafts.take(location)
+        // A pressed suggestion's words replace the field, the draft with it.
+        if (!filled) NewChatDrafts.joined(draft, view.text)?.let(view::replaceText)
         if (keepingDraft) return
         keepingDraft = true
         val location = location

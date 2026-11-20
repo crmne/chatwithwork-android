@@ -16,6 +16,11 @@ data class ComposerState(
     val placeholder: String = "",
     /** The words the web composer already holds (shared in, or a restored draft), sent on `connect`. */
     val text: String? = null,
+    /**
+     * A suggestion pressed on the page connects again with its words in [text]
+     * and this true: they take the field's place, and the field the keyboard.
+     */
+    val fill: Boolean = false,
     val locked: Boolean = false,
     val lockReason: String? = null,
     val working: Boolean = false,
@@ -111,6 +116,18 @@ data class ComposerState(
 
     /** Stop can't be pressed again while the answer is already stopping. */
     val canStop: Boolean get() = working && !stopping
+
+    /**
+     * What the field should say as this state connects while it holds
+     * [current]: a pressed suggestion's words in place of whatever's there
+     * ([fill]), else the web composer's words in an empty field (a shared
+     * link, words given back); null leaves the field as it is.
+     */
+    fun fieldTextOnConnect(current: String): String? = when {
+        fill -> text.orEmpty()
+        current.isBlank() && !text.isNullOrBlank() -> text
+        else -> null
+    }
 }
 
 /** One file for `attach`: its name, media type, and bytes as base64. */

@@ -145,4 +145,24 @@ class ComposerStateTest {
         assertThat(ComposerFiles.typeFor("Scan.PDF")).isEqualTo("application/pdf")
         assertThat(ComposerFiles.typeFor("noext")).isEqualTo("application/octet-stream")
     }
+
+    @Test
+    fun `a pressed suggestion's words take the field's place, never joining what's there`() {
+        val filled = json.decodeFromString<ComposerState>("""{"text":"Plan my week","fill":true}""")
+        assertThat(filled.fill).isTrue()
+        assertThat(filled.fieldTextOnConnect("")).isEqualTo("Plan my week")
+        assertThat(filled.fieldTextOnConnect("an old draft")).isEqualTo("Plan my week")
+        assertThat(json.decodeFromString<ComposerState>("""{"text":"","fill":true}""").fieldTextOnConnect("x"))
+            .isEqualTo("")
+    }
+
+    @Test
+    fun `without fill, a connect's words only go into an empty field`() {
+        val connect = json.decodeFromString<ComposerState>("""{"text":"https://example.com"}""")
+        assertThat(connect.fill).isFalse()
+        assertThat(connect.fieldTextOnConnect("")).isEqualTo("https://example.com")
+        assertThat(connect.fieldTextOnConnect("typed")).isNull()
+        assertThat(json.decodeFromString<ComposerState>(sample).fill).isFalse()
+        assertThat(json.decodeFromString<ComposerState>(sample).fieldTextOnConnect("")).isNull()
+    }
 }

@@ -246,11 +246,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         this.state = state
         if (sending && (state.working || state.waiting || state.locked || !state.visible)) endSending()
         updateLook()
-        // A new composer may already hold words (shared in, or a draft): the field starts with them.
-        if (connecting && text.isBlank() && !state.text.isNullOrBlank()) {
-            input.setText(state.text)
-            input.setSelection(input.length())
-        }
+        // A new composer may already hold words (shared in, or a draft): the field starts with them. A
+        // suggestion pressed on the page puts its words in place of what's there, with the keyboard.
+        if (connecting) state.fieldTextOnConnect(text)?.let(::replaceText)
         isVisible = state.visible
         if (!state.visible) input.clearFocus()
         // A lock (out of credits, a failed answer) ends dictation, unsent, as the web's does; a recording that
@@ -286,6 +284,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         renderFiles()
         renderButtons()
         post { reportLayout() }
+        if (connecting && state.fill) focusField()
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
