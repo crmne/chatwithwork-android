@@ -85,6 +85,12 @@ class PathConfigurationTest {
                 assertWithMessage(path).that(it["skeleton"]).isEqualTo("new_chat")
             }
         }
+        // Anchored to the path: a sign-in whose return_to names New chat stays the sign-in modal.
+        listOf("/users/sign_in?return_to=/482139075/chats/new", "/users/sign_in?return_to=%2F482139075%2Fbots%2Fnew")
+            .forEach { path ->
+                assertWithMessage(path).that(properties(path)["context"]).isEqualTo("modal")
+                assertWithMessage(path).that(properties(path)["uri"]).isEqualTo("hotwire://fragment/web/modal")
+            }
         // Every other form stays a modal.
         listOf("/482139075/projects/new", "/482139075/bots/7/edit", "/482139075/chats/42/edit").forEach { path ->
             assertWithMessage(path).that(properties(path)["context"]).isEqualTo("modal")

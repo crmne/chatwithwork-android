@@ -216,7 +216,8 @@ so the server draws no in-place turn for them.
 
 The rules, in order (later matches override earlier ones; patterns are
 regular expressions searched for in the path and query, unanchored unless
-written with `^`):
+written with `^`; from v4 every rule after the sign-in pages' is anchored
+as `^(/[0-9]+)?/...`, so a `return_to` in a query can't match it):
 
 | Pattern | Context | Presentation | Pull to refresh | Notes |
 |---|---|---|---|---|
