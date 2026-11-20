@@ -1,0 +1,1 @@
+A trial build: New chat and New bot now open as pages that turn into your chat in place when you send, and the composer is the one from the web. While we try it, a few things are off: a running answer's Live Update when you leave it, files shared into a new chat (shared text still arrives), a kept New chat draft, the composer's glow and its haptics.

@@ -6,6 +6,42 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.13
+
+Version 1.2.13 (10213) is a trial of the web composer: New chat and New bot
+open as pages that turn into their chat in place, and
+`AppConfig.NATIVE_COMPOSER = false` leaves the native composer off, so the
+page's own composer shows
+([#76](https://github.com/crmne/chatwithwork-android/pull/76)). Off with the
+native composer until it's switched back: Live Updates started from an answer
+left working, files shared into a new chat (shared words still arrive), New
+chat's kept draft, the glow and its haptics. What's new is
+`changelogs/10213.txt`. Tag `v1.2.13`.
+
+It reads `android_v4.json`. The bundled copy is byte-identical to the
+server's on crmne/chatwithwork's `new-chat-pages` branch at 85159f52; main
+and production didn't have v4 yet when it was built (production answered
+404). Until the server change is deployed the app falls back to its bundled
+copy, and the in-place turn, which the server draws, wasn't tried against
+production.
+
+The signed, Firebase-enabled bundle was built with `script/bundle-release
+v1.2.13` from b563a1f on 2026-11-20 (sha256
+`2f0e5fb614c309714cf371690d12ad36a350ccca3e207db51b53ea1e4c30ee17`), signed
+with the same upload key as 1.2.12; bundletool reads versionCode 10213 and
+versionName 1.2.13. `testDebugUnitTest lintDebug spotlessCheck` passed (349
+tests). Upload it to Internal testing only.
+
+Validation, on the Mac mini's `oppo` emulator (Android 17 QPR, WebView 149)
+with the debug build of the same commit against a local server on the
+`new-chat-pages` branch: sidebar > New chat opened as the place with the web
+composer above the keyboard; a suggestion filled the field; typed words and
+Send turned the page into the chat in place (the question, Thinking, the
+title, then the answer); the bar's New chat from Decisions was pushed with
+Back to Decisions; sidebar > New bot opened as a page with the web composer,
+and its suggestion turned it into the chat. The microphone, the file pickers
+and the release bundle itself on a device weren't tried.
+
 ## Release 1.2.12
 
 Version 1.2.12 (10212) makes the composer's glow its edge's own colours,
