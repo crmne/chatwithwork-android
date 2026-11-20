@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   The native composer: what the web one has ("+", the field, the microphone
-  and the web search globe while there's room, the mode pill unless the mode
+  and web search's compass while there's room, the mode pill unless the mode
   is Ask first, the model, Stop and Send), docked above the keyboard and the gesture bar, on the
   rainbow edge that is the brand's. It drives the web composer, hidden in
   the page, through the composer bridge component (ComposerComponent).

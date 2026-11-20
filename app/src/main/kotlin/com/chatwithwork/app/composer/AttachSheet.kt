@@ -86,8 +86,8 @@ object AttachSheet {
             content.findViewById<ImageView>(
                 R.id.attach_web_search_icon
             ).setImageDrawable(
-                // The web menu's globe (icon_tag "globe"), as the bar's.
-                ContextCompat.getDrawable(context, R.drawable.ic_globe)?.mutate()?.apply { setTint(ink) }
+                // The web menu's compass (icon_tag "compass"), as the bar's.
+                ContextCompat.getDrawable(context, R.drawable.ic_compass)?.mutate()?.apply { setTint(ink) }
             )
             content.findViewById<TextView>(R.id.attach_web_search_note).apply {
                 text = search.note

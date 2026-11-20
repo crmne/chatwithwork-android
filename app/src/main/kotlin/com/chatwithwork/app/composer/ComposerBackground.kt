@@ -2,6 +2,7 @@ package com.chatwithwork.app.composer
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.ColorFilter
 import android.graphics.LinearGradient
 import android.graphics.Matrix
@@ -18,6 +19,8 @@ import com.chatwithwork.app.R
  * The box: --surface inside a 2dp edge of Web tokens.css --rainbow (all five
  * stops), --rainbow-loop while an answer runs, or --attention. The flow only
  * moves a shader's matrix, so a frame of it redraws a stroke and nothing else.
+ * The glow paints with this same shader ([edgeShader]), so the two share one
+ * gradient and one phase, as the web's composer-flow moves both layers.
  */
 class ComposerBackground(context: Context) : Drawable() {
     private val density = context.resources.displayMetrics.density
@@ -41,6 +44,19 @@ class ComposerBackground(context: Context) : Drawable() {
             if (restyle) styleEdge()
             invalidateSelf()
         }
+
+    /** The edge's opacity now, which fades to [look]'s with the glow's. */
+    var edgeOpacity = look.edgeOpacity
+        set(value) {
+            field = value
+            invalidateSelf()
+        }
+
+    /** The rainbow the edge is painted with, in the box's own coordinates; null while it's amber. */
+    val edgeShader: Shader? get() = edge.shader
+
+    /** The amber the edge is painted with while a change waits. */
+    val attentionColor: Int get() = attention
 
     /** How far through its loop the flowing edge is, 0 to 1. */
     var flow = 0f
@@ -81,18 +97,17 @@ class ComposerBackground(context: Context) : Drawable() {
                 loop = gradient
             }
 
-            ComposerLook.Edge.ATTENTION -> {
-                edge.color = attention
-                null
-            }
+            ComposerLook.Edge.ATTENTION -> null
         }
+        // Painted with a shader, the paint's colour gives only its alpha.
+        edge.color = if (look.edge == ComposerLook.Edge.ATTENTION) attention else Color.BLACK
     }
 
     override fun draw(canvas: Canvas) {
         box.set(bounds)
         canvas.drawRoundRect(box, RADIUS_DP * density, RADIUS_DP * density, surface)
         box.inset(density, density)
-        edge.alpha = (look.edgeOpacity * 255).toInt()
+        edge.alpha = (edgeOpacity * 255).toInt()
         canvas.drawRoundRect(box, (RADIUS_DP - 1) * density, (RADIUS_DP - 1) * density, edge)
     }
 

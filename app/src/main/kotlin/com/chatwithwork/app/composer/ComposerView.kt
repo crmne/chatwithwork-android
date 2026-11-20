@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.animation.LinearInterpolator
+import android.view.animation.PathInterpolator
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -21,6 +22,7 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.ToggleButton
+import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
 import androidx.core.view.AccessibilityDelegateCompat
 import androidx.core.view.ViewCompat
@@ -42,7 +44,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 
 /**
- * The native composer: "+", the microphone and the web search globe while
+ * The native composer: "+", the microphone and web search's compass while
  * there's room (ComposerBar), the mode pill unless the mode is Ask first, the
  * field, the model, Stop while an answer runs, and Send. It only
  * draws a [ComposerState] and says what the person did ([Actions]); the
@@ -69,10 +71,10 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         /** The bar's microphone. */
         fun dictate()
 
-        /** The bar's globe: web search [on] or off. */
+        /** The bar's compass: web search [on] or off. */
         fun webSearch(on: Boolean)
 
-        /** The globe while web search can't be switched now: why, from the page ([note]). */
+        /** The compass while web search can't be switched now: why, from the page ([note]). */
         fun explainWebSearch(note: String?)
 
         fun chooseModel()
@@ -99,8 +101,19 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     private val box by lazy { findViewById<View>(R.id.composer_box) }
     private val boxBounds = Rect()
     private var look = ComposerLook()
+
+    /** What the rainbow shows now, for tests. */
+    @VisibleForTesting
+    internal val shownLook: ComposerLook get() = look
     private var glowOpacity = look.glowOpacity
-    private var glowFade: ValueAnimator? = null
+    private var lookFade: ValueAnimator? = null
+
+    // A question on its way, from Send until the server's composer says it's answering (or locked, or hidden).
+    private var sending = false
+    private val sendingOver = Runnable {
+        sending = false
+        updateLook()
+    }
     private var flow: ValueAnimator? = null
     private val stopRing = StopRing(context)
     private var ringSpin: ValueAnimator? = null
@@ -228,6 +241,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     fun show(state: ComposerState, connecting: Boolean = false) {
         this.state = state
+        if (sending && (state.working || state.waiting || state.locked || !state.visible)) endSending()
         updateLook()
         // A new composer may already hold words (shared in, or a draft): the field starts with them.
         if (connecting && text.isBlank() && !state.text.isNullOrBlank()) {
@@ -287,36 +301,53 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     }
 
     private fun updateLook() {
-        val wanted = ComposerLook.of(state, input.hasFocus())
+        val wanted = ComposerLook.of(state, input.hasFocus(), sending)
         if (wanted == look) return
         val edgeChanged = wanted.edge != look.edge
         look = wanted
         composerBackground.look = wanted
-        fadeGlow(wanted.glowOpacity)
+        fade(wanted)
         if (edgeChanged) {
-            // The amber or rainbow bitmap, and the shadow's place, are drawn here.
+            // The glow takes the edge's new shader or amber here.
             invalidate()
             updateFlow()
         }
     }
 
-    /** With the web's --duration-base. Animations off, the animator lands at once. */
-    private fun fadeGlow(opacity: Float) {
-        glowFade?.cancel()
-        if (opacity == glowOpacity) return
-        glowFade = ValueAnimator.ofFloat(glowOpacity, opacity).apply {
+    /**
+     * The edge and the glow ease to [to]'s opacities together, with the web's
+     * `transition: opacity var(--duration-base) ease`. Animations off, the
+     * animator lands at once.
+     */
+    private fun fade(to: ComposerLook) {
+        lookFade?.cancel()
+        val glowFrom = glowOpacity
+        val edgeFrom = composerBackground.edgeOpacity
+        if (glowFrom == to.glowOpacity && edgeFrom == to.edgeOpacity) return
+        lookFade = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = LOOK_FADE_MS
+            interpolator = PathInterpolator(0.25f, 0.1f, 0.25f, 1f)
             addUpdateListener {
-                glowOpacity = it.animatedValue as Float
+                val t = it.animatedValue as Float
+                glowOpacity = glowFrom + (to.glowOpacity - glowFrom) * t
+                composerBackground.edgeOpacity = edgeFrom + (to.edgeOpacity - edgeFrom) * t
                 invalidate()
             }
             start()
         }
     }
 
+    private fun endSending() {
+        sending = false
+        removeCallbacks(sendingOver)
+    }
+
     /**
-     * The edge flows on screen while an answer runs, one loop in 5 seconds, and
-     * stands still with animations off, the system's reduced motion.
+     * The edge and the glow flow on screen while an answer runs, one loop in 5
+     * seconds, and stand still on the loop's first frame with animations off,
+     * the system's reduced motion. One animator moves the one shader both
+     * paint with, so a frame redraws the stroke and the glow's texture and
+     * nothing is measured or laid out.
      */
     private fun updateFlow() {
         val flowing = look.edge == ComposerLook.Edge.FLOWING && onScreen && ValueAnimator.areAnimatorsEnabled()
@@ -324,12 +355,16 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             flow?.cancel()
             flow = null
             composerBackground.flow = 0f
+            invalidate()
         } else if (flow == null) {
             flow = ValueAnimator.ofFloat(0f, 1f).apply {
                 duration = FLOW_MS
                 interpolator = LinearInterpolator()
                 repeatCount = ValueAnimator.INFINITE
-                addUpdateListener { composerBackground.flow = it.animatedFraction }
+                addUpdateListener {
+                    composerBackground.flow = it.animatedFraction
+                    invalidate()
+                }
                 start()
             }
         }
@@ -369,17 +404,27 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     // Behind every child, and past this view's bounds: see onAttachedToWindow.
     override fun dispatchDraw(canvas: Canvas) {
-        if (box.isVisible) {
+        if (box.isVisible && box.width > 0) {
             box.getHitRect(boxBounds)
-            composerGlow.draw(canvas, boxBounds, look, glowOpacity)
+            // The box draws its background after this, and only then would size it: the glow needs its shader now.
+            composerBackground.setBounds(0, 0, box.width, box.height)
+            val amber = look.edge == ComposerLook.Edge.ATTENTION
+            val shader = composerBackground.edgeShader
+            if (amber || shader != null) {
+                composerGlow.draw(
+                    canvas,
+                    boxBounds,
+                    if (amber) null else shader,
+                    composerBackground.attentionColor,
+                    glowOpacity
+                )
+            }
         }
         super.dispatchDraw(canvas)
     }
 
-    private fun muted() = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant)
-
     /**
-     * "+", the microphone, the globe and the mode pill: what fits in the bar
+     * "+", the microphone, the compass and the mode pill: what fits in the bar
      * shows there, and the rest waits in "+", which is always there, disabled
      * while locked or holding nothing.
      */
@@ -399,7 +444,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         plus.setImageDrawable(
             SymbolDrawable(context, "add", sizeDp = ICON_DP, color = if (plus.isEnabled) ink else dimmed)
         )
-        // While web search is on and its switch waits in "+", "+" carries the web's small globe.
+        // While web search is on and its switch waits in "+", "+" carries the web's small compass.
         val searching = state.webSearch?.let { it.on && !it.disabled } == true
         webSearchBadge.rtl = layoutDirection == LAYOUT_DIRECTION_RTL
         plus.foreground = webSearchBadge.takeIf { searching && ComposerBar.Control.WEB_SEARCH in sheet.folded }
@@ -411,19 +456,13 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         val search = state.webSearch
         webSearchButton.isVisible = !on && search != null && ComposerBar.Control.WEB_SEARCH in bar
         if (search != null) {
-            // The web's globe (.chat-prompt__web-search-toggle), in the ghost buttons' square: Phosphor's outline,
-            // muted on nothing when off; filled, in ink, on a quiet ink wash when on (composer_ghost_button selected);
-            // and the outline at ink 20% on nothing when it can't be switched, as the web's disabled button.
+            // The web's compass (.chat-prompt__web-search-toggle), in the ghost buttons' square: one glyph in the
+            // neighbouring buttons' ink, on nothing when off and on a quiet ink wash when on (composer_ghost_button
+            // selected); at ink 20% when it can't be switched or the composer is locked, as the web's disabled button.
             webSearchButton.isSelected = search.on && !search.disabled
             webSearchButton.setImageDrawable(
                 ContextCompat.getDrawable(context, ComposerBar.webSearchIcon(search))?.mutate()?.apply {
-                    setTint(
-                        when {
-                            search.disabled -> ContextCompat.getColor(context, R.color.composer_stop_disabled_icon)
-                            search.on -> ink
-                            else -> muted()
-                        }
-                    )
+                    setTint(if (search.disabled) dimmed else buttonInk)
                 }
             )
             ViewCompat.setStateDescription(
@@ -636,6 +675,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
     }
 
     override fun onDetachedFromWindow() {
+        endSending()
         onScreen = false
         updateFlow()
         updateRing()
@@ -797,6 +837,14 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             }
         )
         actions?.send(text)
+        // As the web form flows while it's aria-busy: pressing Send looks answered at once. Steering an answer that
+        // runs, or a send while a change waits, has its look already, and nothing new to wait for.
+        if (!state.working && !state.waiting) {
+            sending = true
+            removeCallbacks(sendingOver)
+            postDelayed(sendingOver, SENDING_LIMIT_MS)
+            updateLook()
+        }
         clear()
     }
 
@@ -895,9 +943,12 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         // The pill keeps its words readable while dimmed, so it says which mode a locked chat holds.
         const val MODE_LOCKED_ALPHA = 0.4f
 
-        // --duration-base, and rainbow-flow's 5s.
+        // --duration-base, and composer-flow's 5s.
         const val LOOK_FADE_MS = 220L
         const val FLOW_MS = 5000L
+
+        // How long Send's flow waits for the server's composer to say the answer runs.
+        const val SENDING_LIMIT_MS = 10_000L
 
         // .chat-prompt__ring's spin, and its slower one while the answer stops.
         const val RING_MS = 2400L

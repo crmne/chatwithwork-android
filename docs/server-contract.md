@@ -1368,14 +1368,23 @@ rainbow stops, with 70% opacity at rest and full opacity while editing.
 **The rainbow (2026-11-01).** The composer is the app's clearest mark, and it
 follows the web's `.composer` from `state` alone: `locked`, `working` and
 `waiting` need nothing new. A 2dp edge at 70% (full with focus, 60% locked),
-flowing to the right, one loop in 5 seconds, while `working`; a blurred glow
-around the box at 14% (30% with focus, 5% locked); and both amber while
-`waiting`, which outranks `working` and the glow's lock. With animations off
-in the system's settings the edge stands still on the loop's first frame. The
-glow and the box's `--shadow-float` are blurred once for a width and cached
-(`ComposerGlow`), so typing and the keyboard only draw a texture. Colours are
-`--rainbow`, `--rainbow-loop`, `--attention` and `--shadow-float`: change them
-on the web first.
+flowing to the right, one loop in 5 seconds, while `working` and from Send
+until the state says it is (the web form's `aria-busy`; at most 10 seconds,
+and never once it's `locked` or hidden); a blurred glow around the box at 16%
+(30% with focus, 5% locked); and both amber while `waiting`, the glow at 14%,
+which outranks `working` and the glow's lock. Both opacities ease over 220ms.
+
+**The glow is the edge blurred (2026-11-19).** As the web's composer since
+that day, the glow is the box itself (no inset, its 20dp corners) blurred by
+22dp, painted with the edge's own shader: under any point of the edge the glow
+is that point's colour, and while the edge flows the glow flows with it, in
+the same phase, since one animator moves the one shader both use. The blur is
+an alpha-only mask made once for a width and cached (`ComposerGlow`), so
+typing, the keyboard and each frame of the flow only draw a texture. With
+animations off in the system's settings both stand still on the loop's first
+frame, and the flow stops while the composer is off screen or the app is in
+the background. Colours are `--rainbow`, `--rainbow-loop`, `--attention` and
+`--shadow-float`: change them on the web first.
 
 
 **Overlay layout (2026-10-29).** The server advertises `overlay: true` in
@@ -1401,7 +1410,7 @@ applies to connector search, model consent and any other web modal.
 
 Builds that register the `composer` component draw the composer
 themselves, floating over the page above the keyboard and the gesture bar:
-"+", the microphone and the web search globe, the mode pill unless the mode
+"+", the microphone and web search's compass, the mode pill unless the mode
 is `ask`, the field, the model, Stop while an answer runs, and Send, on the composer's rainbow
 edge. The web composer (`#new_message`, with `bridge--composer`) stays in
 the page out of sight (native.css, once `data-bridge-components` lists
@@ -1441,16 +1450,17 @@ What the app does with it:
   one checked) and answers `model {index}`.
 - **The bar's own controls (2026-10-28)**, one tap away while there's
   room, as on the web's folding bar: the microphone when `dictation` is
-  set, and the web search globe when `webSearch` is set (sending
+  set, and web search's compass when `webSearch` is set (sending
   `webSearch {on}`; ink at 20% while `disabled`, when a tap shows its `note`).
-  The globe is the web's `.chat-prompt__web-search-toggle`: Phosphor's
-  bold globe in the ghost buttons' 34dp square, muted on nothing when off,
-  and while `on` its filled globe in ink on a quiet wash (ink at 8%, no edge
-  or shadow), so the shape says it's on as well as the tone. They fold into "+" as
+  The compass is the web's `.chat-prompt__web-search-toggle` (2026-11-20, the
+  globe before): Phosphor's bold compass in the ghost buttons' 34dp square, in
+  the neighbouring buttons' ink, the same glyph on and off; while `on` it sits on
+  a quiet wash (ink at 8%, no edge or shadow), the pressed square, and TalkBack
+  says on or off. They fold into "+" as
   the bar narrows: web search on a screen under 408dp, where the web's bar
   (the box, the screen less 24px) drops below 24rem, and dictation when the model chip would lose its room for a short
   name, or its logo and chevron while the mode pill shows. While web search is on and its switch is in "+", "+" carries the
-  web's small globe (`.chat-prompt__attach-badge`), never while `disabled`.
+  web's small compass (`.chat-prompt__attach-badge`), never while `disabled`.
   Nothing new comes from the server.
 - **"+"** opens a sheet: Camera, Photos (Android's photo picker, no
   permission needed), Files, Scan (ML Kit's document scanner, one PDF), and
