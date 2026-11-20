@@ -71,6 +71,9 @@ open class WebFragment : HotwireWebFragment() {
     /** This screen is that chat, taking over the shared web view that already shows its question. */
     private var handedOver = false
 
+    /** New chat or New bot opened from a page, which it turns into in place (OpensInPlace). */
+    private var openedInPlace = false
+
     /**
      * The page's own composer as it last said (`web-composer`), where the app
      * draws none: whether an answer runs, for a Live Update as the person
@@ -131,6 +134,13 @@ open class WebFragment : HotwireWebFragment() {
                     if (handed.focused) focusField()
                 }
             }
+        }
+
+        // New chat or New bot opened from a page turns the page into it in
+        // place: the web view goes on showing the page until New chat draws.
+        if (!skeletonShown && OpensInPlace.take(location)) {
+            skeletonShown = true
+            openedInPlace = true
         }
 
         val kind = PageSkeleton.kind(location, pathProperties.skeleton)
@@ -264,6 +274,17 @@ open class WebFragment : HotwireWebFragment() {
             }
         }
         val toModal = newPathProperties.context == PresentationContext.MODAL
+        if (OpensInPlace.applies(newLocation, toModal, newPathProperties.presentation, action)) {
+            OpensInPlace.expect(newLocation)
+            return navOptions {
+                anim {
+                    enter = NO_ANIMATION
+                    exit = NO_ANIMATION
+                    popEnter = HotwireR.anim.enter_slide_in_left
+                    popExit = HotwireR.anim.exit_slide_out_right
+                }
+            }
+        }
         val anims =
             ModalMotion.anims(
                 fromModal = isModal,
@@ -310,9 +331,10 @@ open class WebFragment : HotwireWebFragment() {
 
     @SuppressLint("InflateParams") // Hotwire Native adds it to its own container.
     override fun createProgressView(location: String): View =
-        // The skeleton already covers the page, or the chat a question turned into
-        // already shows; Hotwire Native still wants a view to show.
-        if (skeleton?.covering == true || handedOver) {
+        // The skeleton already covers the page, the chat a question turned into
+        // already shows, or the page goes on showing until New chat opened in
+        // place draws; Hotwire Native still wants a view to show.
+        if (skeleton?.covering == true || handedOver || openedInPlace) {
             View(requireContext())
         } else {
             layoutInflater.inflate(R.layout.view_progress, null)

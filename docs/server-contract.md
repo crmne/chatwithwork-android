@@ -312,7 +312,13 @@ clear turn into. So:
   builds before v3 did, and replace the root otherwise. Opened from a page
   (the bar's New chat over a chat or any place, Bots' New bot, a project's
   New chat, a bot's, Decisions'), the configuration's `default` pushes it
-  with Back to that page. The bar's New chat while New chat is already on
+  with Back to that page. That push turns the page into New chat in place
+  (2026-11-20, `OpensInPlace`): no animation in and no skeleton, the web
+  view going on showing the page until New chat draws, with Back sliding as
+  from any page. A replace with a remembered way back would do the same
+  for the eye, but Back would then be the app's own bookkeeping rather than
+  the stack's, so the push stays and only its motion goes. The path
+  configuration doesn't change. The bar's New chat while New chat is already on
   top focuses its field instead of stacking another.
 - **The turn into the chat replaces that screen** (`NewChatHandOff`). The
   app's composer sends through the page's hidden form, the page draws the
