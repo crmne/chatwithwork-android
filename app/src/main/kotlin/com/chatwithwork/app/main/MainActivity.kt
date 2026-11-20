@@ -696,6 +696,8 @@ class MainActivity :
 
     /** [location] becomes the root, in one navigation with whatever screens are over it (Places.replacingRoot). */
     private fun replaceRoot(navigator: Navigator, location: String) {
+        // The root it remembers goes with its screen; the new one's visit says what's there.
+        rootLocation = null
         NewChatHandOff.withPresentation(location, Places.replacingRoot(navigator.isAtStartDestination())) {
             navigator.route(location, VisitOptions(action = VisitAction.REPLACE))
         }
