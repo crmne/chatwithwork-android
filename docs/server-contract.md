@@ -1406,6 +1406,31 @@ element, subscribed to the person's own chat-list streams. It sends:
 
 No replies.
 
+### Pages loaded ahead
+
+**From 2026-11-20.** The server's `helpers/preload.js` has the main web view
+load Decisions, New chat and New bot ahead once its page is idle, only on a
+network that costs nothing. The app tells it what the network costs
+(`NetworkCost`):
+
+```js
+window.chatWithWorkNetwork = { metered, constrained }
+```
+
+`metered` is a default network without `NET_CAPABILITY_NOT_METERED` (mobile
+data, a hotspot), `constrained` is Data Saver on for this app
+(`ConnectivityManager.restrictBackgroundStatus` is
+`RESTRICT_BACKGROUND_STATUS_ENABLED`). With no network the app sets nothing,
+and the page falls back to `navigator.connection`. The value is set at
+document start in every page of the app's web views (a document-start
+script on this server's origin, replaced on each change; where the WebView
+lacks that, when the cold boot's page finishes), and in the pages already
+open whenever it changes; changing to a network that costs nothing also
+calls `window.chatWithWork?.preload?.()`. As the drawer starts to open, the
+app calls `preload()` in the main web view too, so a person who opens it
+soon after a page appeared still finds the places ready. Nothing of it goes
+to the server.
+
 ### Decisions in the bar
 
 **From 2026-11-20.** Builds that register `decisions` show Decisions as the

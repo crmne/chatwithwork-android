@@ -468,6 +468,7 @@ open class WebFragment : HotwireWebFragment() {
     override fun onColdBootPageCompleted(location: String) {
         super.onColdBootPageCompleted(location)
         PageScripts.install(navigator.session.webView)
+        NetworkCost.apply(navigator.session.webView)
         tellPageItsTop()
     }
 

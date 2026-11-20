@@ -6,6 +6,7 @@ import android.webkit.CookieManager
 import androidx.core.content.ContextCompat
 import com.chatwithwork.app.bridge.BridgeComponents
 import com.chatwithwork.app.fragments.FirstPaint
+import com.chatwithwork.app.fragments.NetworkCost
 import com.chatwithwork.app.fragments.WebFragment
 import com.chatwithwork.app.fragments.WebModalFragment
 import com.chatwithwork.app.push.PushNotifications
@@ -48,6 +49,8 @@ class ChatWithWorkApplication : Application() {
         )
         Hotwire.registerBridgeComponents(*BridgeComponents.all)
         Hotwire.registerRouteDecisionHandlers(*RouteDecisionHandlers.all)
+        // What the network costs, for the pages that load places ahead (NetworkCost).
+        NetworkCost.start(this)
 
         // The bundled rules work offline and on first launch; the server's
         // copy replaces them once it loads (and is cached for next time).
@@ -69,6 +72,7 @@ class ChatWithWorkApplication : Application() {
      */
     private fun makeWebView(context: Context): HotwireWebView = HotwireWebView(context).apply {
         FirstPaint.install(this)
+        NetworkCost.install(this)
         setBackgroundColor(ContextCompat.getColor(context, R.color.lw_canvas))
         isVerticalScrollBarEnabled = false
         isHorizontalScrollBarEnabled = false

@@ -561,8 +561,13 @@ class MainActivity :
 
                 override fun onDrawerStateChanged(newState: Int) {
                     if (newState == DrawerLayout.STATE_IDLE) return
-                    // Starting to open: fetch now, so it's fresh as it lands.
-                    if (!drawer.isDrawerOpen(GravityCompat.START)) refreshSidebar()
+                    // Starting to open: fetch now, so it's fresh as it lands, and
+                    // the page under it loads its places ahead, where the network
+                    // allows (the server's helpers/preload.js).
+                    if (!drawer.isDrawerOpen(GravityCompat.START)) {
+                        refreshSidebar()
+                        navigator?.session?.webView?.evaluateJavascript(PRELOAD_SCRIPT, null)
+                    }
                     // Moving either way, the keyboard goes: opening, the
                     // composer's, and closing, the search's, or typing would
                     // carry on in a field nobody can see.
@@ -1849,6 +1854,9 @@ class MainActivity :
     // endregion
 
     private companion object {
+        /** The page loads Decisions, New chat and New bot ahead, if the network allows and it hasn't lately. */
+        const val PRELOAD_SCRIPT = "window.chatWithWork && window.chatWithWork.preload && window.chatWithWork.preload()"
+
         const val NAVIGATOR = "main"
 
         /** How often, and for how long at most, a modal's notice waits for the screen under it. */
