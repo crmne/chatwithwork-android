@@ -304,9 +304,11 @@ clear turn into. So:
 
 - **Where it's opened decides how it's presented.** What the sidebar
   opens (its New chat and New bot, the server's page or the native one) is
-  a place: the drawer slides shut first and the page is drawn without it
-  (`AfterDrawerShut`), then the navigator clears to its root and the page
-  replaces it, as every sidebar row does. So do the ways in from outside:
+  a place: the navigator clears to its root and the page replaces it, as
+  every sidebar row does, while the drawer slides shut (2026-11-20; before,
+  the visit waited for the drawer to shut and be drawn, `AfterDrawerShut`,
+  which now holds only the modals, Rename and Move to project, and New
+  chat's keyboard, which the drawer's slide would put away). So do the ways in from outside:
   the icon's shortcuts, the widget, the tile, the assistant and a share,
   which start the navigator on New chat (or New bot) on a cold start, as
   builds before v3 did, and replace the root otherwise. Opened from a page

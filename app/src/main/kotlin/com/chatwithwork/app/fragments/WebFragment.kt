@@ -398,9 +398,14 @@ open class WebFragment : HotwireWebFragment() {
      * focused.
      */
     private fun offerKeyboard() {
-        val webView = navigator.session.webView
-        webView.requestFocus()
-        showKeyboardSoon(webView)
+        // Opened from the sidebar, the page loads as the drawer slides; the
+        // keyboard waits for it to have shut, which would otherwise put it away.
+        host?.whenDrawerShut {
+            if (!isAdded || view == null) return@whenDrawerShut
+            val webView = navigator.session.webView
+            webView.requestFocus()
+            showKeyboardSoon(webView)
+        }
     }
 
     /**
@@ -520,6 +525,9 @@ interface WebScreenHost {
 
     /** The bar's New chat: pushed over this page, with Back to it. */
     fun startNewChatOverPage()
+
+    /** Runs [action] now, or once the sidebar has slid shut and the screen has been drawn without it. */
+    fun whenDrawerShut(action: () -> Unit)
 
     /** The bar's Decisions (DecisionsComponent): back to it if it's the place under this screen, else it as the place. */
     fun openDecisionsFromBar(url: String?)

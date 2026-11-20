@@ -662,11 +662,14 @@ class MainActivity :
     override fun openPath(path: String) {
         val location = AppUrls.absolute(path)
         val properties = Hotwire.config.pathConfiguration.properties(location)
-        // New chat and New bot open as the place once the drawer has slid shut
-        // and the page shows without it, and a modal (Rename, Move to project)
-        // rises then (AfterDrawerShut); any other place loads while it slides.
+        // A modal (Rename, Move to project) rises once the drawer has slid shut
+        // and the page shows without it (AfterDrawerShut); every place loads
+        // while it slides, New chat and New bot too, whose keyboard alone
+        // waits for the drawer (WebFragment.offerKeyboard).
         if (AppUrls.opensAsPlace(location)) {
-            afterDrawerShut.run { openNewPage(location) }
+            afterDrawerShut.cancel()
+            closeSidebarNow()
+            openNewPage(location)
             return
         }
         if (properties.context == PresentationContext.MODAL) {
@@ -691,7 +694,13 @@ class MainActivity :
      * chat does: a place, the root, once the drawer has slid shut. One
      * already up takes the focus, rather than loading again.
      */
-    override fun startNewChat() = afterDrawerShut.run { openNewPage(newChatUrl()) }
+    override fun startNewChat() {
+        afterDrawerShut.cancel()
+        closeSidebarNow()
+        openNewPage(newChatUrl())
+    }
+
+    override fun whenDrawerShut(action: () -> Unit) = afterDrawerShut.run(action)
 
     /**
      * The bar's New chat: pushed over the page on screen (the path
