@@ -50,7 +50,7 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
                 // What came back locked or unavailable goes now if the composer already said it takes
                 // files, once per state: the page's next state lets it go again.
                 val latest = state
-                if (stateUnused && latest != null && latest.acceptsFiles &&
+                if (handBack.mayHandAgain() && latest != null && latest.acceptsFiles &&
                     AppUrls.isNewChat(bridgeDelegate.destination.location)
                 ) {
                     handFiles(latest)
@@ -60,7 +60,7 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
             "connect", "state" -> {
                 val state = message.data<WebComposerState>() ?: return
                 this.state = state
-                stateUnused = true
+                handBack.stateArrived()
                 // Files a page went quiet on for too long wait again for the next New chat.
                 PendingShares.returnUnanswered(olderThan = System.currentTimeMillis() - PendingShares.UNANSWERED_MS)
                 (fragment as? WebFragment)?.keepWebComposer(
@@ -103,20 +103,14 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
         }
         val (id, files) = PendingShares.sendFiles(owner = System.identityHashCode(fragment), connectedAt = connectedAt)
             ?: return
-        stateUnused = false
+        handBack.handed()
         if (!replyTo("connect", attachReply(files, id).toString())) PendingShares.unsend(id)
     }
 
     /** The composer's latest word, for an answer about files that comes after it. */
     private var state: WebComposerState? = null
 
-    /**
-     * Whether the latest state hasn't had files handed under it yet: an
-     * answer hands back what came back locked or unavailable at once only
-     * once per state, so a page that says `unavailable` straight away (no
-     * attachments controller) isn't sent the same files in a loop.
-     */
-    private var stateUnused = false
+    private val handBack = OncePerState()
 
     /** The visit this composer connected in: files kept for a New chat after a later visit wait for one after it. */
     private var connectedAt = PendingShares.visit
@@ -237,3 +231,24 @@ data class AttachedMessage(
     val taken: Boolean = false,
     val files: List<AttachedFile> = emptyList()
 )
+
+/**
+ * Whether the composer's latest state hasn't had files handed under it yet:
+ * an answer hands back what came back locked or unavailable at once only
+ * once per state, so a page that says `unavailable` straight away (no
+ * attachments controller) isn't sent the same files in a loop. A state that
+ * comes while files are in flight still lets the answer hand them back.
+ */
+internal class OncePerState {
+    private var unused = false
+
+    fun stateArrived() {
+        unused = true
+    }
+
+    fun handed() {
+        unused = false
+    }
+
+    fun mayHandAgain(): Boolean = unused
+}
