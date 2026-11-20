@@ -11,10 +11,10 @@ import androidx.core.graphics.withTranslation
 import com.chatwithwork.app.R
 
 /**
- * The small globe "+" carries while web search is on and its switch is in
+ * The small compass "+" carries while web search is on and its switch is in
  * "+" (the web's `.chat-prompt__attach-badge`, components/composer.css): a
  * 14dp disc of the surface ringed by a 1dp strong line, with Phosphor's
- * filled globe at 10dp in ink, its corner 1dp past the 44dp target's top
+ * bold compass at 10dp in ink, its corner 1dp past the 44dp target's top
  * and end (measured in a phone browser). It's "+"'s foreground, drawn past the button's bounds, so the
  * bar and the box don't clip their children (view_composer.xml).
  */
@@ -27,7 +27,7 @@ class WebSearchBadge(context: Context) : Drawable() {
         color =
             ContextCompat.getColor(context, R.color.lw_line_strong)
     }
-    private val globe = ContextCompat.getDrawable(context, R.drawable.ic_globe_fill)!!.mutate().apply {
+    private val compass = ContextCompat.getDrawable(context, R.drawable.ic_compass)!!.mutate().apply {
         setTint(ContextCompat.getColor(context, R.color.lw_ink))
     }
 
@@ -43,8 +43,8 @@ class WebSearchBadge(context: Context) : Drawable() {
         canvas.drawCircle(x, y, radius + density, line)
         canvas.drawCircle(x, y, radius, disc)
         val side = (GLOBE_DP * density).toInt()
-        globe.setBounds(0, 0, side, side)
-        canvas.withTranslation(x - side / 2f, y - side / 2f) { globe.draw(this) }
+        compass.setBounds(0, 0, side, side)
+        canvas.withTranslation(x - side / 2f, y - side / 2f) { compass.draw(this) }
     }
 
     override fun setAlpha(alpha: Int) = Unit

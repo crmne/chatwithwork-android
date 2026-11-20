@@ -14,7 +14,7 @@ class ComposerBarTest {
         )
 
     @Test
-    fun `a 408dp phone has room for the microphone and the globe, and nothing folds`() {
+    fun `a 408dp phone has room for the microphone and the compass, and nothing folds`() {
         // The screen less 16dp gutters and the box's 8dp padding, where the web's own bar reaches 24rem.
         val bar = ComposerBar.inBar(360, everything, dictationSupported = true)
         assertThat(bar).containsExactly(Control.DICTATE, Control.WEB_SEARCH)
@@ -41,7 +41,7 @@ class ComposerBarTest {
     fun `only what the page offers shows`() {
         val plain = ComposerState()
         assertThat(ComposerBar.inBar(400, plain, dictationSupported = true)).isEmpty()
-        // Before the yes to models, or on Android 9, there's no microphone; the globe keeps its own width.
+        // Before the yes to models, or on Android 9, there's no microphone; the compass keeps its own width.
         val searchOnly = everything.copy(dictation = null)
         assertThat(ComposerBar.inBar(360, searchOnly, dictationSupported = true)).containsExactly(Control.WEB_SEARCH)
         assertThat(ComposerBar.inBar(359, searchOnly, dictationSupported = true)).isEmpty()
@@ -84,7 +84,7 @@ class ComposerBarTest {
 
     @Test
     fun `the model chip never takes Send's room`() {
-        // A 360dp phone's 320dp bar with "+", the microphone and the globe: 320 - 3 * 44 - 8 - 44.
+        // A 360dp phone's 320dp bar with "+", the microphone and the compass: 320 - 3 * 44 - 8 - 44.
         assertThat(ComposerBar.modelMaxWidthDp(320, buttons = 3)).isEqualTo(136)
         // A wide bar lets it reach its widest, and it never drops below its narrowest.
         assertThat(ComposerBar.modelMaxWidthDp(600, buttons = 1)).isEqualTo(180)
@@ -120,7 +120,7 @@ class ComposerBarTest {
     }
 
     @Test
-    fun `the globe keeps its fold width beside the pill`() {
+    fun `the compass keeps its fold width beside the pill`() {
         val state = everything.copy(permissionModes = modes("edits"))
         assertThat(ComposerBar.inBar(360, state, dictationSupported = true, modeDp = 72))
             .containsExactly(Control.DICTATE, Control.WEB_SEARCH)
@@ -139,7 +139,7 @@ class ComposerBarTest {
 
     @Test
     fun `beside the pill the chip gives way to its logo and chevron, and only then`() {
-        // A 412dp phone's 364dp bar: "+", the microphone, the globe, Everything, its gap and Send leave 70dp.
+        // A 412dp phone's 364dp bar: "+", the microphone, the compass, Everything, its gap and Send leave 70dp.
         assertThat(ComposerBar.modelMaxWidthDp(364, buttons = 3, modeDp = 110)).isEqualTo(70)
         // A 320dp phone's 272dp bar with "+" alone beside Everything.
         assertThat(ComposerBar.modelMaxWidthDp(272, buttons = 1, modeDp = 110)).isEqualTo(66)
@@ -162,10 +162,10 @@ class ComposerBarTest {
     }
 
     @Test
-    fun `the globe fills while web search is on, and stays an outline when off or when it can't be switched`() {
-        assertThat(ComposerBar.webSearchIcon(ComposerState.WebSearch(on = true))).isEqualTo(R.drawable.ic_globe_fill)
-        assertThat(ComposerBar.webSearchIcon(ComposerState.WebSearch(on = false))).isEqualTo(R.drawable.ic_globe)
+    fun `web search is the same compass on, off, and when it can't be switched`() {
+        assertThat(ComposerBar.webSearchIcon(ComposerState.WebSearch(on = true))).isEqualTo(R.drawable.ic_compass)
+        assertThat(ComposerBar.webSearchIcon(ComposerState.WebSearch(on = false))).isEqualTo(R.drawable.ic_compass)
         assertThat(ComposerBar.webSearchIcon(ComposerState.WebSearch(on = true, disabled = true)))
-            .isEqualTo(R.drawable.ic_globe)
+            .isEqualTo(R.drawable.ic_compass)
     }
 }

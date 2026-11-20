@@ -44,7 +44,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 
 /**
- * The native composer: "+", the microphone and the web search globe while
+ * The native composer: "+", the microphone and web search's compass while
  * there's room (ComposerBar), the mode pill unless the mode is Ask first, the
  * field, the model, Stop while an answer runs, and Send. It only
  * draws a [ComposerState] and says what the person did ([Actions]); the
@@ -71,10 +71,10 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         /** The bar's microphone. */
         fun dictate()
 
-        /** The bar's globe: web search [on] or off. */
+        /** The bar's compass: web search [on] or off. */
         fun webSearch(on: Boolean)
 
-        /** The globe while web search can't be switched now: why, from the page ([note]). */
+        /** The compass while web search can't be switched now: why, from the page ([note]). */
         fun explainWebSearch(note: String?)
 
         fun chooseModel()
@@ -423,10 +423,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         super.dispatchDraw(canvas)
     }
 
-    private fun muted() = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant)
-
     /**
-     * "+", the microphone, the globe and the mode pill: what fits in the bar
+     * "+", the microphone, the compass and the mode pill: what fits in the bar
      * shows there, and the rest waits in "+", which is always there, disabled
      * while locked or holding nothing.
      */
@@ -446,7 +444,7 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         plus.setImageDrawable(
             SymbolDrawable(context, "add", sizeDp = ICON_DP, color = if (plus.isEnabled) ink else dimmed)
         )
-        // While web search is on and its switch waits in "+", "+" carries the web's small globe.
+        // While web search is on and its switch waits in "+", "+" carries the web's small compass.
         val searching = state.webSearch?.let { it.on && !it.disabled } == true
         webSearchBadge.rtl = layoutDirection == LAYOUT_DIRECTION_RTL
         plus.foreground = webSearchBadge.takeIf { searching && ComposerBar.Control.WEB_SEARCH in sheet.folded }
@@ -458,19 +456,13 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         val search = state.webSearch
         webSearchButton.isVisible = !on && search != null && ComposerBar.Control.WEB_SEARCH in bar
         if (search != null) {
-            // The web's globe (.chat-prompt__web-search-toggle), in the ghost buttons' square: Phosphor's outline,
-            // muted on nothing when off; filled, in ink, on a quiet ink wash when on (composer_ghost_button selected);
-            // and the outline at ink 20% on nothing when it can't be switched, as the web's disabled button.
+            // The web's compass (.chat-prompt__web-search-toggle), in the ghost buttons' square: one glyph in the
+            // neighbouring buttons' ink, on nothing when off and on a quiet ink wash when on (composer_ghost_button
+            // selected); at ink 20% when it can't be switched or the composer is locked, as the web's disabled button.
             webSearchButton.isSelected = search.on && !search.disabled
             webSearchButton.setImageDrawable(
                 ContextCompat.getDrawable(context, ComposerBar.webSearchIcon(search))?.mutate()?.apply {
-                    setTint(
-                        when {
-                            search.disabled -> ContextCompat.getColor(context, R.color.composer_stop_disabled_icon)
-                            search.on -> ink
-                            else -> muted()
-                        }
-                    )
+                    setTint(if (search.disabled) dimmed else buttonInk)
                 }
             )
             ViewCompat.setStateDescription(

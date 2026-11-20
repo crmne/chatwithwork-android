@@ -1410,7 +1410,7 @@ applies to connector search, model consent and any other web modal.
 
 Builds that register the `composer` component draw the composer
 themselves, floating over the page above the keyboard and the gesture bar:
-"+", the microphone and the web search globe, the mode pill unless the mode
+"+", the microphone and web search's compass, the mode pill unless the mode
 is `ask`, the field, the model, Stop while an answer runs, and Send, on the composer's rainbow
 edge. The web composer (`#new_message`, with `bridge--composer`) stays in
 the page out of sight (native.css, once `data-bridge-components` lists
@@ -1450,16 +1450,17 @@ What the app does with it:
   one checked) and answers `model {index}`.
 - **The bar's own controls (2026-10-28)**, one tap away while there's
   room, as on the web's folding bar: the microphone when `dictation` is
-  set, and the web search globe when `webSearch` is set (sending
+  set, and web search's compass when `webSearch` is set (sending
   `webSearch {on}`; ink at 20% while `disabled`, when a tap shows its `note`).
-  The globe is the web's `.chat-prompt__web-search-toggle`: Phosphor's
-  bold globe in the ghost buttons' 34dp square, muted on nothing when off,
-  and while `on` its filled globe in ink on a quiet wash (ink at 8%, no edge
-  or shadow), so the shape says it's on as well as the tone. They fold into "+" as
+  The compass is the web's `.chat-prompt__web-search-toggle` (2026-11-20, the
+  globe before): Phosphor's bold compass in the ghost buttons' 34dp square, in
+  the neighbouring buttons' ink, the same glyph on and off; while `on` it sits on
+  a quiet wash (ink at 8%, no edge or shadow), the pressed square, and TalkBack
+  says on or off. They fold into "+" as
   the bar narrows: web search on a screen under 408dp, where the web's bar
   (the box, the screen less 24px) drops below 24rem, and dictation when the model chip would lose its room for a short
   name, or its logo and chevron while the mode pill shows. While web search is on and its switch is in "+", "+" carries the
-  web's small globe (`.chat-prompt__attach-badge`), never while `disabled`.
+  web's small compass (`.chat-prompt__attach-badge`), never while `disabled`.
   Nothing new comes from the server.
 - **"+"** opens a sheet: Camera, Photos (Android's photo picker, no
   permission needed), Files, Scan (ML Kit's document scanner, one PDF), and

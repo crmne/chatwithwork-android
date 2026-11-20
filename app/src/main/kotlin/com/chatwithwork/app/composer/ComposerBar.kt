@@ -7,7 +7,7 @@ import com.chatwithwork.app.R
  * What shows in the composer's bar, one tap away, and what folds into "+", as
  * the web composer's folding bar does (components/composer.css,
  * `.chat-prompt__bar--folding`). Left to right: "+", always; the microphone and
- * the web search globe while there's room, web search folding first, on the
+ * web search's compass while there's room, web search folding first, on the
  * same phones as the web's, and dictation after it as the bar narrows; and the
  * mode pill, whenever the selected mode isn't Ask first. The model chip's name
  * gives way next, so Send and the pill never leave the bar. Attaching (Camera,
@@ -35,13 +35,12 @@ object ComposerBar {
     private const val WEB_SEARCH_MIN_DP = 360
 
     /**
-     * The globe's icon: Phosphor's filled globe while web search is on, its outline when off or when it can't be
-     * switched now, as the web's toggle. The shape, not only the tone, says it's on, for people who can't tell the inks
-     * apart.
+     * Web search's icon: Phosphor's bold compass, the same glyph on and off, as the web's toggle, which says it's on
+     * with the ghost button's pressed square (and TalkBack with its state).
      */
     @DrawableRes
-    fun webSearchIcon(search: ComposerState.WebSearch): Int =
-        if (search.on && !search.disabled) R.drawable.ic_globe_fill else R.drawable.ic_globe
+    @Suppress("UNUSED_PARAMETER")
+    fun webSearchIcon(search: ComposerState.WebSearch): Int = R.drawable.ic_compass
 
     /** The mode the pill names: the selected one, unless it's Ask first, which shows nothing. */
     fun selectedMode(state: ComposerState): ComposerState.PermissionOption? =
