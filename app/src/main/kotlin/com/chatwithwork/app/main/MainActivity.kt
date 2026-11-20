@@ -155,6 +155,7 @@ class MainActivity :
 
     private lateinit var drawer: DrawerLayout
     private lateinit var afterDrawerShut: AfterDrawerShut
+    private lateinit var keyboardAfterDrawerShut: AfterDrawerShut
 
     private lateinit var root: View
     private lateinit var welcome: View
@@ -323,6 +324,7 @@ class MainActivity :
 
         drawer = findViewById(R.id.drawer)
         afterDrawerShut = AfterDrawerShut(drawer)
+        keyboardAfterDrawerShut = AfterDrawerShut(drawer)
         root = findViewById(R.id.root)
         welcome = findViewById(R.id.welcome)
 
@@ -705,7 +707,8 @@ class MainActivity :
         openNewPage(newChatUrl())
     }
 
-    override fun whenDrawerShut(action: () -> Unit) = afterDrawerShut.run(action)
+    // Its own wait, so New chat's keyboard never replaces a modal waiting for the drawer.
+    override fun whenDrawerShut(action: () -> Unit) = keyboardAfterDrawerShut.run(action)
 
     /**
      * The bar's New chat: pushed over the page on screen (the path

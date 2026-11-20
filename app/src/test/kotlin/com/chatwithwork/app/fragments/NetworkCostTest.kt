@@ -36,4 +36,9 @@ class NetworkCostTest {
             .isEqualTo("window.chatWithWorkNetwork = { metered: false, constrained: false };")
         assertThat(NetworkCost.script(free, preload = true)).contains("window.chatWithWork.preload()")
     }
+
+    @Test
+    fun `losing the network takes the value away from open pages`() {
+        assertThat(NetworkCost.UNKNOWN_SCRIPT).isEqualTo("delete window.chatWithWorkNetwork;")
+    }
 }

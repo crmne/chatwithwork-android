@@ -51,6 +51,12 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
                 )
                 takeBack(state.menu)
                 if (message.event == "connect") onConnected(state)
+                // Dictation asked for from outside also starts once the composer can take it (the yes to models).
+                if (AppUrls.isNewChat(bridgeDelegate.destination.location) && state.dictates &&
+                    PendingShares.takeDictation()
+                ) {
+                    dictate()
+                }
             }
         }
     }
@@ -59,8 +65,6 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
     private fun onConnected(state: WebComposerState) {
         if (!AppUrls.isNewChat(bridgeDelegate.destination.location)) return
         if (state.acceptsFiles) PendingShares.takeFiles()?.let(::attach)
-        // Kept for a composer that can take it (after the yes to models), not dropped on one that can't.
-        if (state.dictates && PendingShares.takeDictation()) dictate()
     }
 
     private var back: OnBackPressedCallback? = null

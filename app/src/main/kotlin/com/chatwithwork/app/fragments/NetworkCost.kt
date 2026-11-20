@@ -41,6 +41,9 @@ object NetworkCost {
     }
 
     /** Sets the value, and when [preload] asks the page to load its places ahead. */
+    // No network: the page goes back to `navigator.connection`.
+    const val UNKNOWN_SCRIPT = "delete window.chatWithWorkNetwork;"
+
     fun script(value: Value, preload: Boolean): String =
         "window.chatWithWorkNetwork = { metered: ${value.metered}, constrained: ${value.constrained} };" +
             if (preload) " window.chatWithWork && window.chatWithWork.preload && window.chatWithWork.preload();" else ""
@@ -102,7 +105,7 @@ object NetworkCost {
         webViews.replaceAll { (reference, handler) ->
             handler?.remove()
             val webView = reference.get() ?: return@replaceAll reference to null
-            if (value != null) webView.evaluateJavascript(script(value, preload = value.free), null)
+            webView.evaluateJavascript(value?.let { script(it, preload = it.free) } ?: UNKNOWN_SCRIPT, null)
             reference to documentStart(webView, value)
         }
     }
