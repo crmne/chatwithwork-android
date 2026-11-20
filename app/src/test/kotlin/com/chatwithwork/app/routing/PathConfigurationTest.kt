@@ -15,7 +15,7 @@ import org.junit.Test
 
 /**
  * The bundled path configuration, read the way Hotwire Native reads it. The
- * server's android_v3.json must give the same answers (docs/server-contract.md).
+ * server's android_v4.json must give the same answers (docs/server-contract.md).
  */
 class PathConfigurationTest {
     private val json = File("src/main/assets/json/path-configuration.json").readText()
@@ -44,7 +44,7 @@ class PathConfigurationTest {
         }
         assertThat(properties("/projects")["pull_to_refresh_enabled"]).isEqualTo(true)
         assertThat(properties("/482139075/bots")["pull_to_refresh_enabled"]).isEqualTo(true)
-        assertThat(properties("/482139075/bots/new")["context"]).isEqualTo("modal")
+        assertThat(properties("/482139075/projects/new")["context"]).isEqualTo("modal")
         assertThat(properties("/482139075/projects/3")["context"]).isEqualTo("default")
     }
 
@@ -67,26 +67,28 @@ class PathConfigurationTest {
     }
 
     @Test
-    fun `New chat is a modal over the place on screen, like New bot`() {
+    fun `New chat and New bot are pages, pushed over the page they're opened from`() {
         listOf(
             "/chats/new",
             "/482139075/chats/new",
             "/482139075/chats/new?project_id=3",
-            "/482139075/chats/new?text=hi&title=Q3"
+            "/482139075/chats/new?text=hi&title=Q3",
+            "/bots/new",
+            "/482139075/bots/new",
+            "/482139075/bots/new?recipe=triage"
         ).forEach { path ->
             properties(path).let {
-                assertWithMessage(path).that(it["context"]).isEqualTo("modal")
-                assertWithMessage(path).that(it["uri"]).isEqualTo("hotwire://fragment/web/modal")
-                assertWithMessage(path).that(it["presentation"]).isNull()
+                assertWithMessage(path).that(it["context"]).isEqualTo("default")
+                assertWithMessage(path).that(it["uri"]).isEqualTo("hotwire://fragment/web")
+                assertWithMessage(path).that(it["presentation"]).isEqualTo("default")
                 assertWithMessage(path).that(it["pull_to_refresh_enabled"]).isEqualTo(false)
                 assertWithMessage(path).that(it["skeleton"]).isEqualTo("new_chat")
             }
         }
-        // New bot, for comparison: the same presentation.
-        assertThat(properties("/482139075/chats/new")["uri"]).isEqualTo(properties("/482139075/bots/new")["uri"])
-        assertThat(
-            properties("/482139075/chats/new")["context"]
-        ).isEqualTo(properties("/482139075/bots/new")["context"])
+        // Every other form stays a modal.
+        listOf("/482139075/projects/new", "/482139075/bots/7/edit", "/482139075/chats/42/edit").forEach { path ->
+            assertWithMessage(path).that(properties(path)["context"]).isEqualTo("modal")
+        }
     }
 
     @Test
@@ -112,7 +114,7 @@ class PathConfigurationTest {
             "/482139075/chats/42/edit",
             "/482139075/projects/new",
             "/482139075/projects/3/edit",
-            "/482139075/bots/new"
+            "/482139075/bots/7/triggers/new"
         ).forEach { path ->
             properties(path).let {
                 assertWithMessage(path).that(it["context"]).isEqualTo("modal")
@@ -264,7 +266,7 @@ class PathConfigurationTest {
             "/482139075/projects" to Kind.LIST,
             "/482139075/settings" to Kind.SETTINGS,
             "/482139075/settings?tab=profile" to Kind.SETTINGS,
-            "/482139075/bots/new" to Kind.FORM,
+            "/482139075/bots/new" to Kind.NEW_CHAT,
             "/482139075/projects/3/edit" to Kind.FORM,
             "/482139075/bots/7" to Kind.PAGE,
             "/482139075/bots/7?tab=setup" to Kind.PAGE,

@@ -40,12 +40,15 @@ class PlacesTest {
         listOf(
             "/482139075/projects/new",
             "/482139075/chats/42/edit",
-            "/482139075/chats/42/section/edit",
-            "/482139075/bots/new",
-            "/482139075/chats/new",
-            "/482139075/chats/new?project_id=3"
+            "/482139075/chats/42/section/edit"
         )
             .forEach { assertWithMessage(it).that(opening(it)).isEqualTo(Places.Opening.ROUTE) }
+    }
+
+    @Test
+    fun `New chat and New bot are pages the sidebar opens as the place`() {
+        listOf("/482139075/bots/new", "/482139075/chats/new", "/482139075/chats/new?project_id=3")
+            .forEach { assertWithMessage(it).that(opening(it)).isEqualTo(Places.Opening.REPLACE_ROOT) }
     }
 
     @Test

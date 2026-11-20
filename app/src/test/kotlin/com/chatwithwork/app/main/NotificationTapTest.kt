@@ -37,13 +37,18 @@ class NotificationTapTest {
     }
 
     @Test
-    fun `a cold start only begins at a chat, and not when restored`() {
+    fun `a cold start begins at a chat, New chat or New bot, and not when restored`() {
         assertThat(LaunchLinks.startsAt("$base/482139075/decisions", restored = false)).isNull()
         assertThat(LaunchLinks.startsAt("$base$path", restored = true)).isNull()
         assertThat(LaunchLinks.startsAt(null, restored = false)).isNull()
-        // New chat is a modal: it opens over the home, never as the place the app starts on.
-        assertThat(LaunchLinks.startsAt("$base/482139075/chats/new", restored = false)).isNull()
-        assertThat(LaunchLinks.startsAt("$base/482139075/chats/new?text=hi", restored = false)).isNull()
+        // New chat and New bot are places from v4: a shortcut, the assistant or a share starts on them.
+        assertThat(LaunchLinks.startsAt("$base/482139075/chats/new", restored = false))
+            .isEqualTo("$base/482139075/chats/new")
+        assertThat(LaunchLinks.startsAt("$base/482139075/chats/new?text=hi", restored = false))
+            .isEqualTo("$base/482139075/chats/new?text=hi")
+        assertThat(LaunchLinks.startsAt("$base/482139075/bots/new", restored = false))
+            .isEqualTo("$base/482139075/bots/new")
+        assertThat(LaunchLinks.startsAt("$base/482139075/chats/new", restored = true)).isNull()
     }
 
     @Test

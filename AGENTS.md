@@ -36,9 +36,11 @@ Live Wire design system and the chat UI. Read the README here first, then
   fragments: Hotwire Native's bottom-sheet fragments have no top app bar,
   and bridge components that put actions there crash in them. Inside its
   fragment a modal is Material 3's full-screen dialog (`ModalFrame`,
-  `ModalMotion`), a dialog on medium and expanded windows. New chat is one
-  of them, like New bot: the navigator never starts on it, so anything that
-  opens New chat on a cold start opens the home first.
+  `ModalMotion`), a dialog on medium and expanded windows. New chat and
+  New bot are pages, not modals (path configuration v4): pushed from a
+  page, the place (the root) from the sidebar and from outside, and the
+  chat their question starts replaces their screen in place
+  (`NewChatHandOff`, docs/server-contract.md, section 5).
 - Top app bar actions go through `ToolbarComponent`, one menu group per
   component, so components never remove each other's items.
 - A bridge component's name, events and payload keys are a contract with
@@ -53,7 +55,7 @@ Live Wire design system and the chat UI. Read the README here first, then
   stable `nativeAction` from the payload.
 - Path configuration rules live in
   `app/src/main/assets/json/path-configuration.json`; the server serves a
-  copy as `/configurations/android_v3.json` (the version `AppConfig.kt`
+  copy as `/configurations/android_v4.json` (the version `AppConfig.kt`
   names), which replaces the bundled one at launch. Change both, keep the rules in step with iOS's, and keep
   `PathConfigurationTest` passing.
 - Colors come from Live Wire's tokens in `res/values/colors.xml` (and

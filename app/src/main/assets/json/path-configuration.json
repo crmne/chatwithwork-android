@@ -56,10 +56,15 @@
     },
     {
       "patterns": [
-        "/chats/new(\\?|$)"
+        "/chats/new(\\?|$)",
+        "/bots/new(\\?|$)"
       ],
       "properties": {
-        "skeleton": "new_chat"
+        "context": "default",
+        "presentation": "default",
+        "pull_to_refresh_enabled": false,
+        "skeleton": "new_chat",
+        "uri": "hotwire://fragment/web"
       }
     },
     {

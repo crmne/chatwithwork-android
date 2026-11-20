@@ -5,7 +5,7 @@ import com.chatwithwork.app.routing.AppUrls
 
 /**
  * What was typed in New chat and not sent, per organization. New chat is a
- * modal that the close button or back puts away, and the web keeps no draft
+ * page that Back or another place leaves, and the web keeps no draft
  * of a chat that doesn't exist yet, so the native field's words wait here
  * and come back the next time New chat opens in that organization (a
  * project's New chat too). Sending clears them. They last as long as the

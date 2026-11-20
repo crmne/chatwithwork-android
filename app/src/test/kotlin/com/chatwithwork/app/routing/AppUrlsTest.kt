@@ -70,11 +70,43 @@ class AppUrlsTest {
         assertThat(AppUrls.isChat("$base/482139075/bots")).isFalse()
         assertThat(AppUrls.isNewChat("$base/482139075/chats/new?project_id=3")).isTrue()
         assertThat(AppUrls.isNewChat("$base/482139075/chats/42")).isFalse()
-        // Only a chat that exists is a place the navigator starts on; New chat is a modal over one.
         assertThat(AppUrls.isOpenChat("$base/482139075/chats/42")).isTrue()
         assertThat(AppUrls.isOpenChat("$base/482139075/chats/new")).isFalse()
         assertThat(AppUrls.isOpenChat("$base/482139075/chats/new?project_id=3")).isFalse()
         assertThat(AppUrls.chats("482139075")).isEqualTo("$base/482139075/chats")
+    }
+
+    @Test
+    fun `knows New chat and New bot, which open as places from outside and the sidebar`() {
+        assertThat(AppUrls.opensAsPlace("$base/482139075/chats/new")).isTrue()
+        assertThat(AppUrls.opensAsPlace("$base/482139075/chats/new?text=hi&title=Q3")).isTrue()
+        assertThat(AppUrls.opensAsPlace("$base/482139075/bots/new")).isTrue()
+        assertThat(AppUrls.opensAsPlace("$base/482139075/bots/new?recipe=triage")).isTrue()
+        assertThat(AppUrls.isNewBot("$base/482139075/bots/new")).isTrue()
+        assertThat(AppUrls.isNewBot("$base/482139075/bots/7")).isFalse()
+        assertThat(AppUrls.opensAsPlace("$base/482139075/projects/new")).isFalse()
+        assertThat(AppUrls.opensAsPlace("$base/482139075/chats/42")).isFalse()
+        assertThat(AppUrls.opensAsPlace("https://example.com/482139075/chats/new")).isFalse()
+    }
+
+    @Test
+    fun `knows the pages whose composer turns into the chat, and a chat that's a place`() {
+        listOf(
+            "/482139075/chats/new",
+            "/482139075/chats/new?project_id=3",
+            "/482139075/bots/new",
+            "/home",
+            "/482139075/home",
+            "/482139075/decisions"
+        )
+            .forEach { assertWithMessage(it).that(AppUrls.turnsIntoChat("$base$it")).isTrue() }
+        listOf("/482139075/chats/42", "/482139075/bots", "/482139075/bots/7", "/482139075/chats/42/edit")
+            .forEach { assertWithMessage(it).that(AppUrls.turnsIntoChat("$base$it")).isFalse() }
+        assertThat(AppUrls.isChatPlace("$base/482139075/chats/42")).isTrue()
+        assertThat(AppUrls.isChatPlace("$base/482139075/chats/42?x=1")).isTrue()
+        assertThat(AppUrls.isChatPlace("$base/482139075/chats/42?from=decisions")).isFalse()
+        assertThat(AppUrls.isChatPlace("$base/482139075/chats/42?x=1&from=bot")).isFalse()
+        assertThat(AppUrls.isChatPlace("$base/482139075/chats/new")).isFalse()
     }
 
     @Test

@@ -13,12 +13,13 @@ import dev.hotwire.navigation.R as HotwireR
  *   closing it, the card slides away ([R.anim.modal_dismiss]) off the screen,
  *   back at once beneath it.
  * - A screen pushed inside a modal (sign-up after sign-in) slides in from the
- *   side, with back, as a step does; one replacing the modal's page (New chat
- *   opened again, with shared words) swaps in place, and slides away
- *   when closed as any modal does.
- * - A modal giving way to a place (New chat's first message, New bot's
- *   sentence: the server sends the chat, which replaces the root) shows the
- *   place at once, never the form sliding away from a page it then covers.
+ *   side, with back, as a step does; one replacing the modal's page (the
+ *   same form again) swaps in place, and slides away when closed as any
+ *   modal does.
+ * - A modal giving way to a place (a form whose server sends a chat, which
+ *   replaces the root) shows the place at once, never the form sliding away
+ *   from a page it then covers. New chat and New bot were modals that did
+ *   this in path configuration v3; from v4 they're pages (NewChatHandOff).
  */
 object ModalMotion {
     data class Anims(val enter: Int, val exit: Int, val popEnter: Int, val popExit: Int)
