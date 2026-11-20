@@ -50,7 +50,12 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
                     message.metadata?.url ?: bridgeDelegate.destination.location
                 )
                 takeBack(state.menu)
-                if (message.event == "connect") onConnected(state)
+                if (message.event == "connect") {
+                    onConnected(state)
+                } else if (state.acceptsFiles && AppUrls.isNewChat(bridgeDelegate.destination.location)) {
+                    // Shared files that waited for this composer to unlock.
+                    PendingShares.takeFiles()?.let(::attach)
+                }
                 // Dictation asked for from outside also starts once the composer can take it (the yes to models).
                 if (AppUrls.isNewChat(bridgeDelegate.destination.location) && state.dictates &&
                     PendingShares.takeDictation()
@@ -101,8 +106,16 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
         back?.isEnabled = menuOpen
     }
 
+    /**
+     * Files the reply couldn't carry (no `connect` to answer) wait for the
+     * next New chat's composer. The page drops an `attach` that reaches it
+     * locked, saying nothing, so files go only to a composer whose latest
+     * word was that it takes them (`acceptsFiles`); a lock between the reply
+     * and the page acting on it can't be seen from here.
+     */
     private fun attach(files: List<ComposerFile>) {
-        if (files.isNotEmpty()) replyTo("connect", attachReply(files).toString())
+        if (files.isEmpty()) return
+        if (!replyTo("connect", attachReply(files).toString())) PendingShares.putBack(files)
     }
 
     /**

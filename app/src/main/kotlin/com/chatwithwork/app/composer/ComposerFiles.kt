@@ -107,6 +107,11 @@ object PendingShares {
 
     fun takeFiles(): List<ComposerFile>? = files.also { files = null }
 
+    /** Files a composer was handed and couldn't take, ahead of any shared since. */
+    fun putBack(taken: List<ComposerFile>) {
+        if (taken.isNotEmpty()) files = taken + files.orEmpty()
+    }
+
     /** Files or dictation wait for a composer to connect: a New chat already on screen must load again to take them. */
     val waiting: Boolean get() = files != null || dictation
 

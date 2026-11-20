@@ -1511,9 +1511,13 @@ replies to the latest `connect`.
   `startedAt`, `mark`, and `csrfToken` for following it (section 9, "Live
   Updates"), and a launch soon after reopens that chat.
 - **Files shared into a new chat** (section 7, "Sharing into the app") wait
-  for New chat's composer: on its `connect` with `acceptsFiles`, the app
-  replies `attach` with them, which the page uploads as any file it takes.
-  Shared words still arrive through `?text=`.
+  for New chat's composer: on its `connect` with `acceptsFiles`, or a later
+  `state` with it once a locked composer unlocks, the app replies `attach`
+  with them, which the page uploads as any file it takes. Files the reply
+  can't carry wait for the next New chat. The page ignores `attach` while
+  locked and says nothing, so a lock between the reply and the page acting
+  on it still loses them; only an answer from the page that it took them
+  would close that. Shared words still arrive through `?text=`.
 - **Dictate from the widget or a shortcut** waits the same way: on New chat's
   `connect` with `dictates`, the app asks for the microphone if Android
   hasn't allowed it yet, then replies `dictate`, which clicks the page's
