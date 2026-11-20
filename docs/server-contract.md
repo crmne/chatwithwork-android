@@ -1527,8 +1527,11 @@ replies to the latest `connect`.
   `failed` and any reason
   the app doesn't know wait for a New chat after another visit, so a failing
   upload isn't retried on the same page. Files in flight go back when the
-  screen that sent them starts another visit or is destroyed, or ten minutes
-  pass with no answer, for a New chat after it. Each shared file keeps an
+  screen that sent them starts another visit or is destroyed, or any web
+  composer's `connect` or `state` comes once ten minutes have passed since
+  the attach with no answer (each one checks; there's no timer, so until a
+  message, a visit or the screen going, they stay in flight), for a New
+  chat after it. Each shared file keeps an
   identity of its own, so an answer that comes late still takes out what the
   page took, even after the file was sent again, and a new share joins the
   files still waiting rather than replacing them. That closes the gap where a lock between
