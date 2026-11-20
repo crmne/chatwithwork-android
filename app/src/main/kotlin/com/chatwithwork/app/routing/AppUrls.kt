@@ -50,8 +50,8 @@ object AppUrls {
     /**
      * Whether [url] answering [status] means the server has no home yet (one
      * from before 2026-11-17, a self-hosted release among them), so the app
-     * opens the chat list instead: a place, where New chat, a modal, would
-     * have nothing under it.
+     * opens the chat list instead, as builds that showed New chat as a
+     * modal did.
      */
     fun homeMissing(url: String, status: Int?): Boolean = status == HTTP_NOT_FOUND && isStartHome(url)
 
@@ -124,10 +124,33 @@ object AppUrls {
     /** A chat's page, or the new chat page: the pages with a composer that run under the top bar. */
     fun isChat(url: String): Boolean = isNewChat(url) || isOpenChat(url)
 
-    /** A chat's page, a place the navigator can start on (New chat is a modal over one). */
+    /** A chat's page, a place the navigator can start on. */
     fun isOpenChat(url: String): Boolean = Regex("^/chats/\\d+$").matches(pathWithinAccount(url))
 
     fun isNewChat(url: String): Boolean = pathWithinAccount(url) == "/chats/new"
+
+    /** New bot's sentence page, which turns into the bot's first chat as New chat does. */
+    fun isNewBot(url: String): Boolean = pathWithinAccount(url) == "/bots/new"
+
+    /**
+     * New chat or New bot: pages (path configuration v4) that the sidebar and
+     * the app's ways in from outside (a shortcut, the assistant, a share) open
+     * as a place, the root, as the sidebar opens every row.
+     */
+    fun opensAsPlace(url: String): Boolean = isAppUrl(url) && (isNewChat(url) || isNewBot(url))
+
+    /**
+     * The pages whose composer turns into the chat it starts, in place, as the
+     * question goes (the server's `chats/_sending`): New chat, New bot's
+     * sentence, the home and Decisions (whose "All clear" carries New chat's
+     * composer).
+     */
+    fun turnsIntoChat(url: String): Boolean =
+        isNewChat(url) || isNewBot(url) || isStartHome(url) || pathWithinAccount(url) == "/decisions"
+
+    /** A chat's page as a place, not one a page opened about something on it (`?from=`). */
+    fun isChatPlace(url: String): Boolean =
+        isOpenChat(url) && parse(url)?.rawQuery.orEmpty().split('&').none { it.startsWith("from=") }
 
     /**
      * Sign-in, sign-up, password, and confirmation pages: shown in the sign-in

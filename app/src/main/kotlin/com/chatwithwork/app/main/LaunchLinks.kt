@@ -52,12 +52,13 @@ object LaunchLinks {
     }
 
     /**
-     * Where a cold start begins because of [link]: at the chat itself, so the
-     * app never loads the home just to replace it. Anything else opens once
-     * the first page has, New chat among them: it's a modal, which needs a
-     * place under it.
+     * Where a cold start begins because of [link]: at the chat itself, or at
+     * New chat or New bot (a shortcut's, the assistant's, a share's), places
+     * like a chat, so the app never loads the home just to replace it.
+     * Anything else opens once the first page has.
      */
-    fun startsAt(link: String?, restored: Boolean): String? = link?.takeIf { !restored && AppUrls.isOpenChat(it) }
+    fun startsAt(link: String?, restored: Boolean): String? =
+        link?.takeIf { !restored && (AppUrls.isOpenChat(it) || AppUrls.opensAsPlace(it)) }
 
     /**
      * What another app shared (ACTION_SEND, text/plain): its text and,

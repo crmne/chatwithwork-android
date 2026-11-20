@@ -9,7 +9,7 @@ into the Rails app. Implement that once and both apps work.
 
 This document follows the same sections and says, for each, what Android
 needs on top or does differently, plus the three things the iOS contract
-leaves to Android: the path configuration file (`android_v3.json`), App
+leaves to Android: the path configuration file (`android_v4.json`), App
 Links (`assetlinks.json`), and sending pushes through Firebase Cloud
 Messaging.
 
@@ -23,7 +23,7 @@ version it.
 |---|---|---|
 | 1 | [Recognize the apps](#1-recognize-the-apps), [layout](#2-the-layout-in-the-apps), [native.css](#3-the-stylesheet) | the iOS steps, plus `overflow-x: clip` |
 | 2 | [Authentication](#4-authentication) | nothing beyond iOS |
-| 3 | [Path configuration](#5-path-configuration) | `public/configurations/android_v3.json` (and v1, v2 for older builds) |
+| 3 | [Path configuration](#5-path-configuration) | `public/configurations/android_v4.json` (and v1, v2, v3 for older builds) |
 | 4 | [Bridge components](#6-bridge-components), [page by page](#7-page-by-page) | nothing beyond iOS: the same controllers drive both apps |
 | 5 | [App Links](#8-app-links) | `/.well-known/assetlinks.json` |
 | 6 | [Push notifications](#9-push-notifications) | FCM HTTP v1 sending |
@@ -40,7 +40,7 @@ Steps 1 to 4 are enough for a first internal test track on Google Play.
 The Android app's user agent, as the emulator sends it (one line):
 
 ```
-Chat with Work; platform=android; version=0.1.0; build=100; Hotwire Native Android; Turbo Native Android;
+Chat with Work; platform=android; version=0.1.0; build=100; new-chat=page; Hotwire Native Android; Turbo Native Android;
   bridge-components: [alert auth-session button context-menu form haptic menu notification-token review-prompt search share theme toast];
   Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/145.0.0.0 Mobile Safari/537.36
 ```
@@ -51,6 +51,10 @@ Chat with Work; platform=android; version=0.1.0; build=100; Hotwire Native Andro
 - `version` is the release's `MAJOR.MINOR.PATCH` and `build` its version
   code (`MAJOR*10000 + MINOR*100 + PATCH`), both set from the release tag.
   Development builds send `0.1.0` and `100`.
+- `new-chat=page;` (from path configuration v4, right after `build=`) says
+  New chat and New bot are pages in this build, so the server draws what
+  they turn into in place (`NativeApp#new_chat_page?`, section 5). Builds
+  that read v3 or earlier don't send it.
 - `bridge-components` lists the 13 components every build registers. The
   bridge also writes them on the page as
   `<html data-bridge-platform="android" data-bridge-components="...">`.
@@ -74,12 +78,13 @@ flashes as toasts). What differs on Android:
   (one it was sent to, or one the person left answering under ten minutes
   ago). Everything reached from the sidebar is a place, never a step: a
   chat, Decisions, Bots, a bot, Projects, a project, Settings,
-  Instructions. New chat is the exception: a modal over the place on
-  screen, as New bot is (section 5, "New chat is a modal"). A place replaces the one root screen, which has the
+  Instructions, and New chat and New bot (section 5, "New chat and New bot
+  are pages"). A place replaces the one root screen, which has the
   sidebar's menu button and never back, so places never stack and there's
   no history of them to walk back through (Carmine, 2026-11-05). Only a
   drill-down is pushed over a place, with back to it (a bot from Bots, a
-  Settings tab from the Settings list); forms and pickers are modals
+  Settings tab from the Settings list, New chat from the bar's button);
+  forms and pickers are modals
   (section 5). The system back at a place leaves the app, as at any root:
   a drawer's start destination here would be one more stop on the way
   out, and the app keeps no history of places. Back on a modal closes it,
@@ -102,7 +107,7 @@ flashes as toasts). What differs on Android:
   how much of the page the bar covers (status bar included, in CSS pixels;
   `0px` on a page that starts below it). A chat always runs under it; any
   other page only where the path configuration's `page_under_top_bar` is
-  `true`, which `android_v3.json` (and `android_v2.json` before it) sets for every page once the server's
+  `true`, which `android_v4.json` (and v3 and v2 before it) sets for every page once the server's
   `native.css` keeps every page's start, and anything sticky at its top,
   clear of the bar. A server whose configuration doesn't say so gets
   pages that start below the bar, with the fade's last 20dp coming in over
@@ -192,30 +197,35 @@ never moves to another phone.
 
 ## 5. Path configuration
 
-Serve `public/configurations/android_v3.json` as a static file, an exact
+Serve `public/configurations/android_v4.json` as a static file, an exact
 copy of [`app/src/main/assets/json/path-configuration.json`](../app/src/main/assets/json/path-configuration.json)
 in this repository (the server's test reads which version `AppConfig.kt`
 names and compares the bundled copy with it). The app fetches it on every
-launch from `https://chatwithwork.com/configurations/android_v3.json`
+launch from `https://chatwithwork.com/configurations/android_v4.json`
 (staging and development builds from their own server), caches it, and the
 server's copy **replaces** the bundled one entirely. Change both together;
 bump the name only when old builds must not read the new rules, and keep
-serving the old file for them: the sidebar builds before New chat became a
-modal read `android_v2.json` (v3 without the modal: `/chats/new` is in the
-chats' `replace_root` rule there), and the tab builds read
-`android_v1.json`. v2 can't become v3 in place: those builds start the
-navigator on New chat, and a modal can't be the first screen.
+serving the old file for them: 1.2.11 and 1.2.12, which show New chat
+as a modal, read `android_v3.json`; the sidebar builds before them read
+`android_v2.json` (v3 without the modal: `/chats/new` is in the chats'
+`replace_root` rule there), and the tab builds read `android_v1.json`. v2
+can't become v3 in place: those builds start the navigator on New chat,
+and a modal can't be the first screen. v3 can't become v4 in place either:
+those builds close their New chat as a modal and send no `new-chat=page`,
+so the server draws no in-place turn for them.
 
 The rules, in order (later matches override earlier ones; patterns are
 regular expressions searched for in the path and query, unanchored unless
-written with `^`):
+written with `^`; from v4 every rule after the sign-in pages' is anchored
+as `^(/[0-9]+)?/...`, so a `return_to` in a query can't match it):
 
 | Pattern | Context | Presentation | Pull to refresh | Notes |
 |---|---|---|---|---|
 | `.*` | default | push | on | `uri: hotwire://fragment/web`; `query_string_presentation: replace`, so a visit to the page on screen with another query (a bot's tabs, a form redirecting back) replaces it rather than stacking a copy |
 | `/new(\?\|$)`, `/edit(\?\|$)` | modal | | off | every new and edit form; `uri: hotwire://fragment/web/modal` |
 | `^/users/sign_in`, `^/users/sign_up`, `^/users(\?\|$)`, `^/users/password...`, `^/users/confirmation...`, `^/users/unlock...` | modal | | off | the sign-in pages |
-| `/chats/\d+(\?\|#\|$)` | default | `replace_root` | on | a chat is always the one screen; the pull brings it up to date in place, keeping what's typed. New chat (`/chats/new`, with `?project_id=`, `?text=&title=`) isn't here: the `/new` rule makes it a modal, like New bot |
+| `/chats/\d+(\?\|#\|$)` | default | `replace_root` | on | a chat is always the one screen; the pull brings it up to date in place, keeping what's typed. The turn from New chat replaces the screen it was sent from instead (section 5, "New chat and New bot are pages") |
+| `/chats/new(\?\|$)`, `/bots/new(\?\|$)` | default | push (`presentation: default`) | off | New chat (with `?project_id=`, `?text=&title=`) and New bot's sentence: pages, pushed over the page they're opened from; the sidebar and the ways in from outside open them as the place. `skeleton: new_chat`, `uri: hotwire://fragment/web` |
 | `/chats/\d+\?(.*&)?from=` | default | push (`presentation: default`) | on | a chat a page opens about something on it (a bot's "Change it in a chat", its runs, Decisions' "Open chat", a side chat), pushed with back to that page |
 | `^/shared/` | default | push | off | |
 | `/settings\?` | default | push | on | a Settings tab, pushed over the Settings list (`query_string_presentation: default`, since the list and its tabs share `/settings`) |
@@ -230,10 +240,10 @@ from the moment the screen appears until its page first paints (the
 | `skeleton` | Where | What the app draws |
 |---|---|---|
 | `chat` | `/chats/<n>`, a `?from=` chat too | the chat's: two questions and answers, the composer at rest |
-| `new_chat` | `/chats/new` | a greeting over three suggestions, the composer at rest |
+| `new_chat` | `/chats/new`, `/bots/new` | a greeting over three suggestions, the composer at rest |
 | `list` | `/decisions`, `/bots`, `/chats`, `/projects` | rows of a round mark and two lines, as many as fit |
 | `settings` | `/settings` and `/settings?tab=...` | two sections: a heading, a muted line, a group of rows |
-| `form` | every `new` and `edit` sheet | four labelled fields |
+| `form` | every other `new` and `edit` sheet | four labelled fields |
 | `page` | everything else (`.*`): a bot and its tabs, a project, a trigger, the panel beside a chat, Settings' own pages | a heading, two lines of text, a group of four rows |
 | `none` | the sign-in pages, a chat's file viewer | nothing, as before |
 
@@ -252,7 +262,7 @@ that sends no `skeleton` (one from before 2026-11-07) gets `chat` for a
 chat and no skeleton elsewhere, as earlier builds do with every
 server. The numbers are the same as iOS's.
 
-Compared with `ios_v2.json`:
+Compared with `ios_v4.json`:
 
 - The patterns and the order are the same, so a page is pushed, modal, or
   refreshable alike on both phones.
@@ -279,39 +289,72 @@ Hotwire Native adds its own rules for `/recede_historical_location`,
 `/resume_historical_location` and `/refresh_historical_location` after
 these. A recede on the chat itself (deleting it from its menu, on a
 server that recedes rather than sending Decisions) has nothing to go back
-to: the app opens the organization's home instead, never New chat, a modal
-with nothing under it.
+to: the app opens the organization's home instead, never New chat.
 
-**New chat is a modal (v3, 2026-11-19).** New chat, New bot and every
-`/new` and `/edit` form come up the same way, over the place on screen
-(Carmine: "New chat and New bot as a modal should be the same on
-Android"). So:
+**New chat and New bot are pages (v4, 2026-11-20).** Carmine: "On the
+phones, we should switch from sheets to pages for sure." New chat and New
+bot's sentence are pages again, so the web's turn into the chat in place
+works in the app as on the web: Send, and the question is on screen at
+once (the server's docs/ui/chat.md, "Sending a question", and
+docs/ui/native-apps.md, "Places"). Rename, Move to project and every other
+`/new` and `/edit` stay modals. The app says so in its user agent,
+`new-chat=page;` right after `build=N;` (section 1), and only for such
+builds does the server draw what New chat, New bot and Decisions' All
+clear turn into. So:
 
-- The navigator never starts on New chat. A cold start from the New chat
-  shortcut, the widget, the tile, the assistant or a share opens the
-  organization's home and then New chat over it; signed out, it waits as
-  the link to open after signing in; moving to another organization starts
-  on its home with New chat over it. Only a chat that exists is a start.
-- The bar's New chat, the sidebar's, Decisions' and a project's links all
-  open the modal through the path configuration. Opening New chat while
-  one is up (the shortcut, the widget, the tile, a share) doesn't stack a
-  second: it replaces the page in place, keeping what's typed, and a
-  share's words join it.
-- Sending the first message: the server redirects to `/chats/<n>`, whose
-  `replace_root` rule closes the modal and makes the chat the place, at
-  once, with no slide away from a page it then covers (also from a modal
-  over a pushed project page).
-- What's typed in New chat and not sent is kept per organization when the
-  modal closes (its close button, back, a predictive back gesture), and
-  comes back in the next New chat there, a project's too. It survives a
-  rotation, a theme change and the process ending (the activity's saved
-  state; a force stop forgets it). Sending clears it, and signing out
-  forgets every organization's. A share's words join
-  it rather than replacing it. The web keeps no draft of a chat that
-  doesn't exist yet, so this is the app's (`NewChatDrafts`).
-- The composer inside works as on a chat: files and the + sheet,
-  dictation, the model picker, web search, Narrow, permission modes, the
-  keyboard.
+- **Where it's opened decides how it's presented.** What the sidebar
+  opens (its New chat and New bot, the server's page or the native one) is
+  a place: the drawer slides shut first and the page is drawn without it
+  (`AfterDrawerShut`), then the navigator clears to its root and the page
+  replaces it, as every sidebar row does. So do the ways in from outside:
+  the icon's shortcuts, the widget, the tile, the assistant and a share,
+  which start the navigator on New chat (or New bot) on a cold start, as
+  builds before v3 did, and replace the root otherwise. Opened from a page
+  (the bar's New chat over a chat or any place, Bots' New bot, a project's
+  New chat, a bot's, Decisions'), the configuration's `default` pushes it
+  with Back to that page. The bar's New chat while New chat is already on
+  top focuses its field instead of stacking another.
+- **The turn into the chat replaces that screen** (`NewChatHandOff`). The
+  app's composer sends through the page's hidden form, the page draws the
+  question and Thinking in the shared web view at once, and the server's
+  redirect to `/chats/<n>` arrives as a visit proposed with the form's
+  response. When that visit goes to a chat without `from=`, and the screen
+  on top shows New chat, New bot, the home or Decisions, the app replaces
+  that screen in its place in the stack (Hotwire Native's `replace`): a
+  page pushed over a chat stays pushed over it, with Back to that chat; a
+  root stays the root. The chat's rule says `replace_root`, so for this
+  one visit the app routes it with `replace` (it overrides the
+  presentation Hotwire Native caches for that address while it routes, and
+  puts it back). The new screen renders the response the visit carries,
+  so there's no second request; it comes in without an animation, the
+  screen it replaces goes at once, and neither a skeleton nor a loading
+  view covers the web view, which already shows the question. Until the
+  chat's page connects its own composer, the new screen draws the
+  composer as the old one last showed it (answering, with Stop), with the
+  keyboard where it was. The bar's title is the page's, "New chat" while
+  it sends, then the chat's ("Chat #12" until it's titled). Back from the
+  chat goes where New chat was opened from, never to an empty New chat.
+- On a server older than v4 (no `android_v4.json`, so the bundled copy
+  holds, and no in-place template), the same replace happens; New chat
+  simply shows until the chat's page renders.
+- A refusal, an error or no connection puts the page back as it was, and
+  the composer bridge's `text` puts the words back in the app's field.
+- **What's typed in New chat and not sent** is kept per organization when
+  the page is left without sending (Back, a predictive back gesture,
+  another place), and comes back in the next New chat there, a project's
+  too. It survives a rotation, a theme change and the process ending (the
+  activity's saved state; a force stop forgets it). Sending clears it, and
+  signing out forgets every organization's. A share's words join it rather
+  than replacing it. The web keeps no draft of a chat that doesn't exist
+  yet, so this is the app's (`NewChatDrafts`).
+- **The keyboard** comes up when the person opened New chat by a tap (the
+  bar's New chat, the sidebar's) or a shortcut, the widget, the tile or the
+  assistant, never on a page that arrived by itself (the home on a cold
+  start, whose All clear carries a composer too).
+
+v3 (1.2.11 and 1.2.12) showed New chat as a modal, as New bot was: the
+navigator never started on it, and sending closed the modal and made the
+chat the root. Those builds keep doing so with `android_v3.json`.
 
 **How a modal looks.** Material 3's full-screen dialog (`ModalFrame`,
 `ModalMotion`): on a phone, and on any window under 600dp wide or 480dp
@@ -331,7 +374,7 @@ modal (sign-up after sign-in, a recipe's proposal from New chat) slides in
 from the side with back to the step before; the same page again (New chat
 with shared words) swaps in place. The keyboard pushes the composer up and
 the page stays edge to edge, as on any screen. A modal the sidebar opens
-(its New chat, New bot, a row's Rename or Move to project) rises only once
+(a row's Rename or Move to project) rises only once
 the drawer has slid shut and the page has been drawn without it
 (`AfterDrawerShut`; a place or a link chosen meanwhile, signing out, or
 turning the drawer back open drops it), so the drawer slides away, then the modal rises over
@@ -339,8 +382,8 @@ the page alone: the pictures taken as a modal opens (the frame's backdrop,
 and Hotwire Native's own, which the screen under it shows until its page
 draws again after the modal closes) never have the drawer in them, which
 used to vanish, come back behind the rising card, and come back again on
-every close (Android 1.2.11 on a phone, 2026-11-20). Nothing changes on the
-server: v3 only moved `/chats/new` to the modal rule.
+every close (Android 1.2.11 on a phone, 2026-11-20). New chat and New bot,
+places from the sidebar from v4, wait for the drawer the same way.
 
 ## 6. Bridge components
 
@@ -406,9 +449,9 @@ the apps. On Android:
   sidebar's menu button, the page's title, New chat, and the chat's own
   actions: Pin, Share link, Rename, Move to project and Delete in the
   overflow menu, Delete in red, behind the native confirm. **New chat**
-  (`chats/new`) is a modal over the place on screen (section 5), its bar a
-  close icon and its title. After the first message the server redirects
-  to the new chat, which closes the modal and becomes the root. A message's "More actions" button opens
+  (`chats/new`) is a page, pushed over the page it's opened from or the
+  place the sidebar opens (section 5). After the first message it turns
+  into the new chat in place, and the chat's screen replaces it. A message's "More actions" button opens
   the context menu as a popup at the button. The approval and composer
   haptics vibrate as in the table above. The composer's keyboard-shortcut
   hint (`.kbd-hint`) stays in the markup: native.css hides it in the apps.
@@ -495,8 +538,8 @@ the apps. On Android:
   the server.
 - **The icon's shortcuts** (a long press, `xml/shortcuts.xml`): New chat, New
   bot and Decisions, the same three names as on iOS. They open what the
-  sidebar's own do: the new chat in its list, `bots.new_url` (a modal, by the
-  `/new` rule) and `waiting.url` (the root, by the `/decisions` rule), or,
+  sidebar's own do: the new chat in its list, `bots.new_url` (both places,
+  section 5) and `waiting.url` (the root, by the `/decisions` rule), or,
   before the sidebar's JSON has answered, `/<organization>/chats/new`,
   `/<organization>/bots/new` and `/<organization>/decisions` in the
   organization used last. Signed out, the app remembers the page and opens it
@@ -529,7 +572,8 @@ Links the app handles itself:
 - A link to a place replaces the root screen; a link to any other page
   pushes it over the screen it's on, with back.
 - A link into another organization starts the app over there: on that
-  chat, or on its home with the page on top (New chat as a modal over it).
+  chat, or on its home with the page opened once it has (New chat and New
+  bot as the place in its stead).
 - `notice` and `alert` on `/recede_historical_location`,
   `/resume_historical_location` and `/refresh_historical_location` show as
   snackbars, `alert` for longer. Account-scoped controllers send them under
@@ -546,9 +590,9 @@ Links the app handles itself:
   (its All clear carries New chat's composer, suggestions and recipes when
   nothing waits). A server from before 2026-11-17, every self-hosted release
   up to v0.15.0 among them, answers it 404: the app then opens the
-  organization's chat list, a place (earlier builds opened New chat, which is
-  now a modal and needs a place under it). Such a server serves no
-  `android_v3.json` either, so the bundled configuration holds. A 404
+  organization's chat list, a place, as the builds that showed New chat as
+  a modal did. Such a server serves no `android_v4.json` either, so the
+  bundled configuration holds. A 404
   on `/<organization>/home` (or `/home`) does this whenever it comes, as
   long as that page is still the one on screen and someone is signed in
   (signed out, the next sign-in starts on the home again). A 401 there
@@ -987,7 +1031,7 @@ On Android:
   `http://10.0.2.2:3000` (the emulator's view of your computer; Android 17
   asks for the local network permission first).
 - **Rails tests**: the iOS contract's request tests, once more with
-  `ANDROID_UA` (section 1), and a test that `/configurations/android_v3.json`
+  `ANDROID_UA` (section 1), and a test that `/configurations/android_v4.json`
   is the Android repository's file and `/.well-known/assetlinks.json`
   answers JSON without a redirect.
 
@@ -1352,6 +1396,24 @@ No replies.
 
 ## 12. The composer
 
+**The page's own composer for now (2026-11-20).** Builds made with
+`AppConfig.NATIVE_COMPOSER = false` (the next internal build, with New chat
+and New bot as pages) don't register `composer`, so it's missing from the
+user agent's `bridge-components` and from `data-bridge-components`, and
+native.css leaves the web composer showing. The page's composer then does
+everything itself: typing, Send (the same form, so New chat still turns
+into its chat in place and the app keeps the screen for it), suggestions,
+the model, web search, files through the WebView's file chooser, and
+dictation through `getUserMedia` (the microphone allowed for this server's
+pages only, `AppWebChromeClient`). The keyboard resizes the page
+(`adjustResize`, and the activity pads for the IME), so it never covers the
+composer. What the native composer drove is off in those builds: Live
+Updates started from an answer left `working`, files shared into a new chat
+(shared words still arrive through `?text=`), New chat's kept draft, the
+glow, its haptics, and the skeletons' composer bone. The rest of this
+section describes the native composer, which turning the constant back on
+restores.
+
 **Composer parity (2026-10-30).** Each model may also send `iconName`
 (the model maker’s key), `icon` (the web asset’s absolute URL), and
 `invertIcon`. Both apps bundle the exact web maker artwork for `anthropic`,
@@ -1431,7 +1493,7 @@ gutters. The page leaves room to scroll its last answer above the box.
 
 | Event | Direction | Data |
 |---|---|---|
-| `connect`, then `state` | web to app | `{overlay?, visible?, placeholder, text?, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb, iconName?, icon?, invertIcon?}], permissionModes?, webSearch: {on, disabled, note} \| null, narrowing?: {title, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
+| `connect`, then `state` | web to app | `{overlay?, visible?, placeholder, text?, fill?, locked, lockReason, working, stopping, models: [{name, rate, selected, searchesWeb, iconName?, icon?, invertIcon?}], permissionModes?, webSearch: {on, disabled, note} \| null, narrowing?: {title, note} \| null, dictation: {url} \| null, csrfToken, attachments: [{id, name, size, contentType, uploading, progress}], acceptsFiles}` |
 | reply to `connect` | app to web | `{action: "send", text}`, `{action: "stop"}`, `{action: "model", index}`, `{action: "permissionMode", value}`, `{action: "webSearch", on}`, `{action: "narrow"}`, `{action: "attach", files: [{name, type, data}]}` (data base64), `{action: "remove", id}`, `{action: "text", text}`, `{action: "layout", height, width}` |
 
 A chat draws its composer again as an answer starts and ends; each new one
@@ -1441,7 +1503,14 @@ without a composer never connects, and the native one stays hidden there.
 What the app does with it:
 
 - **The field** starts with `text` on `connect` when it's empty (words
-  shared in, or a draft the web restored), and keeps what's typed until Send, which sends `send {text}`
+  shared in, or a draft the web restored). A suggestion pressed under the
+  composer (New chat's, Decisions' All clear; the server's
+  `prompt_suggestions_controller.js`) connects again with its words as
+  `text` and `fill: true`: the field takes them in place of whatever it
+  holds, never joined to it or to New chat's kept draft, with the caret at
+  their end, the focus and the keyboard, as the web's composer takes them
+  (from 2026-11-20; builds before it take them as any connect's, into an
+  empty field, with no keyboard). The field keeps what's typed until Send, which sends `send {text}`
   (with a confirming haptic) and clears it. Send needs words or a file and
   waits while a file uploads (the web would refuse). While `working`, an
   empty field shows Stop alone (`stop`, disabled while `stopping`); once

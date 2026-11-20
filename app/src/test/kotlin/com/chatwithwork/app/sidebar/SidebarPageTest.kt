@@ -15,7 +15,9 @@ class SidebarPageTest {
                 AppConfig.userAgentPrefix("1.3.0", 10300),
                 "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Mobile Safari/537.36"
             )
-        assertThat(agent).startsWith("Chat with Work; platform=android; version=1.3.0; build=10300; Mozilla/5.0")
+        assertThat(agent).startsWith(
+            "Chat with Work; platform=android; version=1.3.0; build=10300; new-chat=page; Mozilla/5.0"
+        )
         assertThat(agent).doesNotContain("bridge-components")
         assertThat(agent).doesNotContain("Hotwire Native")
         assertThat(agent).doesNotContain("Turbo Native")

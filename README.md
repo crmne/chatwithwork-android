@@ -13,7 +13,7 @@ feel like an Android app: it opens by default on your Decisions, with Material 3
 drawer holding the server's own sidebar (what waits for you, your chats and bots, projects),
 Material top app bars with the page's actions and overflow
 menu, a native composer (with the photo picker, camera, ML Kit's document
-scanner, and dictation recorded on the phone and transcribed on the server), New chat, New bot and every form as Material 3 full-screen dialogs (dialogs on tablets), a welcome screen, native dialogs, snackbars,
+scanner, and dictation recorded on the phone and transcribed on the server), New chat and New bot as pages that turn into their chat in place as the question goes, every form as a Material 3 full-screen dialog (a dialog on tablets), a welcome screen, native dialogs, snackbars,
 haptics, search, the share sheet (both ways: text and files shared into a new chat too), Live Updates that follow the steps of answers you leave running, a home screen widget, a Quick Settings tile, shortcuts on the icon (New chat, New bot, Decisions), Android's default digital assistant (a new chat with the composer focused), sign-in through Chrome's Auth Tab, push
 notifications that show the answer's start or what waits for you (fetched from the server as they arrive, never through Google), App Links, predictive back, edge to edge, and Live Wire's
 colors in light and dark.
@@ -140,8 +140,12 @@ docs/                    the server contract and design notes
   signed in, a link into another organization starts over there.
 - **Web screens** are `HotwireWebFragment`s with the app's own layout: a
   Material top app bar (the page's `<title>`, its bridge buttons and
-  overflow menu) over the web view. Modals (New chat, New bot, every `/new`
-  and `/edit` form) are full-screen fragments, not Hotwire's bottom sheets,
+  overflow menu) over the web view. New chat and New bot's sentence are
+  pages: pushed over the page they're opened from, the place when the
+  sidebar or a shortcut opens them, and the chat their question starts takes
+  their screen's place in the stack without a skeleton, as the page has
+  already drawn the question (`fragments/NewChatHandOff.kt`). Modals (every
+  other `/new` and `/edit` form) are full-screen fragments, not Hotwire's bottom sheets,
   where bridge components that need a top app bar crash. Inside, each is
   Material 3's full-screen dialog (`fragments/ModalFrame.kt`, `ModalMotion.kt`):
   a close icon in its top app bar, sliding up over the screen it opened from,
@@ -167,7 +171,7 @@ docs/                    the server contract and design notes
   `review-prompt` as they are. All 15 are the same names and messages as
   the iOS app's.
 - **Path configuration**: bundled, and replaced at launch by the server's
-  `/configurations/android_v3.json` (docs/server-contract.md, section 5).
+  `/configurations/android_v4.json` (docs/server-contract.md, section 5).
 
 ## The playground
 

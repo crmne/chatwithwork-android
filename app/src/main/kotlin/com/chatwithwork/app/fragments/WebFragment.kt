@@ -6,15 +6,20 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
 import androidx.appcompat.R as AppCompatR
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.NavOptions
 import androidx.navigation.navOptions
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.R
+import com.chatwithwork.app.composer.ComposerView
 import com.chatwithwork.app.routing.AppUrls
 import dev.hotwire.core.config.Hotwire
 import dev.hotwire.core.turbo.config.PathConfigurationProperties
@@ -26,11 +31,13 @@ import dev.hotwire.core.turbo.errors.VisitError
 import dev.hotwire.core.turbo.nav.Presentation
 import dev.hotwire.core.turbo.nav.PresentationContext
 import dev.hotwire.core.turbo.visit.VisitAction
+import dev.hotwire.core.turbo.visit.VisitProposal
 import dev.hotwire.core.turbo.webview.HotwireWebChromeClient
 import dev.hotwire.navigation.R as HotwireR
 import dev.hotwire.navigation.destinations.HotwireDestination
 import dev.hotwire.navigation.destinations.HotwireDestinationDeepLink
 import dev.hotwire.navigation.fragments.HotwireWebFragment
+import dev.hotwire.navigation.routing.Router
 import dev.hotwire.navigation.session.SessionModalResult
 
 /**
@@ -38,7 +45,9 @@ import dev.hotwire.navigation.session.SessionModalResult
  * place on screen: a chat, Decisions, Bots...) has the sidebar's button where
  * back would be, and a drill-down pushed over it has back; every screen but a modal has
  * New chat in its bar. Every screen's bar is the same TopBar: no surface of
- * its own, its title and buttons over a fade into the page.
+ * its own, its title and buttons over a fade into the page. New chat, New
+ * bot, the home and Decisions give way to the chat their question starts in
+ * place (NewChatHandOff).
  */
 @HotwireDestinationDeepLink(uri = "hotwire://fragment/web")
 open class WebFragment : HotwireWebFragment() {
@@ -50,6 +59,15 @@ open class WebFragment : HotwireWebFragment() {
 
     /** It shows the first time this screen appears, never when coming back to a page already there. */
     private var skeletonShown = false
+
+    /** This screen is giving way to the chat its question started (NewChatHandOff). */
+    private var handingOff = false
+
+    /** Hotwire Native asks this screen to decide while it routes the hand-off itself. */
+    private var routingHandOff = false
+
+    /** This screen is that chat, taking over the shared web view that already shows its question. */
+    private var handedOver = false
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
         inflater.inflate(R.layout.fragment_web, container, false)
@@ -92,6 +110,20 @@ open class WebFragment : HotwireWebFragment() {
             onCoveredChanged(::tellPageItsTop)
         }
 
+        // The chat a question just turned into: its page is already on screen
+        // in the shared web view, so neither a skeleton nor a blank bar covers it.
+        if (!skeletonShown && NewChatHandOff.take(location)) {
+            handedOver = true
+            skeletonShown = true
+            navigator.session.webView.title?.let(fragmentViewModel::setTitle)
+            NewChatHandOff.takeComposer()?.let { handed ->
+                view.findViewById<ComposerView>(R.id.composer)?.apply {
+                    show(handed.state)
+                    if (handed.focused) focusField()
+                }
+            }
+        }
+
         val kind = PageSkeleton.kind(location, pathProperties.skeleton)
         if (kind != null && !skeletonShown) {
             val toolbar = toolbarForNavigation() ?: return
@@ -117,6 +149,8 @@ open class WebFragment : HotwireWebFragment() {
 
     override fun onStart() {
         super.onStart()
+        // Shown again (a hand-off the navigator dropped): it moves as any screen does.
+        handingOff = false
         takeOverPullToRefresh()
     }
 
@@ -161,7 +195,7 @@ open class WebFragment : HotwireWebFragment() {
             icon = ContextCompat.getDrawable(toolbar.context, R.drawable.ic_new_chat)
             setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
             setOnMenuItemClickListener {
-                host?.startNewChat()
+                host?.startNewChatOverPage()
                 true
             }
         }
@@ -171,15 +205,55 @@ open class WebFragment : HotwireWebFragment() {
         Hotwire.config.pathConfiguration.properties(location).context == PresentationContext.MODAL
 
     /**
+     * The visit to the chat a question on this screen just started replaces
+     * this screen (NewChatHandOff): in its place in the stack, so a New chat
+     * pushed over a page leaves that page under the chat, with Back to it.
+     * The chat's own rule replaces the root, which is this screen already
+     * when it's the root.
+     */
+    override fun customRouteDecision(proposal: VisitProposal): Router.Decision? {
+        if (routingHandOff) return null
+        val fromResponse = proposal.options.response != null
+        if (!NewChatHandOff.turnsInPlace(location, proposal.location, fromResponse)) return null
+        handingOff = true
+        val composer =
+            view?.findViewById<ComposerView>(R.id.composer)?.takeIf { it.visibility == View.VISIBLE }?.let {
+                NewChatHandOff.Composer(it.state, it.typing)
+            }
+        NewChatHandOff.expect(proposal.location, composer)
+        if (navigator.isAtStartDestination()) return null
+        routingHandOff = true
+        try {
+            NewChatHandOff.withPresentation(proposal.location, Presentation.REPLACE) {
+                navigator.route(proposal.location, proposal.options, proposal.bundle)
+            }
+        } finally {
+            routingHandOff = false
+        }
+        return Router.Decision.CANCEL
+    }
+
+    /**
      * Modals move as Material 3's full-screen dialog (ModalMotion), and the
      * screen one opens over is pictured for its frame (ModalBackdrop), unless
-     * the sidebar covers it.
+     * the sidebar covers it. The chat a question turns into takes this
+     * screen's place without moving; Back from it slides as from any page.
      */
     override fun customNavigationOptions(
         newLocation: String,
         newPathProperties: PathConfigurationProperties,
         action: VisitAction
     ): NavOptions? {
+        if (handingOff && NewChatHandOff.isExpected(newLocation)) {
+            return navOptions {
+                anim {
+                    enter = NO_ANIMATION
+                    exit = NO_ANIMATION
+                    popEnter = HotwireR.anim.enter_slide_in_left
+                    popExit = HotwireR.anim.exit_slide_out_right
+                }
+            }
+        }
         val toModal = newPathProperties.context == PresentationContext.MODAL
         val anims =
             ModalMotion.anims(
@@ -201,6 +275,18 @@ open class WebFragment : HotwireWebFragment() {
 
     private fun samePage(first: String, second: String): Boolean = first.toUri().path == second.toUri().path
 
+    /**
+     * Giving way to the chat its question started, this screen goes at once:
+     * the chat shows the same web view, and the slide back it was pushed with
+     * would show the page under it for a moment.
+     */
+    override fun onCreateAnimation(transit: Int, enter: Boolean, nextAnim: Int): Animation? =
+        if (handingOff && !enter) {
+            AlphaAnimation(1f, 1f).apply { duration = 0 }
+        } else {
+            super.onCreateAnimation(transit, enter, nextAnim)
+        }
+
     // The bar shows the page's own name, tidied (see onViewCreated).
     override fun shouldObserveTitleChanges(): Boolean = false
 
@@ -212,8 +298,13 @@ open class WebFragment : HotwireWebFragment() {
 
     @SuppressLint("InflateParams") // Hotwire Native adds it to its own container.
     override fun createProgressView(location: String): View =
-        // The skeleton already covers the page; Hotwire Native still wants a view to show.
-        if (skeleton?.covering == true) View(requireContext()) else layoutInflater.inflate(R.layout.view_progress, null)
+        // The skeleton already covers the page, or the chat a question turned into
+        // already shows; Hotwire Native still wants a view to show.
+        if (skeleton?.covering == true || handedOver) {
+            View(requireContext())
+        } else {
+            layoutInflater.inflate(R.layout.view_progress, null)
+        }
 
     override fun createErrorView(error: VisitError): View = ScreenStates.view(
         inflater = layoutInflater,
@@ -234,6 +325,30 @@ open class WebFragment : HotwireWebFragment() {
         super.onVisitCompleted(location, completedOffline)
         allowZoom(AppUrls.isFileViewer(location))
         host?.onVisitCompleted(this, location)
+        if (!keyboardOffered) {
+            keyboardOffered = true
+            if (!AppConfig.NATIVE_COMPOSER && AppUrls.opensAsPlace(location)) offerKeyboard()
+        }
+    }
+
+    /** Asked once per screen: a page coming back from a pushed one doesn't bring the keyboard up again. */
+    private var keyboardOffered = false
+
+    /**
+     * New chat and New bot focus the page's own composer as they load (the
+     * server does, where the app draws no composer of its own), but a focus
+     * from script brings no keyboard while the web view itself hasn't the
+     * focus: it takes it, and asks for the keyboard for the field the page
+     * focused.
+     */
+    private fun offerKeyboard() {
+        val webView = navigator.session.webView
+        webView.requestFocus()
+        webView.post {
+            if (isAdded && view != null) {
+                WindowCompat.getInsetsController(requireActivity().window, webView).show(WindowInsetsCompat.Type.ime())
+            }
+        }
     }
 
     /**
@@ -284,8 +399,8 @@ open class WebFragment : HotwireWebFragment() {
 }
 
 /**
- * A page presented over the app: New chat, New bot, a form, signing in, a
- * chat's file. Material 3's full-screen dialog, in a frame of its own
+ * A page presented over the app: a form (Rename, Move to project, every new
+ * and edit but New chat and New bot), signing in, a chat's file. Material 3's full-screen dialog, in a frame of its own
  * (ModalFrame): it slides up over the screen it opened from, with a close
  * button at the start of its bar, and closes by that, by back, or by a
  * predictive back gesture that shrinks it; on a large window it's a dialog
@@ -331,7 +446,8 @@ interface WebScreenHost {
 
     fun openSidebar()
 
-    fun startNewChat()
+    /** The bar's New chat: pushed over this page, with Back to it. */
+    fun startNewChatOverPage()
 
     /** The organization's home, in [destination], answered 404 (a server from before it): open the chat list instead. */
     fun onHomeMissing(destination: HotwireDestination)
@@ -354,3 +470,5 @@ private const val ITEM_NEW_CHAT = 0x0C001
 
 /** After the page's own actions, before the overflow menu. */
 private const val ORDER_NEW_CHAT = 80
+
+private const val NO_ANIMATION = 0

@@ -1,5 +1,6 @@
 package com.chatwithwork.app.bridge
 
+import com.chatwithwork.app.AppConfig
 import com.masilotti.bridgecomponents.reviewprompt.ReviewPromptComponent
 import com.masilotti.bridgecomponents.search.SearchComponent
 import dev.hotwire.core.bridge.BridgeComponentFactory
@@ -18,7 +19,7 @@ import dev.hotwire.core.bridge.BridgeComponentFactory
  * so the server serves both apps the same pages.
  */
 object BridgeComponents {
-    val all =
+    private val every =
         arrayOf(
             AlertComponent.factory,
             AuthSessionComponent.factory,
@@ -37,4 +38,11 @@ object BridgeComponents {
             ThemeComponent.factory,
             ToastComponent.factory
         )
+
+    /** What the app registers: every component, but `composer` only while the app draws its own (AppConfig.NATIVE_COMPOSER). */
+    val all = registered(nativeComposer = AppConfig.NATIVE_COMPOSER)
+
+    fun registered(nativeComposer: Boolean) = every.filter {
+        nativeComposer || it.name != ComposerComponent.NAME
+    }.toTypedArray()
 }

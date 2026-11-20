@@ -111,10 +111,11 @@ import kotlinx.coroutines.launch
  * The app's one activity: the sidebar shell. One navigator, whose root is
  * the place on screen: a chat picked in the sidebar, Decisions, Bots,
  * Settings, or whatever else the sidebar opened (Places). Drill-downs from it
- * (a bot from Bots) are pushed over it with back, and New chat, New bot and
- * the forms are modals over it (Material 3's full-screen dialog, ModalFrame),
- * which back and a predictive back gesture close. Back at the root leaves the
- * app. The sidebar is
+ * (a bot from Bots) are pushed over it with back, and so are New chat and New
+ * bot opened from a page; from the sidebar or a way in from outside they're a
+ * place. The forms are modals over it (Material 3's full-screen dialog,
+ * ModalFrame), which back and a predictive back gesture close. Back at the
+ * root leaves the app. The sidebar is
  * Material 3's modal navigation drawer, holding the server's sidebar page
  * (SidebarWebView), or, from a server without one, drawn natively from its
  * JSON (SidebarDrawer). The welcome screen covers it all when nobody is signed in.
@@ -474,9 +475,9 @@ class MainActivity :
     /**
      * Where the app opens: a chat it was sent to, else the chat the person
      * left under ten minutes ago while it was still answering, else the
-     * organization's home, which the server sends on to Decisions (never New
-     * chat, a modal, which needs a place under it). Before the app knows an organization, the
-     * unprefixed home, which the server redirects into the one used last.
+     * organization's home, which the server sends on to Decisions. Before the
+     * app knows an organization, the unprefixed home, which the server
+     * redirects into the one used last.
      */
     private fun startLocation(): String {
         viewModel.startLocation?.let { return it }
@@ -642,9 +643,13 @@ class MainActivity :
     override fun openPath(path: String) {
         val location = AppUrls.absolute(path)
         val properties = Hotwire.config.pathConfiguration.properties(location)
-        // A modal (New bot, Rename, Move to project) rises once the drawer has
-        // slid shut and the page shows without it (AfterDrawerShut); a place
-        // loads while it slides.
+        // New chat and New bot open as the place once the drawer has slid shut
+        // and the page shows without it, and a modal (Rename, Move to project)
+        // rises then (AfterDrawerShut); any other place loads while it slides.
+        if (AppUrls.opensAsPlace(location)) {
+            afterDrawerShut.run { openNewPage(location) }
+            return
+        }
         if (properties.context == PresentationContext.MODAL) {
             afterDrawerShut.run { navigator?.route(location) }
             return
@@ -663,27 +668,55 @@ class MainActivity :
     }
 
     /**
-     * Starts a new chat in the list the sidebar shows, as the web's New chat
-     * does: a modal over the place on screen (the path configuration). One
-     * already up keeps what's typed, rather than another stacking on it.
+     * The sidebar's New chat, in the list the sidebar shows, as the web's New
+     * chat does: a place, the root, once the drawer has slid shut. One
+     * already up takes the focus, rather than loading again.
      */
-    override fun startNewChat() = afterDrawerShut.run(::openNewChat)
+    override fun startNewChat() = afterDrawerShut.run { openNewPage(newChatUrl()) }
 
-    /** New chat, over the page now that nothing of the sidebar shows. */
-    private fun openNewChat() {
+    /**
+     * The bar's New chat: pushed over the page on screen (the path
+     * configuration), with Back to it. One already on top takes the focus
+     * rather than another stacking on it.
+     */
+    override fun startNewChatOverPage() {
         val navigator = navigator ?: return
-        if (navigator.currentDestination?.location?.let(AppUrls::isNewChat) == true) {
-            visibleComposer()?.focusField()
-            return
-        }
+        if (focusNewChatOnTop(navigator)) return
+        PendingShares.askFocus()
         navigator.route(newChatUrl())
     }
 
     /**
+     * New chat or New bot as the place (the sidebar's, or a way in from
+     * outside): cleared back to the root, which it then replaces, as Places
+     * does for every row of the sidebar. New chat opened by a tap takes the
+     * keyboard.
+     */
+    private fun openNewPage(location: String) {
+        val navigator = navigator ?: return
+        if (AppUrls.isNewChat(location)) {
+            // The same New chat already on top only takes the focus, unless files or
+            // dictation wait for a composer to connect, which only a fresh page does.
+            // Pushed over a page, it becomes the root instead, as a place.
+            val same = location == navigator.currentDestination?.location && navigator.isAtStartDestination()
+            if (same && !PendingShares.waiting && focusNewChatOnTop(navigator)) return
+            PendingShares.askFocus()
+        }
+        navigator.clearAll { navigator.route(location, VisitOptions(action = VisitAction.REPLACE)) }
+    }
+
+    /** New chat already on top: its field takes the focus. */
+    private fun focusNewChatOnTop(navigator: Navigator): Boolean {
+        if (navigator.currentDestination?.location?.let(AppUrls::isNewChat) != true) return false
+        visibleComposer()?.focusField()
+        return true
+    }
+
+    /**
      * A server without the organization's home (a self-hosted one from before
-     * it, which has no v3 path configuration either, so the bundled one
-     * holds): the chat list, a place, opens instead. Not New chat, a modal,
-     * which would have nothing under it.
+     * it, which has no v4 path configuration either, so the bundled one
+     * holds): the chat list, a place, opens instead, as the builds that showed
+     * New chat as a modal did.
      */
     override fun onHomeMissing(destination: HotwireDestination) {
         // Signed out, the list would read as a session (routeDecision); signing in starts on the home again.
@@ -1268,8 +1301,8 @@ class MainActivity :
 
     /**
      * Starts the navigator over inside [account], on [location] when it's a
-     * chat, else on the organization's home with [location] opened on top of
-     * it (New chat among them, a modal over the home).
+     * chat, else on the organization's home with [location] opened once it
+     * has (New chat among them, a place in its stead).
      */
     private fun moveToOrganization(account: String, location: String) {
         viewModel.account = account
@@ -1406,7 +1439,11 @@ class MainActivity :
         if (fresh) {
             val place =
                 when (intent.action) {
-                    LaunchLinks.ACTION_NEW_CHAT -> newChatUrl()
+                    // The widget and the tile: a new chat to type in.
+                    LaunchLinks.ACTION_NEW_CHAT -> {
+                        PendingShares.askFocus()
+                        newChatUrl()
+                    }
 
                     LaunchLinks.ACTION_NEW_BOT -> newBotUrl()
 
@@ -1501,11 +1538,14 @@ class MainActivity :
             // Still starting (a share or a notification on a cold start):
             // the first page that finishes opens it.
             viewModel.pendingLink = url
+        } else if (AppUrls.opensAsPlace(url)) {
+            // New chat (a shortcut's, the assistant's, a share's) and New bot
+            // are a place, as from the sidebar; what's typed in a New chat
+            // already up is kept, and a share's words join it.
+            openNewPage(url)
         } else {
-            // A chat replaces the root, New chat comes up over it, or in
-            // place of a New chat already up, with what's typed there kept
-            // (the path configuration); a link into another organization
-            // starts over there (routeDecision).
+            // A chat replaces the root (the path configuration); a link into
+            // another organization starts over there (routeDecision).
             navigator.route(url, VisitOptions())
         }
     }
@@ -1539,14 +1579,18 @@ class MainActivity :
     private fun openPendingLink(navigator: Navigator) {
         val ready = navigator.isReady() && navigator.currentDestination?.fragment?.view != null
         val url = viewModel.takePendingLink(ready) ?: return
-        navigator.route(url, VisitOptions())
+        if (AppUrls.opensAsPlace(url)) {
+            openNewPage(url)
+        } else {
+            navigator.route(url, VisitOptions())
+        }
     }
 
     /**
-     * Pages opened on top of the root after signing in or moving to another
-     * organization, New chat among them (a modal over the home): not the
-     * sign-in pages, and not the chat list the server lands people on (the
-     * sidebar is the app's list).
+     * Pages opened after signing in or moving to another organization, New
+     * chat among them (a place in place of the home): not the sign-in pages,
+     * and not the chat list the server lands people on (the sidebar is the
+     * app's list).
      */
     private fun opensOnTop(url: String): Boolean =
         !AppUrls.isAuthentication(url) && AppUrls.pathWithinAccount(url) != "/chats"

@@ -107,6 +107,9 @@ object PendingShares {
 
     fun takeFiles(): List<ComposerFile>? = files.also { files = null }
 
+    /** Files or dictation wait for a composer to connect: a New chat already on screen must load again to take them. */
+    val waiting: Boolean get() = files != null || dictation
+
     fun askDictation() {
         dictation = true
     }

@@ -11,9 +11,9 @@ class MainViewModel : ViewModel() {
 
     /**
      * Where the navigator starts the next time it starts over: a chat, after
-     * moving to another organization or from a notification. Never New chat,
-     * a modal, which opens over the home instead (pendingLink). Null starts
-     * on the organization's home.
+     * moving to another organization or from a notification, or New chat or
+     * New bot on a cold start from a shortcut, the assistant or a share. Null
+     * starts on the organization's home.
      */
     var startLocation: String? = null
 
