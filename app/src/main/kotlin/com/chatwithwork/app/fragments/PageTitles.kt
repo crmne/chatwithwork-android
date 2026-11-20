@@ -15,10 +15,18 @@ object PageTitles {
 
     fun clean(title: String?): String {
         var result = title.orEmpty().trim()
+        // Before a new page names itself, Hotwire Native titles the screen with its address, scheme left off
+        // ("chatwithwork.com/482139075/bots/new"): the bar keeps its bone rather than flash it for a frame.
+        if (isAddress(result)) return ""
         if (AppConfig.environment != "production") result = environmentPrefix.replace(result, "")
         result = appSuffix.replace(result, "")
         return result
     }
+
+    private val serverAuthority = AppConfig.baseUrl.substringAfter("://")
+
+    private fun isAddress(text: String): Boolean = text.startsWith("http://") || text.startsWith("https://") ||
+        text == serverAuthority || text.startsWith("$serverAuthority/")
 
     /**
      * A title the page set after it rendered, worth showing: WebView reports
