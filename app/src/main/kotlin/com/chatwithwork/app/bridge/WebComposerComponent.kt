@@ -47,10 +47,16 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
             "attached" -> {
                 val answer = message.data<AttachedMessage>() ?: return
                 PendingShares.settle(answer.id, answer.files)
+                // What came back locked or unavailable goes now if the composer already said it takes files.
+                val latest = state
+                if (latest != null && latest.acceptsFiles && AppUrls.isNewChat(bridgeDelegate.destination.location)) {
+                    handFiles(latest, connecting = false)
+                }
             }
 
             "connect", "state" -> {
                 val state = message.data<WebComposerState>() ?: return
+                this.state = state
                 // Files a page went quiet on for too long wait again for the next New chat.
                 PendingShares.returnUnanswered(olderThan = System.currentTimeMillis() - PendingShares.UNANSWERED_MS)
                 (fragment as? WebFragment)?.keepWebComposer(
@@ -94,6 +100,9 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
             ?: return
         if (!replyTo("connect", attachReply(files, id).toString())) PendingShares.unsend(id)
     }
+
+    /** The composer's latest word, for an answer about files that comes after it. */
+    private var state: WebComposerState? = null
 
     private var back: OnBackPressedCallback? = null
     private var backOwner: LifecycleOwner? = null

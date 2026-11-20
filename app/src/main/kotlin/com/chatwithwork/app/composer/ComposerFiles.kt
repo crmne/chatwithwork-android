@@ -202,7 +202,10 @@ object PendingShares {
                 // Given back or sent again since: its newer attempt decides.
                 entry.attempt != id -> Unit
 
-                result?.reason in setOf("locked", "unavailable") -> entry.attempt = null
+                result?.reason in setOf("locked", "unavailable") -> {
+                    entry.attempt = null
+                    entry.afterVisit = -1
+                }
 
                 else -> {
                     entry.attempt = null

@@ -104,6 +104,17 @@ class PendingSharesTest {
     }
 
     @Test
+    fun `a file that failed before, then comes back locked, goes again on this page once it unlocks`() {
+        PendingShares.putFiles(listOf(notes))
+        val (first, _) = PendingShares.sendFiles(owner = page)!!
+        PendingShares.settle(first, listOf(kept("notes.txt", "failed")))
+        PendingShares.visitStarted(owner = other)
+        val (second, _) = PendingShares.sendFiles(owner = page)!!
+        PendingShares.settle(second, listOf(kept("notes.txt", "locked")))
+        assertThat(PendingShares.sendFiles(owner = page, connecting = false)!!.second).containsExactly(notes)
+    }
+
+    @Test
     fun `an attach the reply couldn't carry waits again at once`() {
         PendingShares.putFiles(listOf(notes))
         val (id, _) = PendingShares.sendFiles(owner = page)!!
