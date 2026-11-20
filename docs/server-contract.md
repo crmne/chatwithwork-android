@@ -1081,7 +1081,11 @@ without the page, and for older builds, which the server keeps serving.
   page keeps it on its column as `data-native-current-url`, so a row drawn
   again by a stream is marked too, with nothing more from the app);
   `refresh()` back from the background (`onStart` after `onStop`), since the
-  page's streams may have missed something; `answer(id, confirmed)`.
+  page's streams may have missed something; `answer(id, confirmed)`; and
+  `closed()` (2026-11-20) whenever the drawer closes, however it closes (a
+  back gesture, a swipe, a tap on the scrim, a visit), so the page ends
+  picking rows and closes its menus. A page from before it has no `closed`,
+  and the call does nothing there.
 - **Navigation.** Nothing but the page loads in the drawer:
   `shouldOverrideUrlLoading` lets through only the page's own path, hands
   any other page of this server to the navigator (`visit`) and other sites to

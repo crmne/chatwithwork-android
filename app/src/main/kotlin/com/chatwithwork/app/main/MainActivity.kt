@@ -538,6 +538,7 @@ class MainActivity :
                     closeSidebar.isEnabled = false
                     pollJob?.cancel()
                     sidebar.resetSearch()
+                    sidebarPage.closed()
                 }
 
                 override fun onDrawerStateChanged(newState: Int) {

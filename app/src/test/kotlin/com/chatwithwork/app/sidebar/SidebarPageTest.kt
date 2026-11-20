@@ -72,5 +72,9 @@ class SidebarPageTest {
             .contains("\"x\\\"); alert(1); (\\\"\", \"/1/bots/3\"")
         assertThat(SidebarPage.Script.answer("7", true))
             .isEqualTo("window.chatWithWorkSidebar && window.chatWithWorkSidebar.answer(\"7\", true)")
+        // A page from before closed() has nothing to call.
+        assertThat(SidebarPage.Script.CLOSED).isEqualTo(
+            "window.chatWithWorkSidebar && window.chatWithWorkSidebar.closed && window.chatWithWorkSidebar.closed()"
+        )
     }
 }
