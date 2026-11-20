@@ -404,15 +404,21 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     // Behind every child, and past this view's bounds: see onAttachedToWindow.
     override fun dispatchDraw(canvas: Canvas) {
-        if (box.isVisible) {
+        if (box.isVisible && box.width > 0) {
             box.getHitRect(boxBounds)
-            composerGlow.draw(
-                canvas,
-                boxBounds,
-                composerBackground.edgeShader,
-                composerBackground.attentionColor,
-                glowOpacity
-            )
+            // The box draws its background after this, and only then would size it: the glow needs its shader now.
+            composerBackground.setBounds(0, 0, box.width, box.height)
+            val amber = look.edge == ComposerLook.Edge.ATTENTION
+            val shader = composerBackground.edgeShader
+            if (amber || shader != null) {
+                composerGlow.draw(
+                    canvas,
+                    boxBounds,
+                    if (amber) null else shader,
+                    composerBackground.attentionColor,
+                    glowOpacity
+                )
+            }
         }
         super.dispatchDraw(canvas)
     }
@@ -839,11 +845,14 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
             }
         )
         actions?.send(text)
-        // As the web form flows while it's aria-busy: pressing Send looks answered at once.
-        sending = true
-        removeCallbacks(sendingOver)
-        postDelayed(sendingOver, SENDING_LIMIT_MS)
-        updateLook()
+        // As the web form flows while it's aria-busy: pressing Send looks answered at once. Steering an answer that
+        // runs, or a send while a change waits, has its look already, and nothing new to wait for.
+        if (!state.working && !state.waiting) {
+            sending = true
+            removeCallbacks(sendingOver)
+            postDelayed(sendingOver, SENDING_LIMIT_MS)
+            updateLook()
+        }
         clear()
     }
 

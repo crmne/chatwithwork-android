@@ -47,7 +47,7 @@ class ComposerGlowTest {
         val bitmap = Bitmap.createBitmap(WIDTH + MARGIN * 2, HEIGHT + MARGIN * 2, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.BLACK)
-        ComposerGlow(activity).draw(canvas, box, background.edgeShader, background.attentionColor, glowOpacity * 4)
+        ComposerGlow(activity).draw(canvas, box, background.edgeShader, background.attentionColor, glowOpacity * 3)
         canvas.save()
         canvas.translate(box.left.toFloat(), box.top.toFloat())
         background.draw(canvas)
@@ -139,6 +139,13 @@ class ComposerGlowTest {
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(10))
         assertThat(composer.shownLook.edge).isEqualTo(ComposerLook.Edge.RAINBOW)
 
+        // Steering a running answer adds nothing to wait for: the answer ending stops the flow at once.
+        composer.show(ComposerState(working = true))
+        field.setText("Also check Q4")
+        send.performClick()
+        composer.show(ComposerState())
+        assertThat(composer.shownLook.edge).isEqualTo(ComposerLook.Edge.RAINBOW)
+
         // A dialog taking the screen (model consent) ends it at once.
         field.setText("Once more")
         send.performClick()
@@ -156,6 +163,27 @@ class ComposerGlowTest {
         assertThat(composer.shownLook.edge).isEqualTo(ComposerLook.Edge.ATTENTION)
         composer.show(ComposerState(working = true))
         assertThat(composer.shownLook.edge).isEqualTo(ComposerLook.Edge.FLOWING)
+    }
+
+    @Test
+    fun `the first frame's glow is the rainbow, never amber`() {
+        val composer = composer()
+        val box = composer.findViewById<View>(R.id.composer_box)
+        val bitmap = Bitmap.createBitmap(composer.width, composer.height, Bitmap.Config.ARGB_8888)
+        // The page's dark canvas under it, so the 16% glow shows its colour.
+        Canvas(bitmap).apply {
+            drawColor(Color.BLACK)
+            composer.draw(this)
+        }
+        val bounds = Rect().also { box.getHitRect(it) }
+        val amber = activity.getColor(R.color.lw_attention)
+        // Where the rainbow is blue and violet, far from amber (its orange, at 73%, is near it).
+        listOf(0.25f, 0.4f, 0.5f).forEach { x ->
+            val glow = bitmap.getPixel(bounds.left + (bounds.width() * x).toInt(), bounds.top - 3)
+            assertThat(Color.alpha(glow)).isEqualTo(255)
+            assertThat(Color.red(glow) + Color.green(glow) + Color.blue(glow)).isGreaterThan(0)
+            assertThat(hueApart(glow, amber)).isGreaterThan(60f)
+        }
     }
 
     @Test
