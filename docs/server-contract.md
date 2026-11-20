@@ -1404,6 +1404,42 @@ element, subscribed to the person's own chat-list streams. It sends:
 
 No replies.
 
+### Decisions in the bar
+
+**From 2026-11-20.** Builds that register `decisions` show Decisions as the
+top app bar's last button on every page but Decisions, where it stays New
+chat. The server renders the component only for builds that list it: a
+hidden element on every signed-in account page (`application/_native_decisions`,
+`bridge/decisions_controller.js`, `data-bridge-native-action="decisions"`).
+
+| Event | Direction | Data |
+|---|---|---|
+| `connect` | web to app | `{waiting, here, url}` |
+| `count` | web to app | `{waiting}`, whenever it changes |
+
+`waiting` is how many decisions wait for this person in this organization,
+snoozed ones left out, as the sidebar's Decisions row says, live on their
+`[user, :sidebar]` stream; the page loads it again as it comes back from the
+background. `here` is whether this page is Decisions; `url` is Decisions,
+absolute. Nothing goes back to the page.
+
+- **The button** (`DecisionsComponent`, its own menu group, `ORDER_DECISIONS`,
+  80, New chat's place): Phosphor's regular signpost (`ic_bar_decisions`) at
+  the bar's 22dp in its ink. While some wait it takes `lw_attention_ink`,
+  with the count at its top right on `lw_attention_wash` ringed in
+  `lw_attention_edge`, as the sidebar's count: up to 9, then "9+", nothing at
+  zero. TalkBack and the tooltip say "Decisions" or "Decisions, 3 waiting".
+  The shell's New chat hides while it shows, and comes back on Decisions
+  (`here`).
+- **Other trailing buttons** (a chat's side panel, a bot's Setup, a form's
+  Save, share) keep their places before it: Decisions is always the last
+  button on the bar, with only the overflow menu after it.
+- **The tap** goes back to Decisions when it's the place under the screen
+  (every screen over it closes, `clearAll`), and otherwise makes Decisions
+  the place, as the sidebar opens it. There's never a second Decisions on
+  the stack.
+- A server that doesn't render it, and builds without it, keep New chat.
+
 ## 12. The composer
 
 **The page's own composer (2026-11-20).** Builds made with

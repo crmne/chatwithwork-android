@@ -170,6 +170,9 @@ class MainActivity :
     /** When the navigator last finished a visit (uptime), for a modal's notice to wait on. */
     private var lastVisitCompletedAt = 0L
 
+    /** The page at the navigator's root, the place (Decisions, a chat, a list), as its last visit showed it. */
+    private var rootLocation: String? = null
+
     private var keyboardVisible = false
 
     /** True while the app itself opens the sign-in form (see presentSignIn). */
@@ -717,6 +720,21 @@ class MainActivity :
             PendingShares.askFocus()
         }
         navigator.clearAll { navigator.route(location, VisitOptions(action = VisitAction.REPLACE)) }
+    }
+
+    /**
+     * The bar's Decisions: when Decisions is the place under this screen, back
+     * to it (every screen over it closes); otherwise Decisions becomes the
+     * place, as the sidebar opens it. Never a second Decisions on the stack.
+     */
+    override fun openDecisionsFromBar(url: String?) {
+        val navigator = navigator ?: return
+        val decisions = url?.let(AppUrls::absolute) ?: decisionsUrl()
+        if (rootLocation?.let(AppUrls::isDecisions) == true) {
+            if (!navigator.isAtStartDestination()) navigator.clearAll()
+            return
+        }
+        openPath(decisions)
     }
 
     /** New chat already on top: its field takes the focus, the app's own or the page's. */
@@ -1343,6 +1361,7 @@ class MainActivity :
         if (AppUrls.isChat(shown) && !AppUrls.isNewChat(shown)) {
             AppUrls.account(shown)?.let { memory.setLastChat(it, shown) }
         }
+        if (destination.navigator.isAtStartDestination() && !destination.isModal) rootLocation = shown
         openPendingLink(destination.navigator)
         updateChrome()
         sidebarPage.current(shown, connectedPage?.takeIf { it.first == shown }?.second)

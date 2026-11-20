@@ -274,4 +274,26 @@ class BridgeMessagesTest {
 
         assertThat(WebComposerComponent.closeMenusReply().toString()).isEqualTo("""{"action":"closeMenus"}""")
     }
+
+    @Test
+    fun `decisions says how many wait, whether this is Decisions, and where it is, then each new count`() {
+        val connect = json.decodeFromString<DecisionsComponent.Data>(
+            """{"waiting":3,"here":false,"url":"https://chatwithwork.com/482139075/decisions","metadata":{"url":"x"}}"""
+        )
+        assertThat(connect.waiting).isEqualTo(3)
+        assertThat(connect.here).isFalse()
+        assertThat(connect.url).isEqualTo("https://chatwithwork.com/482139075/decisions")
+
+        assertThat(json.decodeFromString<DecisionsComponent.Count>("""{"waiting":12}""").waiting).isEqualTo(12)
+        assertThat(json.decodeFromString<DecisionsComponent.Data>("""{}""")).isEqualTo(DecisionsComponent.Data())
+    }
+
+    @Test
+    fun `the bar's Decisions badge counts to nine, then says 9+, and shows nothing at zero`() {
+        assertThat(DecisionsComponent.badge(0)).isNull()
+        assertThat(DecisionsComponent.badge(-1)).isNull()
+        assertThat(DecisionsComponent.badge(3)).isEqualTo("3")
+        assertThat(DecisionsComponent.badge(9)).isEqualTo("9")
+        assertThat(DecisionsComponent.badge(12)).isEqualTo("9+")
+    }
 }

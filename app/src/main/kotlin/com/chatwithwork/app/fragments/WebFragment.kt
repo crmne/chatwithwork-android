@@ -213,6 +213,7 @@ open class WebFragment : HotwireWebFragment() {
         toolbar.menu.add(GROUP_SHELL, ITEM_NEW_CHAT, ORDER_NEW_CHAT, R.string.new_chat).apply {
             icon = ContextCompat.getDrawable(toolbar.context, R.drawable.ic_new_chat)
             setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+            isVisible = !decisionsInBar
             setOnMenuItemClickListener {
                 host?.startNewChatOverPage()
                 true
@@ -366,6 +367,15 @@ open class WebFragment : HotwireWebFragment() {
         }
     }
 
+    /** The page put Decisions at the bar's end (DecisionsComponent), in New chat's place. */
+    private var decisionsInBar = false
+
+    /** Decisions takes the bar's last place, or gives it back to New chat (on Decisions itself). */
+    fun showDecisionsInBar(shown: Boolean) {
+        decisionsInBar = shown
+        toolbarForNavigation()?.menu?.findItem(ITEM_NEW_CHAT)?.isVisible = !shown
+    }
+
     /** Asked once per screen: a page coming back from a pushed one doesn't bring the keyboard up again. */
     private var keyboardOffered = false
 
@@ -499,6 +509,9 @@ interface WebScreenHost {
 
     /** The bar's New chat: pushed over this page, with Back to it. */
     fun startNewChatOverPage()
+
+    /** The bar's Decisions (DecisionsComponent): back to it if it's the place under this screen, else it as the place. */
+    fun openDecisionsFromBar(url: String?)
 
     /** The organization's home, in [destination], answered 404 (a server from before it): open the chat list instead. */
     fun onHomeMissing(destination: HotwireDestination)
