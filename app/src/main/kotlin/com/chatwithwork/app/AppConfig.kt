@@ -7,6 +7,15 @@ import androidx.core.content.pm.PackageInfoCompat
  * Where this build points and how it introduces itself to the server.
  */
 object AppConfig {
+    /**
+     * Whether the app draws its own composer (the `composer` bridge component,
+     * ComposerView). Off, `composer` isn't registered, so it's missing from the
+     * user agent's `bridge-components` and the page shows its own web composer
+     * (native.css hides it only where the list names `composer`). The native
+     * composer's code stays; turning this back on brings it back.
+     */
+    const val NATIVE_COMPOSER = false
+
     /** The site this build wraps, without a trailing slash. Set per build type. */
     val baseUrl: String = BuildConfig.BASE_URL.trimEnd('/')
 

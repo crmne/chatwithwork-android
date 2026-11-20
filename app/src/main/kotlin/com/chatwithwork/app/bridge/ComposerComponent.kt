@@ -253,7 +253,9 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
     }
 
     companion object {
-        val factory = BridgeComponentFactory("composer", ::ComposerComponent)
+        const val NAME = "composer"
+
+        val factory = BridgeComponentFactory(NAME, ::ComposerComponent)
 
         internal fun actionReply(
             action: String,

@@ -17,6 +17,7 @@ import androidx.annotation.AttrRes
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.R
 
 /**
@@ -234,7 +235,8 @@ class SkeletonOverlay(
         val sketch = PageSkeleton.sketch(kind, width, height, bar.bottom.toFloat(), height, density, rtl)
         body.setBones(sketch.bones, sketch.boxes)
         // The composer's bone lasts longest.
-        composer.setBones(listOfNotNull(sketch.composer))
+        // The composer's bone lasts longest, where the app draws its own composer; the page's own sits elsewhere.
+        composer.setBones(listOfNotNull(sketch.composer?.takeIf { AppConfig.NATIVE_COMPOSER }))
         // As the toolbar places its title: past its content inset and the navigation button, then its margin.
         val inset = if (rtl) toolbar.currentContentInsetRight else toolbar.currentContentInsetLeft
         val start = maxOf(inset.toFloat(), NAVIGATION_BUTTON_DP * density) + toolbar.titleMarginStart

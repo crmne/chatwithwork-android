@@ -12,9 +12,12 @@ import androidx.appcompat.R as AppCompatR
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.NavOptions
 import androidx.navigation.navOptions
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.R
 import com.chatwithwork.app.composer.ComposerView
 import com.chatwithwork.app.routing.AppUrls
@@ -322,6 +325,30 @@ open class WebFragment : HotwireWebFragment() {
         super.onVisitCompleted(location, completedOffline)
         allowZoom(AppUrls.isFileViewer(location))
         host?.onVisitCompleted(this, location)
+        if (!keyboardOffered) {
+            keyboardOffered = true
+            if (!AppConfig.NATIVE_COMPOSER && AppUrls.opensAsPlace(location)) offerKeyboard()
+        }
+    }
+
+    /** Asked once per screen: a page coming back from a pushed one doesn't bring the keyboard up again. */
+    private var keyboardOffered = false
+
+    /**
+     * New chat and New bot focus the page's own composer as they load (the
+     * server does, where the app draws no composer of its own), but a focus
+     * from script brings no keyboard while the web view itself hasn't the
+     * focus: it takes it, and asks for the keyboard for the field the page
+     * focused.
+     */
+    private fun offerKeyboard() {
+        val webView = navigator.session.webView
+        webView.requestFocus()
+        webView.post {
+            if (isAdded && view != null) {
+                WindowCompat.getInsetsController(requireActivity().window, webView).show(WindowInsetsCompat.Type.ime())
+            }
+        }
     }
 
     /**

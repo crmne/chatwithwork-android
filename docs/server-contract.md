@@ -1396,6 +1396,24 @@ No replies.
 
 ## 12. The composer
 
+**The page's own composer for now (2026-11-20).** Builds made with
+`AppConfig.NATIVE_COMPOSER = false` (the next internal build, with New chat
+and New bot as pages) don't register `composer`, so it's missing from the
+user agent's `bridge-components` and from `data-bridge-components`, and
+native.css leaves the web composer showing. The page's composer then does
+everything itself: typing, Send (the same form, so New chat still turns
+into its chat in place and the app keeps the screen for it), suggestions,
+the model, web search, files through the WebView's file chooser, and
+dictation through `getUserMedia` (the microphone allowed for this server's
+pages only, `AppWebChromeClient`). The keyboard resizes the page
+(`adjustResize`, and the activity pads for the IME), so it never covers the
+composer. What the native composer drove is off in those builds: Live
+Updates started from an answer left `working`, files shared into a new chat
+(shared words still arrive through `?text=`), New chat's kept draft, the
+glow, its haptics, and the skeletons' composer bone. The rest of this
+section describes the native composer, which turning the constant back on
+restores.
+
 **Composer parity (2026-10-30).** Each model may also send `iconName`
 (the model maker’s key), `icon` (the web asset’s absolute URL), and
 `invertIcon`. Both apps bundle the exact web maker artwork for `anthropic`,
