@@ -456,7 +456,9 @@ class MainActivity :
             val state = composer.state
             return Answering(location, state.liveRun, state.mark, state.csrfToken).takeIf { state.working }
         }
-        val state = (destination.fragment as? WebFragment)?.webComposer ?: return null
+        val state =
+            (destination.fragment as? WebFragment)?.webComposerFor(navigator?.session?.webView?.url ?: location)
+                ?: return null
         return Answering(location, state.liveRun, state.mark, state.csrfToken).takeIf { state.working }
     }
 

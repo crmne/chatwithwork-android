@@ -6,23 +6,18 @@ import org.junit.Test
 
 class WebFileChooserTest {
     @Test
-    fun `an input that takes any file offers every source`() {
-        assertThat(WebFileChooser.sources(emptyList())).isEqualTo(Source.entries)
-        assertThat(WebFileChooser.sources(listOf(""))).isEqualTo(Source.entries)
-        assertThat(WebFileChooser.sources(listOf("*/*"))).isEqualTo(Source.entries)
-    }
-
-    @Test
-    fun `an input for pictures offers the camera and photos`() {
-        assertThat(WebFileChooser.sources(listOf("image/*"))).containsExactly(Source.CAMERA, Source.PHOTOS).inOrder()
-        assertThat(
-            WebFileChooser.sources(listOf("image/png", "image/jpeg"))
-        ).containsExactly(Source.CAMERA, Source.PHOTOS)
+    fun `an input that takes several files of any kind offers every source`() {
+        assertThat(WebFileChooser.sources(emptyList(), multiple = true)).isEqualTo(Source.entries)
+        assertThat(WebFileChooser.sources(listOf(""), multiple = true)).isEqualTo(Source.entries)
+        assertThat(WebFileChooser.sources(listOf("*/*"), multiple = true)).isEqualTo(Source.entries)
     }
 
     @Test
     fun `anything narrower is left to Hotwire Native's chooser`() {
-        assertThat(WebFileChooser.sources(listOf(".csv"))).isNull()
-        assertThat(WebFileChooser.sources(listOf("application/pdf", "image/png"))).isNull()
+        // The photo picker also offers videos, and the camera makes JPEGs.
+        assertThat(WebFileChooser.sources(listOf("image/*"), multiple = true)).isNull()
+        assertThat(WebFileChooser.sources(listOf(".csv"), multiple = true)).isNull()
+        // The pickers let several be chosen.
+        assertThat(WebFileChooser.sources(emptyList(), multiple = false)).isNull()
     }
 }

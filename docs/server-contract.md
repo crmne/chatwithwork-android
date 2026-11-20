@@ -1503,14 +1503,16 @@ replies to the latest `connect`.
 - **Back closes a menu.** While `menu` is true the app takes Back (a callback
   added after the navigator's, on the screen's view) and replies
   `closeMenus`, which closes the composer's dropdowns and slash menu; Back
-  then goes back as before. Without it, Back with the + menu open left the
+  then goes back as before. While the sidebar covers the page, Back is the
+  drawer's, and the menu waits for the next one. Without it, Back with the + menu open left the
   app from a place, the menu still drawn. A page without `menu` sends none,
   and Back is the navigator's.
 - **Files from the + menu.** Its Attach files is the page's own file input:
-  on this server's pages the app answers it with a sheet of Camera, Photos
+  on this server's pages, for an input that takes several files of any kind
+  (the composer's), the app answers it with a sheet of Camera, Photos
   (Android's photo picker), Files and Scan (ML Kit's document scanner, one
-  PDF), and only Camera and Photos for an input that takes pictures alone;
-  anything narrower, or another site, gets Hotwire Native's chooser
+  PDF). Anything narrower (a type, or a single file, which the sheet's
+  pickers can't keep to), and other sites, get Hotwire Native's chooser
   (`WebFileChooser`).
 - **The keyboard.** The app pads the pages for the system bars and the
   keyboard, and follows the keyboard's slide frame by frame

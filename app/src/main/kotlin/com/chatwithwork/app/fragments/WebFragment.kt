@@ -77,9 +77,21 @@ open class WebFragment : HotwireWebFragment() {
     /**
      * The page's own composer as it last said (`web-composer`), where the app
      * draws none: whether an answer runs, for a Live Update as the person
-     * leaves. Forgotten as another visit starts, until its composer connects.
+     * leaves. It holds for the page it came from ([webComposerUrl]) only, so
+     * a failed refresh keeps it and another page's leaves it behind.
      */
     var webComposer: WebComposerState? = null
+        private set
+    private var webComposerUrl: String? = null
+
+    fun keepWebComposer(state: WebComposerState, url: String) {
+        webComposer = state
+        webComposerUrl = url
+    }
+
+    /** The composer state, when it came from the page now at [url]. */
+    fun webComposerFor(url: String?): WebComposerState? =
+        webComposer?.takeIf { url != null && webComposerUrl?.let { samePage(it, url) } == true }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
         inflater.inflate(R.layout.fragment_web, container, false)
@@ -349,7 +361,6 @@ open class WebFragment : HotwireWebFragment() {
     )
 
     override fun onVisitStarted(location: String) {
-        webComposer = null
         // A file's pages may have been zoomed; the page after them starts whole.
         if (!AppUrls.isFileViewer(location)) unzoom()
         tellPageItsTop()

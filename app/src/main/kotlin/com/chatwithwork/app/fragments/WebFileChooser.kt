@@ -19,25 +19,23 @@ import java.util.Locale
  * A page's file input (the web composer's + menu, Attach files) on this
  * app's own pages: a sheet of where the files come from, as the native
  * composer's "+" offered: Camera, Photos (Android's photo picker, no
- * permission), Files, and Scan (ML Kit's document scanner, one PDF). An
- * input that takes only pictures offers Camera and Photos. What's picked goes
+ * permission), Files, and Scan (ML Kit's document scanner, one PDF), for an
+ * input that takes several files of any kind. What's picked goes
  * back to the page's input, which uploads it like any file it takes.
  */
 object WebFileChooser {
     enum class Source { CAMERA, PHOTOS, FILES, SCAN }
 
     /**
-     * Which sources an input offers: everything for one that takes any file,
-     * the camera and photos for pictures only, and null (Hotwire Native's own
-     * chooser) for anything narrower, which the sheet's pickers can't keep to.
+     * Which sources an input offers: every one for an input that takes any
+     * number of any file (the composer's), and null (Hotwire Native's own
+     * chooser) for anything narrower, whose types or single file the sheet's
+     * pickers can't keep to: the photo picker also offers videos, the camera
+     * makes JPEGs, and the pickers let several be chosen.
      */
-    fun sources(acceptTypes: List<String>): List<Source>? {
+    fun sources(acceptTypes: List<String>, multiple: Boolean): List<Source>? {
         val types = acceptTypes.map { it.trim().lowercase(Locale.ROOT) }.filter { it.isNotEmpty() }
-        return when {
-            types.isEmpty() || types.any { it == "*/*" } -> Source.entries
-            types.all { it.startsWith("image/") } -> listOf(Source.CAMERA, Source.PHOTOS)
-            else -> null
-        }
+        return Source.entries.takeIf { multiple && (types.isEmpty() || types.any { it == "*/*" }) }
     }
 
     /** Shows the sheet; true when it did, so the page waits for its answer. */
@@ -47,8 +45,8 @@ object WebFileChooser {
         params: FileChooserParams,
         callback: ValueCallback<Array<Uri>>
     ): Boolean {
-        val sources = sources(params.acceptTypes?.toList().orEmpty()) ?: return false
         val multiple = params.mode == FileChooserParams.MODE_OPEN_MULTIPLE
+        val sources = sources(params.acceptTypes?.toList().orEmpty(), multiple) ?: return false
         var chosen = false
         var answered = false
 
@@ -56,8 +54,7 @@ object WebFileChooser {
         fun answer(uris: List<Uri>) {
             if (answered) return
             answered = true
-            val picked = if (multiple) uris else uris.take(1)
-            callback.onReceiveValue(picked.takeIf { it.isNotEmpty() }?.toTypedArray())
+            callback.onReceiveValue(uris.takeIf { it.isNotEmpty() }?.toTypedArray())
         }
 
         val dialog =

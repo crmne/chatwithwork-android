@@ -7,6 +7,7 @@ import com.chatwithwork.app.R
 import com.chatwithwork.app.composer.ComposerFile
 import com.chatwithwork.app.composer.PendingShares
 import com.chatwithwork.app.fragments.WebFragment
+import com.chatwithwork.app.fragments.WebScreenHost
 import com.chatwithwork.app.push.LiveRunRef
 import com.chatwithwork.app.routing.AppUrls
 import dev.hotwire.core.bridge.BridgeComponent
@@ -44,7 +45,10 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
         when (message.event) {
             "connect", "state" -> {
                 val state = message.data<WebComposerState>() ?: return
-                (fragment as? WebFragment)?.webComposer = state
+                (fragment as? WebFragment)?.keepWebComposer(
+                    state,
+                    message.metadata?.url ?: bridgeDelegate.destination.location
+                )
                 takeBack(state.menu)
                 if (message.event == "connect") onConnected(state)
             }
@@ -55,7 +59,8 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
     private fun onConnected(state: WebComposerState) {
         if (!AppUrls.isNewChat(bridgeDelegate.destination.location)) return
         if (state.acceptsFiles) PendingShares.takeFiles()?.let(::attach)
-        if (PendingShares.takeDictation() && state.dictates) dictate()
+        // Kept for a composer that can take it (after the yes to models), not dropped on one that can't.
+        if (state.dictates && PendingShares.takeDictation()) dictate()
     }
 
     private var back: OnBackPressedCallback? = null
@@ -78,6 +83,12 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
                 object : OnBackPressedCallback(false) {
                     override fun handleOnBackPressed() {
                         isEnabled = false
+                        // The sidebar slid open over the page takes Back itself, and the menu waits.
+                        if ((activity as? WebScreenHost)?.coversPage == true) {
+                            activity.onBackPressedDispatcher.onBackPressed()
+                            isEnabled = true
+                            return
+                        }
                         replyTo("connect", closeMenusReply().toString())
                     }
                 }.also { activity.onBackPressedDispatcher.addCallback(owner, it) }
