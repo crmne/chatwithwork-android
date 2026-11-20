@@ -6,6 +6,33 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.12
+
+Version 1.2.12 (10212) makes the composer's glow its edge's own colours,
+flowing with it, and searches the web with the compass, as on the web
+([#74](https://github.com/crmne/chatwithwork-android/pull/74)), and opens New
+chat and New bot from the drawer once it has slid shut, without the sheet's
+title flashing the page's address
+([#75](https://github.com/crmne/chatwithwork-android/pull/75)). What's new is
+`changelogs/10212.txt`. Tag `v1.2.12`.
+
+The signed, Firebase-enabled bundle was built with `script/bundle-release
+v1.2.12` from d8aa693 on 2026-11-20 (sha256
+`438e3536658d6c8f22b3c7dc6fc2c203c6e936982859a7950b513c68b23ff5e7`), signed
+with the same upload key as 1.2.11; bundletool reads versionCode 10212 and
+versionName 1.2.12, and its `android_v3.json` is byte-identical to
+production's and staging's. `testDebugUnitTest lintDebug spotlessCheck`
+passed (336 tests). Upload it to Internal testing only, as 1.2.11 went.
+
+Validation, on the Mac mini's `oppo` emulator (Android 17 QPR, WebView 149)
+against production with the App Review demo login (synthetic content): a
+universal APK made from the bundle by bundletool (signed with the debug key)
+signed in, the drawer opened at its top, and New bot tapped there let the
+drawer slide shut, then showed the sheet, its title blank until "New bot",
+with no drawer coming back; it closed to Decisions. The composer showed the
+compass and a glow in its edge's colours at rest; its flow while an answer
+works wasn't tried. The bundle wasn't tried on a device.
+
 ## Release 1.2.11
 
 Version 1.2.11 (10211) opens New chat as a modal over the place on screen,

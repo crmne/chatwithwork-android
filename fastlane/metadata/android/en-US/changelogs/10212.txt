@@ -1,0 +1,1 @@
+The composer's glow now takes its edge's own colours and moves with it, and web search is a compass, as on the web. New chat and New bot opened from the sidebar wait for the sidebar to slide shut before they rise, and their title no longer flashes the page's address.
