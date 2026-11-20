@@ -41,6 +41,10 @@ object PageScripts {
         })()
         """.trimIndent()
 
+    /** The page's composer takes the focus, where the app draws none of its own (`web-composer`). */
+    const val FOCUS_COMPOSER =
+        "document.querySelector(\"#new_message [data-chat-target~='input']\")?.focus({ preventScroll: true })"
+
     fun install(webView: WebView) {
         webView.evaluateJavascript(script, null)
     }

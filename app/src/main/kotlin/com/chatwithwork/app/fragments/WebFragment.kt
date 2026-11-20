@@ -12,6 +12,7 @@ import androidx.appcompat.R as AppCompatR
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.NavOptions
@@ -20,6 +21,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.ComposerHost
+import com.chatwithwork.app.bridge.WebComposerState
 import com.chatwithwork.app.composer.ComposerView
 import com.chatwithwork.app.routing.AppUrls
 import dev.hotwire.core.config.Hotwire
@@ -70,6 +72,13 @@ open class WebFragment : HotwireWebFragment() {
     /** This screen is that chat, taking over the shared web view that already shows its question. */
     private var handedOver = false
 
+    /**
+     * The page's own composer as it last said (`web-composer`), where the app
+     * draws none: whether an answer runs, for a Live Update as the person
+     * leaves. Forgotten as another visit starts, until its composer connects.
+     */
+    var webComposer: WebComposerState? = null
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
         inflater.inflate(R.layout.fragment_web, container, false)
 
@@ -117,6 +126,7 @@ open class WebFragment : HotwireWebFragment() {
             handedOver = true
             skeletonShown = true
             navigator.session.webView.title?.let(fragmentViewModel::setTitle)
+            keyboardHandedOver = NewChatHandOff.takeKeyboard()
             NewChatHandOff.takeComposer()?.let { handed ->
                 view.findViewById<ComposerView>(R.id.composer)?.apply {
                     show(handed.state)
@@ -153,7 +163,16 @@ open class WebFragment : HotwireWebFragment() {
         // Shown again (a hand-off the navigator dropped): it moves as any screen does.
         handingOff = false
         takeOverPullToRefresh()
+        // The shared web view, moved here from the screen it was typed on,
+        // lost the focus on the way: its composer takes it back with the keyboard.
+        if (keyboardHandedOver) {
+            keyboardHandedOver = false
+            focusPageComposer()
+        }
     }
+
+    /** The page's composer had the keyboard as this chat took the screen over (NewChatHandOff). */
+    private var keyboardHandedOver = false
 
     override fun onStartAfterModalResult(result: SessionModalResult) {
         super.onStartAfterModalResult(result)
@@ -221,7 +240,11 @@ open class WebFragment : HotwireWebFragment() {
             view?.findViewById<ComposerView>(R.id.composer)?.takeIf { it.visibility == View.VISIBLE }?.let {
                 NewChatHandOff.Composer(it.state, it.typing)
             }
-        NewChatHandOff.expect(proposal.location, composer)
+        val webView = navigator.session.webView
+        val keyboard =
+            composer == null && webView.hasFocus() &&
+                ViewCompat.getRootWindowInsets(webView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+        NewChatHandOff.expect(proposal.location, composer, keyboard = keyboard)
         if (navigator.isAtStartDestination()) return null
         routingHandOff = true
         try {
@@ -318,6 +341,7 @@ open class WebFragment : HotwireWebFragment() {
     )
 
     override fun onVisitStarted(location: String) {
+        webComposer = null
         // A file's pages may have been zoomed; the page after them starts whole.
         if (!AppUrls.isFileViewer(location)) unzoom()
         tellPageItsTop()
@@ -348,6 +372,22 @@ open class WebFragment : HotwireWebFragment() {
     private fun offerKeyboard() {
         val webView = navigator.session.webView
         webView.requestFocus()
+        showKeyboardSoon(webView)
+    }
+
+    /**
+     * New chat already on screen, opened again (a shortcut, the bar): its
+     * composer takes the focus, and the keyboard with it.
+     */
+    fun focusPageComposer() {
+        if (view == null) return
+        val webView = navigator.session.webView
+        webView.requestFocus()
+        webView.evaluateJavascript(PageScripts.FOCUS_COMPOSER, null)
+        showKeyboardSoon(webView)
+    }
+
+    private fun showKeyboardSoon(webView: View) {
         webView.post {
             if (isAdded && view != null) {
                 WindowCompat.getInsetsController(requireActivity().window, webView).show(WindowInsetsCompat.Type.ime())

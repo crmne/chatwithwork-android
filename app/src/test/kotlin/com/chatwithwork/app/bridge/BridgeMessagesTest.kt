@@ -3,6 +3,7 @@ package com.chatwithwork.app.bridge
 import com.chatwithwork.app.composer.ComposerState
 import com.google.common.truth.Truth.assertThat
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
@@ -232,5 +233,45 @@ class BridgeMessagesTest {
         val older = json.decodeFromString<com.chatwithwork.app.sidebar.SidebarPage.Connect>("""{}""")
         assertThat(older.page).isNull()
         assertThat(older.belongsTo).isNull()
+    }
+
+    @Test
+    fun `web composer's state says whether an answer runs, which, and what the composer takes`() {
+        val state = json.decodeFromString<WebComposerState>(
+            """{"working":true,"waiting":false,"run":"run_7","revision":3,"startedAt":1763600000,"mark":"bot",
+                "csrfToken":"t","acceptsFiles":true,"dictates":true,"menu":true,"metadata":{"url":"x"}}"""
+        )
+        assertThat(state.working).isTrue()
+        assertThat(state.liveRun).isEqualTo(com.chatwithwork.app.push.LiveRunRef("run_7", 1763600000000, 3))
+        assertThat(state.mark).isEqualTo("bot")
+        assertThat(state.csrfToken).isEqualTo("t")
+        assertThat(state.acceptsFiles).isTrue()
+        assertThat(state.dictates).isTrue()
+        assertThat(state.menu).isTrue()
+
+        // Nothing running, and an older page's keys missing: nothing to follow, nothing taken.
+        val idle = json.decodeFromString<WebComposerState>("""{"working":false,"run":null}""")
+        assertThat(idle.liveRun).isNull()
+        assertThat(idle.acceptsFiles).isFalse()
+        assertThat(idle.dictates).isFalse()
+        assertThat(idle.menu).isFalse()
+    }
+
+    @Test
+    fun `web composer's replies hand over shared files, start dictation, and close its menus`() {
+        val attach = WebComposerComponent.attachReply(
+            listOf(com.chatwithwork.app.composer.ComposerFile(name = "a.pdf", type = "application/pdf", data = "QQ=="))
+        )
+        assertThat(attach["action"]?.jsonPrimitive?.content).isEqualTo("attach")
+        val file = attach["files"]!!.jsonArray.single().jsonObject
+        assertThat(file["name"]?.jsonPrimitive?.content).isEqualTo("a.pdf")
+        assertThat(file["type"]?.jsonPrimitive?.content).isEqualTo("application/pdf")
+        assertThat(file["data"]?.jsonPrimitive?.content).isEqualTo("QQ==")
+
+        val dictate = WebComposerComponent.dictateReply()
+        assertThat(dictate.keys).containsExactly("action")
+        assertThat(dictate["action"]?.jsonPrimitive?.content).isEqualTo("dictate")
+
+        assertThat(WebComposerComponent.closeMenusReply().toString()).isEqualTo("""{"action":"closeMenus"}""")
     }
 }

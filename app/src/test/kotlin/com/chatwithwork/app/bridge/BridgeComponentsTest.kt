@@ -10,12 +10,15 @@ class BridgeComponentsTest {
     fun `without the native composer, composer is left out and the page shows its own`() {
         val names = BridgeComponents.registered(nativeComposer = false).map { it.name }
         assertThat(names).doesNotContain("composer")
+        assertThat(names).contains("web-composer")
         assertThat(names).containsAtLeast("button", "menu", "form", "sidebar", "notification-token")
     }
 
     @Test
     fun `with it, composer is announced and the page hides its own`() {
-        assertThat(BridgeComponents.registered(nativeComposer = true).map { it.name }).contains("composer")
+        val names = BridgeComponents.registered(nativeComposer = true).map { it.name }
+        assertThat(names).contains("composer")
+        assertThat(names).doesNotContain("web-composer")
     }
 
     @Test

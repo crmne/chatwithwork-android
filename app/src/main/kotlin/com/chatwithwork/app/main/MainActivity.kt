@@ -69,9 +69,11 @@ import com.chatwithwork.app.composer.NewChatDrafts
 import com.chatwithwork.app.composer.PendingShares
 import com.chatwithwork.app.fragments.ModalBackdrop
 import com.chatwithwork.app.fragments.ModalFrame
+import com.chatwithwork.app.fragments.WebFragment
 import com.chatwithwork.app.fragments.WebModalFragment
 import com.chatwithwork.app.fragments.WebScreenHost
 import com.chatwithwork.app.push.LiveAlertsTip
+import com.chatwithwork.app.push.LiveRunRef
 import com.chatwithwork.app.push.LiveTemplate
 import com.chatwithwork.app.push.LiveUpdates
 import com.chatwithwork.app.push.PushNotifications
@@ -434,15 +436,25 @@ class MainActivity :
             .show()
     }
 
-    /** The chat on screen and its composer, when the composer says an answer is running. */
-    private fun answeringChat(): Pair<String, ComposerView>? {
+    /** The chat on screen, when its composer says an answer is running, with what its Live Update needs. */
+    private class Answering(val chat: String, val run: LiveRunRef?, val mark: String?, val csrfToken: String?)
+
+    /**
+     * The chat on screen when its composer says an answer is running: the
+     * native composer's state where the app draws it, else the page's own
+     * composer's, as the screen last heard it (`web-composer`).
+     */
+    private fun answeringChat(): Answering? {
         val destination = navigator?.currentDestination ?: return null
-        val composer = destination.fragment.view?.findViewById<ComposerView>(R.id.composer) ?: return null
         val location = destination.location
-        return (location to composer).takeIf {
-            composer.isVisible && composer.state.working &&
-                AppUrls.chatNumber(location) != null
+        if (AppUrls.chatNumber(location) == null) return null
+        val composer = destination.fragment.view?.findViewById<ComposerView>(R.id.composer)
+        if (composer != null && composer.isVisible) {
+            val state = composer.state
+            return Answering(location, state.liveRun, state.mark, state.csrfToken).takeIf { state.working }
         }
+        val state = (destination.fragment as? WebFragment)?.webComposer ?: return null
+        return Answering(location, state.liveRun, state.mark, state.csrfToken).takeIf { state.working }
     }
 
     /**
@@ -456,11 +468,11 @@ class MainActivity :
     @SuppressLint("ThreadConstraint")
     private fun showLiveUpdate() {
         if (isChangingConfigurations || viewModel.signedOut) return
-        val (chat, composer) = answeringChat() ?: return
+        val answering = answeringChat() ?: return
+        val chat = answering.chat
         val organization = viewModel.sidebar?.takeIf { it.organization.id == AppUrls.account(chat) }?.organization?.name
-        val run = composer.state.liveRun
-        if (LiveUpdates.show(this, chat, organization, run, composer.state.mark)) {
-            LiveUpdates.follow(applicationContext, chat, composer.state.csrfToken, run?.id)
+        if (LiveUpdates.show(this, chat, organization, answering.run, answering.mark)) {
+            LiveUpdates.follow(applicationContext, chat, answering.csrfToken, answering.run?.id)
             liveUpdate = LiveUpdates.threadFor(chat)
         }
     }
@@ -707,10 +719,12 @@ class MainActivity :
         navigator.clearAll { navigator.route(location, VisitOptions(action = VisitAction.REPLACE)) }
     }
 
-    /** New chat already on top: its field takes the focus. */
+    /** New chat already on top: its field takes the focus, the app's own or the page's. */
     private fun focusNewChatOnTop(navigator: Navigator): Boolean {
-        if (navigator.currentDestination?.location?.let(AppUrls::isNewChat) != true) return false
-        visibleComposer()?.focusField()
+        val destination = navigator.currentDestination ?: return false
+        if (!AppUrls.isNewChat(destination.location)) return false
+        val composer = visibleComposer()
+        if (composer != null) composer.focusField() else (destination.fragment as? WebFragment)?.focusPageComposer()
         return true
     }
 
@@ -1089,7 +1103,7 @@ class MainActivity :
 
     /** Remembers the chat showing, if it's answering, so a launch soon after reopens it. */
     private fun rememberAnsweringChat() {
-        memory.leftAnswering(answeringChat()?.first, System.currentTimeMillis())
+        memory.leftAnswering(answeringChat()?.chat, System.currentTimeMillis())
     }
 
     // endregion

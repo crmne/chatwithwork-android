@@ -1400,23 +1400,88 @@ No replies.
 
 ## 12. The composer
 
-**The page's own composer for now (2026-11-20).** Builds made with
-`AppConfig.NATIVE_COMPOSER = false` (the next internal build, with New chat
-and New bot as pages) don't register `composer`, so it's missing from the
-user agent's `bridge-components` and from `data-bridge-components`, and
-native.css leaves the web composer showing. The page's composer then does
-everything itself: typing, Send (the same form, so New chat still turns
-into its chat in place and the app keeps the screen for it), suggestions,
-the model, web search, files through the WebView's file chooser, and
-dictation through `getUserMedia` (the microphone allowed for this server's
-pages only, `AppWebChromeClient`). The keyboard resizes the page
-(`adjustResize`, and the activity pads for the IME), so it never covers the
-composer. What the native composer drove is off in those builds: Live
-Updates started from an answer left `working`, files shared into a new chat
-(shared words still arrive through `?text=`), New chat's kept draft, the
-glow, its haptics, and the skeletons' composer bone. The rest of this
-section describes the native composer, which turning the constant back on
-restores.
+**The page's own composer (2026-11-20).** Builds made with
+`AppConfig.NATIVE_COMPOSER = false` (from 1.2.13) don't register `composer`,
+so it's missing from the user agent's `bridge-components` and from
+`data-bridge-components`, and native.css leaves the web composer showing. The
+page's composer then does everything itself: typing, Send (the same form, so
+New chat still turns into its chat in place and the app keeps the screen for
+it), suggestions, the model, web search, the slash menu, files, and dictation
+through `getUserMedia` (the microphone allowed for this server's pages only,
+`AppWebChromeClient`; Hotwire Native asks for `RECORD_AUDIO` the first time).
+The rest of this section after "The web composer" describes the native
+composer, which turning the constant back on restores.
+
+### The web composer
+
+Those builds register `web-composer` instead (never both: `BridgeComponents`
+registers it exactly when it leaves `composer` out). Its Stimulus controller,
+the server's `bridge/web_composer_controller.js`, sits on `#new_message`
+beside `bridge--composer`, and tells the app what it needs from a composer it
+doesn't draw:
+
+| Event | Direction | Data |
+|---|---|---|
+| `connect`, then `state` whenever it changes | web to app | `{working, waiting, run, revision, startedAt, mark, csrfToken, acceptsFiles, dictates, menu}` |
+| reply to `connect` | app to web | `{action: "attach", files: [{name, type, data}]}` (data base64, `ComposerFile`), `{action: "dictate"}`, `{action: "closeMenus"}` |
+
+`working`, `waiting`, `run`, `revision`, `startedAt` (unix seconds) and `mark`
+are `bridge--composer`'s own. `acceptsFiles` is false while the composer is
+locked; `dictates` is whether its microphone is offered now (an install that
+transcribes, and the person's yes to models); `menu` is whether one of its
+menus is open (+, the model picker, the mode picker, the slash menu). A chat draws its composer again
+as an answer starts and ends, and New chat's composer connects again as it
+turns into its chat (`address:replaced`): each connects again, and the app
+replies to the latest `connect`.
+
+- **Live Updates.** Each screen keeps the latest state (`WebFragment.webComposer`,
+  forgotten as another visit starts on it). Leaving a chat while it's
+  `working` starts its Live Update from that state, as from the native
+  composer's: the chat's URL, `liveRun` from `run`, `revision` and
+  `startedAt`, `mark`, and `csrfToken` for following it (section 9, "Live
+  Updates"), and a launch soon after reopens that chat.
+- **Files shared into a new chat** (section 7, "Sharing into the app") wait
+  for New chat's composer: on its `connect` with `acceptsFiles`, the app
+  replies `attach` with them, which the page uploads as any file it takes.
+  Shared words still arrive through `?text=`.
+- **Dictate from the widget or a shortcut** waits the same way: on New chat's
+  `connect` with `dictates`, the app asks for the microphone if Android
+  hasn't allowed it yet, then replies `dictate`, which clicks the page's
+  microphone, so everything it checks holds. Without the permission it says
+  so in a snackbar.
+- **The focus.** The page focuses New chat's composer as it loads; the app
+  gives the web view the focus and asks for the keyboard (`WebFragment`).
+  New chat opened again while it's already on top (the bar, a shortcut)
+  focuses the page's composer from the app. When New chat's question hands
+  its screen to the chat (section 5), the shared web view moves to the
+  chat's screen and loses the focus on the way; if the page's composer had
+  the keyboard up as it went, the chat's screen gives the focus back
+  (`NewChatHandOff.takeKeyboard`), so the keyboard comes back up after a
+  short dip rather than staying down.
+- **Back closes a menu.** While `menu` is true the app takes Back (a callback
+  added after the navigator's, on the screen's view) and replies
+  `closeMenus`, which closes the composer's dropdowns and slash menu; Back
+  then goes back as before. Without it, Back with the + menu open left the
+  app from a place, the menu still drawn. A page without `menu` sends none,
+  and Back is the navigator's.
+- **Files from the + menu.** Its Attach files is the page's own file input:
+  on this server's pages the app answers it with a sheet of Camera, Photos
+  (Android's photo picker), Files and Scan (ML Kit's document scanner, one
+  PDF), and only Camera and Photos for an input that takes pictures alone;
+  anything narrower, or another site, gets Hotwire Native's chooser
+  (`WebFileChooser`).
+- **The keyboard.** The app pads the pages for the system bars and the
+  keyboard, and follows the keyboard's slide frame by frame
+  (`WindowInsetsAnimationCompat`), so the composer rides on its top edge as
+  it opens and closes. The web view gets those insets already used up, so
+  `env(safe-area-inset-bottom)` is 0 in the app and the page never pads for
+  the gesture bar a second time. The VirtualKeyboard API is no use here: the
+  WebView (149) has `navigator.virtualKeyboard` but never fires
+  `geometrychange`.
+- **Haptics.** Send's `turbo:submit-start->bridge--haptic#vibrate` (`light`)
+  ticks as on the web.
+- **Not in these builds:** New chat's kept draft (the page keeps its own
+  draft per chat), and the skeletons' composer bone.
 
 **Composer parity (2026-10-30).** Each model may also send `iconName`
 (the model maker’s key), `icon` (the web asset’s absolute URL), and

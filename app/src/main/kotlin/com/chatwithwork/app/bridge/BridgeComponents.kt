@@ -14,9 +14,9 @@ import dev.hotwire.core.bridge.BridgeComponentFactory
  * Stimulus controllers work as they are. Where his Android version draws its
  * own buttons, this app's version uses the native toolbar, menus, sheets,
  * dialogs, and snackbars instead. `review-prompt` and `search` are his,
- * unchanged. `auth-session`, `composer`, `context-menu`, `file`, `notification-token`, and `sidebar` are
- * Chat with Work's own, with the same names and messages as in the iOS app,
- * so the server serves both apps the same pages.
+ * unchanged. `auth-session`, `composer`, `context-menu`, `file`, `notification-token`, `sidebar`, and
+ * `web-composer` are Chat with Work's own, with the same names and messages as
+ * in the iOS app, so the server serves both apps the same pages.
  */
 object BridgeComponents {
     private val every =
@@ -36,13 +36,22 @@ object BridgeComponents {
             ShareComponent.factory,
             SidebarComponent.factory,
             ThemeComponent.factory,
-            ToastComponent.factory
+            ToastComponent.factory,
+            WebComposerComponent.factory
         )
 
-    /** What the app registers: every component, but `composer` only while the app draws its own (AppConfig.NATIVE_COMPOSER). */
+    /**
+     * What the app registers: every component, but `composer` only while the
+     * app draws its own (AppConfig.NATIVE_COMPOSER), and `web-composer` only
+     * while it doesn't, so the page's composer says what the app needs.
+     */
     val all = registered(nativeComposer = AppConfig.NATIVE_COMPOSER)
 
     fun registered(nativeComposer: Boolean) = every.filter {
-        nativeComposer || it.name != ComposerComponent.NAME
+        when (it.name) {
+            ComposerComponent.NAME -> nativeComposer
+            WebComposerComponent.NAME -> !nativeComposer
+            else -> true
+        }
     }.toTypedArray()
 }
