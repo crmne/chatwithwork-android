@@ -22,6 +22,7 @@ import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.ComposerHost
 import com.chatwithwork.app.bridge.WebComposerState
 import com.chatwithwork.app.composer.ComposerView
+import com.chatwithwork.app.composer.PendingShares
 import com.chatwithwork.app.routing.AppUrls
 import dev.hotwire.core.config.Hotwire
 import dev.hotwire.core.turbo.config.PathConfigurationProperties
@@ -364,6 +365,8 @@ open class WebFragment : HotwireWebFragment() {
         // A file's pages may have been zoomed; the page after them starts whole.
         if (!AppUrls.isFileViewer(location)) unzoom()
         tellPageItsTop()
+        // A page that held shared files is going: they wait again for the next New chat.
+        PendingShares.returnUnanswered()
         super.onVisitStarted(location)
     }
 

@@ -6,8 +6,10 @@ import android.provider.OpenableColumns
 import android.util.Base64
 import com.chatwithwork.app.routing.AppUrls
 import java.io.IOException
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 
 /**
  * Reads files the person picked, photographed, scanned, or shared into the
@@ -112,6 +114,72 @@ object PendingShares {
         if (taken.isNotEmpty()) files = taken + files.orEmpty()
     }
 
+    /**
+     * Files handed to a page that answers for them (`confirmsAttach`), by the
+     * id their `attach` carried, until its `attached` says what it took
+     * ([settle]). The page answers every attach while it lives, so only a
+     * page gone away leaves them unanswered: [returnUnanswered] puts them back.
+     */
+    private class InFlight(val files: List<ComposerFile>, val sentAt: Long)
+
+    private val inFlight = LinkedHashMap<String, InFlight>()
+
+    /** Files given back before their answer came, so a late answer can still take back what the page took. */
+    private val returned = LinkedHashMap<String, List<ComposerFile>>()
+
+    /** How long files wait for a page's answer: long enough for a large upload on a slow network. */
+    const val UNANSWERED_MS = 10 * 60 * 1000L
+
+    /** The files that wait, now in flight under a new id, for a page that answers for them. */
+    fun sendFiles(now: Long = System.currentTimeMillis()): Pair<String, List<ComposerFile>>? {
+        val sent = takeFiles() ?: return null
+        val id = UUID.randomUUID().toString()
+        inFlight[id] = InFlight(sent, now)
+        return id to sent
+    }
+
+    /**
+     * The page's answer for the attach [id]: each file it took, or let go
+     * (`refused`, `removed`), leaves; any other file waits again for the next
+     * New chat. An answer for files already given back takes the same files
+     * out of those waiting.
+     */
+    fun settle(id: String?, results: List<AttachedFile>) {
+        val sent = id?.let { inFlight.remove(it) }
+        if (sent != null) {
+            putBack(sent.files.filterIndexed { index, _ -> keeps(results.getOrNull(index)) })
+            return
+        }
+        val given = id?.let { returned.remove(it) } ?: return
+        val gone = given.filterIndexed { index, _ -> !keeps(results.getOrNull(index)) }
+        var waiting = files ?: return
+        for (file in gone) {
+            val at = waiting.indexOf(file)
+            if (at >= 0) waiting = waiting.filterIndexed { index, _ -> index != at }
+        }
+        files = waiting.ifEmpty { null }
+    }
+
+    /**
+     * Gives back files in flight that no answer can come for: all of them
+     * (the page went away), or those sent before [olderThan].
+     */
+    fun returnUnanswered(olderThan: Long? = null) {
+        val stale = inFlight.filterValues { olderThan == null || it.sentAt < olderThan }
+        for ((id, flight) in stale) {
+            inFlight.remove(id)
+            returned[id] = flight.files
+            putBack(flight.files)
+        }
+        while (returned.size > 20) returned.remove(returned.keys.first())
+    }
+
+    /** Files in flight, waiting for a page's answer. */
+    val unanswered: Int get() = inFlight.values.sumOf { it.files.size }
+
+    private fun keeps(result: AttachedFile?): Boolean =
+        result == null || (!result.taken && result.reason !in setOf("refused", "removed"))
+
     /** Files or dictation wait for a composer to connect: a New chat already on screen must load again to take them. */
     val waiting: Boolean get() = files != null || dictation
 
@@ -128,3 +196,7 @@ object PendingShares {
     /** The focus is for the new chat the assistant opened, not a chat on screen that connects first as its answer ends. */
     fun takeFocus(location: String): Boolean = AppUrls.isNewChat(location) && focus.also { focus = false }
 }
+
+/** One file of the page's `attached`: whether it was taken, and why not (`locked`, `unavailable`, `failed`, `refused`, `removed`). */
+@Serializable
+data class AttachedFile(val name: String? = null, val taken: Boolean = false, val reason: String? = null)
