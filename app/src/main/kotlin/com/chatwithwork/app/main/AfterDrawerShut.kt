@@ -39,12 +39,11 @@ class AfterDrawerShut(
             return
         }
         pending = action
-        lastOffset = Float.MAX_VALUE
         drawer.closeDrawer(GravityCompat.START)
     }
 
-    /** How far out the drawer was at the last slide, to tell it turning back open from sliding shut. */
-    private var lastOffset = Float.MAX_VALUE
+    /** How far out the drawer is (1 open, 0 shut), followed always, to tell it turning back open from sliding shut. */
+    private var lastOffset = 0f
 
     /** Something newer was chosen (a place, signing out): what waits for the drawer never opens. */
     fun cancel() {
@@ -53,6 +52,7 @@ class AfterDrawerShut(
     }
 
     override fun onDrawerClosed(drawerView: View) {
+        lastOffset = 0f
         val action = pending ?: return
         pending = null
         val asked = generation
@@ -68,7 +68,10 @@ class AfterDrawerShut(
         lastOffset = slideOffset
     }
 
-    override fun onDrawerOpened(drawerView: View) = cancel()
+    override fun onDrawerOpened(drawerView: View) {
+        lastOffset = 1f
+        cancel()
+    }
 
     companion object {
         /** Runs [action] once the next frame of [view]'s window, drawn as it is now, has been handed to the screen. */
