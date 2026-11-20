@@ -240,7 +240,8 @@ from the moment the screen appears until its page first paints (the
 Every kind is the same machinery (`PageSkeleton`, drawn by `SkeletonView`):
 bones in Live Wire's `--skeleton-bone` with one `--skeleton-shine` band
 sweeping across them every 1.4 seconds, still under Remove animations; the
-title's bone in the bar until the page names itself; groups and fields as
+title's bone in the bar until the page names itself (never the page's
+address, which Hotwire Native titles a screen with until then, `PageTitles`); groups and fields as
 boxes on the surface with a hairline; read as "Loading" by screen readers
 ("Loading chat" on a chat), with the page below hidden from them. It
 crossfades to the page in 200 ms at its first paint, goes at once for an

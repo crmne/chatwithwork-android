@@ -60,6 +60,8 @@ open class WebFragment : HotwireWebFragment() {
         pathProperties.title?.let(fragmentViewModel::setTitle)
         fragmentViewModel.title.observe(viewLifecycleOwner) { title ->
             val clean = PageTitles.clean(title)
+            // Only the page's address so far (PageTitles): the bar keeps what it shows.
+            if (clean.isEmpty() && !title.isNullOrBlank()) return@observe
             toolbarForNavigation()?.title = clean
             if (clean.isNotBlank()) skeleton?.titleKnown()
         }

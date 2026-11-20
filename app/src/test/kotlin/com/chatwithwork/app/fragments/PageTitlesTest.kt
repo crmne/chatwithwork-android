@@ -1,5 +1,6 @@
 package com.chatwithwork.app.fragments
 
+import com.chatwithwork.app.AppConfig
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -32,5 +33,13 @@ class PageTitlesTest {
         assertThat(PageTitles.live("  ", null)).isNull()
         assertThat(PageTitles.live("https://chatwithwork.com/1/chats/4", "https://chatwithwork.com/1/chats/4")).isNull()
         assertThat(PageTitles.live("http://10.0.2.2:3000/1/chats/4", null)).isNull()
+    }
+
+    @Test
+    fun `the address Hotwire Native titles a page with before it names itself is no title`() {
+        val authority = AppConfig.baseUrl.substringAfter("://")
+        assertThat(PageTitles.clean("$authority/482139075/bots/new")).isEmpty()
+        assertThat(PageTitles.clean("${AppConfig.baseUrl}/482139075/bots/new")).isEmpty()
+        assertThat(PageTitles.clean("example.com/notes")).isEqualTo("example.com/notes")
     }
 }
