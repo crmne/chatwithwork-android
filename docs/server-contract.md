@@ -329,7 +329,15 @@ over, fading and growing in; a tap on the scrim closes it. A step inside a
 modal (sign-up after sign-in, a recipe's proposal from New chat) slides in
 from the side with back to the step before; the same page again (New chat
 with shared words) swaps in place. The keyboard pushes the composer up and
-the page stays edge to edge, as on any screen. Nothing changes on the
+the page stays edge to edge, as on any screen. A modal the sidebar opens
+(its New chat, New bot, a row's Rename or Move to project) rises only once
+the drawer has slid shut and the page has been drawn without it
+(`AfterDrawerShut`), so the drawer slides away, then the modal rises over
+the page alone: the pictures taken as a modal opens (the frame's backdrop,
+and Hotwire Native's own, which the screen under it shows until its page
+draws again after the modal closes) never have the drawer in them, which
+used to vanish, come back behind the rising card, and come back again on
+every close (Android 1.2.11 on a phone, 2026-11-20). Nothing changes on the
 server: v3 only moved `/chats/new` to the modal rule.
 
 ## 6. Bridge components
@@ -1017,7 +1025,7 @@ without the page, and for older builds, which the server keeps serving.
   | Event | Data | The app |
   |---|---|---|
   | `ready` | | shows the page in place of the native sidebar, and answers with `current` |
-  | `visit` | `url` (absolute) | this server: opens it as a place, as a native row does (Places), and closes the drawer (at once, without sliding, when it opens a modal such as Rename or Move to project); the sign-in form (signing out from the person's menu) shows the welcome screen; another site (Help, which the page sends as an absolute https URL): a Chrome Custom Tab, never the drawer or the navigator. A link of this server the page marks `target="_blank"` is a page like any other: the navigator |
+  | `visit` | `url` (absolute) | this server: opens it as a place, as a native row does (Places), and closes the drawer (sliding shut first and then opening it, when it's a modal such as New bot, Rename or Move to project: "How a modal looks"); the sign-in form (signing out from the person's menu) shows the welcome screen; another site (Help, which the page sends as an absolute https URL): a Chrome Custom Tab, never the drawer or the navigator. A link of this server the page marks `target="_blank"` is a page like any other: the navigator |
   | `close` | | closes the drawer (the page's header button) |
   | `confirm` | `id`, `title`, `description`, `confirm`, `dismiss`, `destructive` | a Material alert worded as `bridge--confirm`'s, the confirm button in the error colour when `destructive`, then `answer` |
 

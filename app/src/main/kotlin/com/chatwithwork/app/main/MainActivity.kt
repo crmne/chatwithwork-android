@@ -150,6 +150,7 @@ class MainActivity :
     private val memory by lazy { SessionMemory(this) }
 
     private lateinit var drawer: DrawerLayout
+    private lateinit var afterDrawerShut: AfterDrawerShut
 
     private lateinit var root: View
     private lateinit var welcome: View
@@ -314,6 +315,7 @@ class MainActivity :
         splash.setKeepOnScreenCondition { viewModel.keepSplash() }
 
         drawer = findViewById(R.id.drawer)
+        afterDrawerShut = AfterDrawerShut(drawer)
         root = findViewById(R.id.root)
         welcome = findViewById(R.id.welcome)
 
@@ -640,14 +642,14 @@ class MainActivity :
     override fun openPath(path: String) {
         val location = AppUrls.absolute(path)
         val properties = Hotwire.config.pathConfiguration.properties(location)
-        // A modal (Rename, Move to project) opens over a drawer still sliding
-        // shut and holds it there, so it would slide away again as the modal
-        // closes: shut it at once.
+        // A modal (New bot, Rename, Move to project) rises once the drawer has
+        // slid shut and the page shows without it (AfterDrawerShut); a place
+        // loads while it slides.
         if (properties.context == PresentationContext.MODAL) {
-            drawer.closeDrawer(GravityCompat.START, false)
-        } else {
-            closeSidebarNow()
+            afterDrawerShut.run { navigator?.route(location) }
+            return
         }
+        closeSidebarNow()
         val navigator = navigator ?: return
         when (Places.opening(properties)) {
             Places.Opening.ROUTE -> navigator.route(location)
@@ -663,8 +665,10 @@ class MainActivity :
      * does: a modal over the place on screen (the path configuration). One
      * already up keeps what's typed, rather than another stacking on it.
      */
-    override fun startNewChat() {
-        closeSidebarNow()
+    override fun startNewChat() = afterDrawerShut.run(::openNewChat)
+
+    /** New chat, over the page now that nothing of the sidebar shows. */
+    private fun openNewChat() {
         val navigator = navigator ?: return
         if (navigator.currentDestination?.location?.let(AppUrls::isNewChat) == true) {
             visibleComposer()?.focusField()
