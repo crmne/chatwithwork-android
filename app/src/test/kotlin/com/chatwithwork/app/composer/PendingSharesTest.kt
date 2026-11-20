@@ -58,11 +58,25 @@ class PendingSharesTest {
         )
         assertThat(PendingShares.unanswered).isEqualTo(0)
         // Once the composer unlocks, this page gets only what it may try again.
-        assertThat(PendingShares.sendFiles(owner = page, connecting = false)!!.second).containsExactly(photo, photo)
-        assertThat(PendingShares.sendFiles(owner = page)).isNull()
+        val connected = PendingShares.visit
+        assertThat(
+            PendingShares.sendFiles(owner = page, connectedAt = connected)!!.second
+        ).containsExactly(photo, photo)
+        assertThat(PendingShares.sendFiles(owner = page, connectedAt = connected)).isNull()
 
         PendingShares.visitStarted(owner = other)
         assertThat(PendingShares.sendFiles(owner = other)!!.second).containsExactly(plan, notes).inOrder()
+    }
+
+    @Test
+    fun `a failed file goes to the next New chat even if it connects locked and unlocks later`() {
+        PendingShares.putFiles(listOf(plan))
+        val (id, _) = PendingShares.sendFiles(owner = page)!!
+        PendingShares.settle(id, listOf(kept("plan.pdf", "failed")))
+        PendingShares.visitStarted(owner = other)
+        // The next New chat connects locked, so nothing goes then; its unlock later is only a state.
+        val connected = PendingShares.visit
+        assertThat(PendingShares.sendFiles(owner = other, connectedAt = connected)!!.second).containsExactly(plan)
     }
 
     @Test
@@ -111,7 +125,7 @@ class PendingSharesTest {
         PendingShares.visitStarted(owner = other)
         val (second, _) = PendingShares.sendFiles(owner = page)!!
         PendingShares.settle(second, listOf(kept("notes.txt", "locked")))
-        assertThat(PendingShares.sendFiles(owner = page, connecting = false)!!.second).containsExactly(notes)
+        assertThat(PendingShares.sendFiles(owner = page)!!.second).containsExactly(notes)
     }
 
     @Test

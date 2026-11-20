@@ -724,6 +724,14 @@ class MainActivity :
      */
     override fun startNewChatOverPage() {
         val navigator = navigator ?: return
+        // Files or dictation wait for a composer to connect, which only a fresh page does: New chat on top loads
+        // again to take them, rather than only taking the focus or another stacking on it.
+        val top = navigator.currentDestination
+        if (PendingShares.waiting && top != null && AppUrls.isNewChat(top.location)) {
+            PendingShares.askFocus()
+            (top.fragment as? WebFragment)?.refresh(displayProgress = false)
+            return
+        }
         if (focusNewChatOnTop(navigator)) return
         PendingShares.askFocus()
         navigator.route(newChatUrl())

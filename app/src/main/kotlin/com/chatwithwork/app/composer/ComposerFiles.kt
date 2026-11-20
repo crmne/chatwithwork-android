@@ -148,18 +148,16 @@ object PendingShares {
     /**
      * For a page that answers for them (`confirmsAttach`): the files it may
      * have now, in flight under a new id until its `attached` ([settle]).
-     * [connecting] is false for a composer that only changed.
+     * [connectedAt] is the [visit] the composer connected in.
      */
     fun sendFiles(
         owner: Int = 0,
-        connecting: Boolean = true,
+        connectedAt: Long = visit,
         now: Long = System.currentTimeMillis()
     ): Pair<String, List<ComposerFile>>? {
-        // Files kept for the next New chat go only to a composer connecting after a later visit, never to one that
-        // just changed (a menu, an unlock) on the page that failed them.
-        val ready = entries.filter {
-            it.attempt == null && (it.afterVisit < 0 || (connecting && it.afterVisit < visits))
-        }
+        // Files kept for the next New chat go only to a composer that connected after a later visit, never to the
+        // page that failed them, however its state changes (a menu, an unlock).
+        val ready = entries.filter { it.attempt == null && it.afterVisit < connectedAt }
         if (ready.isEmpty()) return null
         val id = UUID.randomUUID().toString()
         ready.forEach {
@@ -242,6 +240,9 @@ object PendingShares {
 
     /** Files in flight, waiting for a page's answer. */
     val unanswered: Int get() = entries.count { it.attempt != null }
+
+    /** How many visits have started: a composer notes the one it connected in. */
+    val visit: Long get() = visits
 
     /** Files or dictation wait for a composer to connect: a New chat already on screen must load again to take them. */
     val waiting: Boolean get() = entries.any { it.attempt == null } || dictation
