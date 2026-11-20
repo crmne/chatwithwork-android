@@ -1492,8 +1492,9 @@ doesn't draw:
 
 | Event | Direction | Data |
 |---|---|---|
-| `connect`, then `state` whenever it changes | web to app | `{working, waiting, run, revision, startedAt, mark, csrfToken, acceptsFiles, dictates, menu}` |
-| reply to `connect` | app to web | `{action: "attach", files: [{name, type, data}]}` (data base64, `ComposerFile`), `{action: "dictate"}`, `{action: "closeMenus"}` |
+| `connect`, then `state` whenever it changes | web to app | `{working, waiting, run, revision, startedAt, mark, csrfToken, acceptsFiles, dictates, menu, confirmsAttach}` |
+| `attached`, once per attach, after its uploads settle | web to app | `{id, taken, files: [{name, taken, reason}]}` |
+| reply to `connect` | app to web | `{action: "attach", id?, files: [{name, type, data}]}` (data base64, `ComposerFile`; `id` only for a page with `confirmsAttach`), `{action: "dictate"}`, `{action: "closeMenus"}` |
 
 `working`, `waiting`, `run`, `revision`, `startedAt` (unix seconds) and `mark`
 are `bridge--composer`'s own. `acceptsFiles` is false while the composer is
@@ -1514,10 +1515,23 @@ replies to the latest `connect`.
   for New chat's composer: on its `connect` with `acceptsFiles`, or a later
   `state` with it once a locked composer unlocks, the app replies `attach`
   with them, which the page uploads as any file it takes. Files the reply
-  can't carry wait for the next New chat. The page ignores `attach` while
-  locked and says nothing, so a lock between the reply and the page acting
-  on it still loses them; only an answer from the page that it took them
-  would close that. Shared words still arrive through `?text=`.
+  can't carry wait for the next New chat. A page whose state says
+  `confirmsAttach: true` answers each attach once with `attached {id,
+  taken, files: [{name, taken, reason}]}` after every upload has settled, in
+  the attach's order; the app sends an `id` with the attach and keeps the
+  files in flight until then (`PendingShares`). A file taken, `refused` or
+  `removed` leaves; `locked` and `unavailable` wait to be handed again, to
+  this composer once a `state` says it takes files; `failed` and any reason
+  the app doesn't know wait for a New chat after another visit, so a failing
+  upload isn't retried on the same page. Files in flight go back when the
+  screen that sent them starts another visit or is destroyed, or ten minutes
+  pass with no answer, for a New chat after it. Each shared file keeps an
+  identity of its own, so an answer that comes late still takes out what the
+  page took, even after the file was sent again, and a new share joins the
+  files still waiting rather than replacing them. That closes the gap where a lock between
+  the reply and the page acting on it lost the files. A page without
+  `confirmsAttach` (a server before 2026-11-20) is trusted with them as the
+  reply goes, as before. Shared words still arrive through `?text=`.
 - **Dictate from the widget or a shortcut** waits the same way: on New chat's
   `connect` with `dictates`, the app asks for the microphone if Android
   hasn't allowed it yet, then replies `dictate`, which clicks the page's

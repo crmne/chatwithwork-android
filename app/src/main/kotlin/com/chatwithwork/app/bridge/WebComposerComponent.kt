@@ -4,6 +4,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.LifecycleOwner
 import com.chatwithwork.app.R
+import com.chatwithwork.app.composer.AttachedFile
 import com.chatwithwork.app.composer.ComposerFile
 import com.chatwithwork.app.composer.PendingShares
 import com.chatwithwork.app.fragments.WebFragment
@@ -43,18 +44,32 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
 
     override fun onReceive(message: Message) {
         when (message.event) {
+            "attached" -> {
+                val answer = message.data<AttachedMessage>() ?: return
+                PendingShares.settle(answer.id, answer.files)
+                // What came back locked or unavailable goes now if the composer already said it takes files.
+                val latest = state
+                if (latest != null && latest.acceptsFiles && AppUrls.isNewChat(bridgeDelegate.destination.location)) {
+                    handFiles(latest)
+                }
+            }
+
             "connect", "state" -> {
                 val state = message.data<WebComposerState>() ?: return
+                this.state = state
+                // Files a page went quiet on for too long wait again for the next New chat.
+                PendingShares.returnUnanswered(olderThan = System.currentTimeMillis() - PendingShares.UNANSWERED_MS)
                 (fragment as? WebFragment)?.keepWebComposer(
                     state,
                     message.metadata?.url ?: bridgeDelegate.destination.location
                 )
                 takeBack(state.menu)
                 if (message.event == "connect") {
+                    connectedAt = PendingShares.visit
                     onConnected(state)
                 } else if (state.acceptsFiles && AppUrls.isNewChat(bridgeDelegate.destination.location)) {
                     // Shared files that waited for this composer to unlock.
-                    PendingShares.takeFiles()?.let(::attach)
+                    handFiles(state)
                 }
                 // Dictation asked for from outside also starts once the composer can take it (the yes to models).
                 if (AppUrls.isNewChat(bridgeDelegate.destination.location) && state.dictates &&
@@ -69,8 +84,29 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
     /** What waits outside the page for New chat's composer: files shared in, and dictation asked for. */
     private fun onConnected(state: WebComposerState) {
         if (!AppUrls.isNewChat(bridgeDelegate.destination.location)) return
-        if (state.acceptsFiles) PendingShares.takeFiles()?.let(::attach)
+        if (state.acceptsFiles) handFiles(state)
     }
+
+    /**
+     * Files shared in, to a composer that takes them now. A page that
+     * answers for them (`confirmsAttach`) keeps them in flight until its
+     * `attached`; an older one is trusted with them as the reply goes.
+     */
+    private fun handFiles(state: WebComposerState) {
+        if (!state.confirmsAttach) {
+            PendingShares.takeFiles()?.let(::attach)
+            return
+        }
+        val (id, files) = PendingShares.sendFiles(owner = System.identityHashCode(fragment), connectedAt = connectedAt)
+            ?: return
+        if (!replyTo("connect", attachReply(files, id).toString())) PendingShares.unsend(id)
+    }
+
+    /** The composer's latest word, for an answer about files that comes after it. */
+    private var state: WebComposerState? = null
+
+    /** The visit this composer connected in: files kept for a New chat after a later visit wait for one after it. */
+    private var connectedAt = PendingShares.visit
 
     private var back: OnBackPressedCallback? = null
     private var backOwner: LifecycleOwner? = null
@@ -143,8 +179,9 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
 
         val factory = BridgeComponentFactory(NAME, ::WebComposerComponent)
 
-        internal fun attachReply(files: List<ComposerFile>): JsonObject = buildJsonObject {
+        internal fun attachReply(files: List<ComposerFile>, id: String? = null): JsonObject = buildJsonObject {
             put("action", "attach")
+            if (id != null) put("id", id)
             put("files", Json.encodeToJsonElement(files))
         }
 
@@ -171,9 +208,19 @@ data class WebComposerState(
     val acceptsFiles: Boolean = false,
     val dictates: Boolean = false,
     /** One of the composer's menus is open (+, the model, the mode, the slash menu); absent from older pages. */
-    val menu: Boolean = false
+    val menu: Boolean = false,
+    /** The page answers each `attach` with `attached`; absent from older pages, which say nothing. */
+    val confirmsAttach: Boolean = false
 ) {
     val liveRun: LiveRunRef? get() = run?.takeIf { it.isNotBlank() }?.let {
         LiveRunRef(it, startedAt?.let { seconds -> seconds * 1000 }, revision ?: 0)
     }
 }
+
+/** The page's `attached`, once every file of an `attach` has settled: one entry per file, in the attach's order. */
+@Serializable
+data class AttachedMessage(
+    val id: String? = null,
+    val taken: Boolean = false,
+    val files: List<AttachedFile> = emptyList()
+)
