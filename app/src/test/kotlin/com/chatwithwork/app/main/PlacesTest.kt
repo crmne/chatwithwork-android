@@ -5,6 +5,7 @@ import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.google.gson.Gson
 import dev.hotwire.core.turbo.config.PathConfigurationData
+import dev.hotwire.core.turbo.nav.Presentation
 import java.io.File
 import org.junit.Test
 
@@ -49,6 +50,14 @@ class PlacesTest {
     fun `New chat and New bot are pages the sidebar opens as the place`() {
         listOf("/482139075/bots/new", "/482139075/chats/new", "/482139075/chats/new?project_id=3")
             .forEach { assertWithMessage(it).that(opening(it)).isEqualTo(Places.Opening.REPLACE_ROOT) }
+    }
+
+    @Test
+    fun `a place replaces the root itself, or the root and every screen over it in one navigation`() {
+        assertThat(Places.replacingRoot(atRoot = true)).isEqualTo(Presentation.REPLACE)
+        // Never cleared back to the root first: started again, it took the shared web view from the screen replacing it
+        // (a share into New chat pushed over a place stayed blank).
+        assertThat(Places.replacingRoot(atRoot = false)).isEqualTo(Presentation.REPLACE_ROOT)
     }
 
     @Test

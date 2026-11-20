@@ -69,6 +69,7 @@ import com.chatwithwork.app.composer.NewChatDrafts
 import com.chatwithwork.app.composer.PendingShares
 import com.chatwithwork.app.fragments.ModalBackdrop
 import com.chatwithwork.app.fragments.ModalFrame
+import com.chatwithwork.app.fragments.NewChatHandOff
 import com.chatwithwork.app.fragments.WebFragment
 import com.chatwithwork.app.fragments.WebModalFragment
 import com.chatwithwork.app.fragments.WebScreenHost
@@ -689,10 +690,14 @@ class MainActivity :
         val navigator = navigator ?: return
         when (Places.opening(properties)) {
             Places.Opening.ROUTE -> navigator.route(location)
+            Places.Opening.REPLACE_ROOT -> replaceRoot(navigator, location)
+        }
+    }
 
-            Places.Opening.REPLACE_ROOT -> navigator.clearAll {
-                navigator.route(location, VisitOptions(action = VisitAction.REPLACE))
-            }
+    /** [location] becomes the root, in one navigation with whatever screens are over it (Places.replacingRoot). */
+    private fun replaceRoot(navigator: Navigator, location: String) {
+        NewChatHandOff.withPresentation(location, Places.replacingRoot(navigator.isAtStartDestination())) {
+            navigator.route(location, VisitOptions(action = VisitAction.REPLACE))
         }
     }
 
@@ -738,7 +743,7 @@ class MainActivity :
             if (same && !PendingShares.waiting && focusNewChatOnTop(navigator)) return
             PendingShares.askFocus()
         }
-        navigator.clearAll { navigator.route(location, VisitOptions(action = VisitAction.REPLACE)) }
+        replaceRoot(navigator, location)
     }
 
     /**
