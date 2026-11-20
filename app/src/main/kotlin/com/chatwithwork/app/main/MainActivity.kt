@@ -649,6 +649,8 @@ class MainActivity :
             afterDrawerShut.run { navigator?.route(location) }
             return
         }
+        // A place chosen while a modal waits for the drawer wins.
+        afterDrawerShut.cancel()
         closeSidebarNow()
         val navigator = navigator ?: return
         when (Places.opening(properties)) {
@@ -999,6 +1001,7 @@ class MainActivity :
     /** What the page opens is a place, as the native sidebar's rows are; signing out there ends the session here. */
     override fun onSidebarVisit(url: String) {
         if (AppUrls.isSignInForm(url)) {
+            afterDrawerShut.cancel()
             closeSidebarNow()
             showSignedOut(presentSignIn = false)
             return

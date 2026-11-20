@@ -89,4 +89,32 @@ class AfterDrawerShutTest {
 
         assertThat(opened).containsExactly("new chat")
     }
+
+    @Test
+    fun aPlaceChosenMeanwhileWins() {
+        drawer.openDrawer(Gravity.START, false)
+        idle()
+        afterDrawerShut.run { opened += "new bot" }
+
+        afterDrawerShut.cancel()
+        drawer.closeDrawer(Gravity.START, false)
+        idle()
+        frames.forEach { it() }
+
+        assertThat(opened).isEmpty()
+    }
+
+    @Test
+    fun aPlaceChosenWhileItWaitsOnItsFrameWins() {
+        drawer.openDrawer(Gravity.START, false)
+        idle()
+        afterDrawerShut.run { opened += "new bot" }
+        drawer.closeDrawer(Gravity.START, false)
+        idle()
+
+        afterDrawerShut.cancel()
+        frames.forEach { it() }
+
+        assertThat(opened).isEmpty()
+    }
 }

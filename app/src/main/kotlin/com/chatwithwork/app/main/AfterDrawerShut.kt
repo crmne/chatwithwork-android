@@ -24,14 +24,17 @@ class AfterDrawerShut(
 ) : DrawerLayout.SimpleDrawerListener() {
     private var pending: (() -> Unit)? = null
 
+    /** Counts the requests: one waiting on its frame opens only if nothing newer was asked since. */
+    private var generation = 0
+
     init {
         drawer.addDrawerListener(this)
     }
 
     /** Runs [action] now if the drawer is shut, else once it has slid shut and been drawn so. */
     fun run(action: () -> Unit) {
+        cancel()
         if (!drawer.isDrawerVisible(GravityCompat.START)) {
-            pending = null
             action()
             return
         }
@@ -39,18 +42,24 @@ class AfterDrawerShut(
         drawer.closeDrawer(GravityCompat.START)
     }
 
+    /** Something newer was chosen (a place, signing out): what waits for the drawer never opens. */
+    fun cancel() {
+        pending = null
+        generation++
+    }
+
     override fun onDrawerClosed(drawerView: View) {
         val action = pending ?: return
         pending = null
+        val asked = generation
         afterNextFrame(drawer) {
-            if (drawer.isAttachedToWindow && !drawer.isDrawerVisible(GravityCompat.START)) action()
+            val current = asked == generation && drawer.isAttachedToWindow
+            if (current && !drawer.isDrawerVisible(GravityCompat.START)) action()
         }
     }
 
     // Opened again before it shut: the person changed their mind.
-    override fun onDrawerOpened(drawerView: View) {
-        pending = null
-    }
+    override fun onDrawerOpened(drawerView: View) = cancel()
 
     companion object {
         /** Runs [action] once the next frame of [view]'s window, drawn as it is now, has been handed to the screen. */
