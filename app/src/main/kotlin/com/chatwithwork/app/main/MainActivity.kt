@@ -42,6 +42,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
@@ -1119,22 +1120,70 @@ class MainActivity :
         showSidebar()
     }
 
+    /** The keyboard is sliding in or out, and the pages' bottom follows it frame by frame (setUpInsets). */
+    private var keyboardMoving = false
+
     private fun setUpInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             keyboardVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
-
-            // The pages keep clear of the gesture bar; the keyboard pushes
-            // everything up instead, so the composer stays above it. Applied
-            // once, here: applying it again further down would double it.
-            view.updatePadding(
-                left = bars.left,
-                right = bars.right,
-                bottom = if (keyboardVisible) ime.bottom else bars.bottom
-            )
+            // While the keyboard slides these are already where it ends up:
+            // the animation below moves the bottom there with it instead.
+            padForBars(view, insets, bottom = !keyboardMoving)
             insets
         }
+
+        // The keyboard's slide, frame by frame: the pages' bottom rides on
+        // its top edge, so the page's composer comes up with the keyboard and
+        // goes down with it, rather than hiding behind it until it has
+        // landed, or waiting where it was after it went.
+        ViewCompat.setWindowInsetsAnimationCallback(
+            root,
+            object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
+                override fun onPrepare(animation: WindowInsetsAnimationCompat) {
+                    if (animation.typeMask and WindowInsetsCompat.Type.ime() != 0) keyboardMoving = true
+                }
+
+                override fun onProgress(
+                    insets: WindowInsetsCompat,
+                    runningAnimations: MutableList<WindowInsetsAnimationCompat>
+                ): WindowInsetsCompat {
+                    if (keyboardMoving) padForBars(root, insets, bottom = true)
+                    return insets
+                }
+
+                override fun onEnd(animation: WindowInsetsAnimationCompat) {
+                    if (animation.typeMask and WindowInsetsCompat.Type.ime() == 0) return
+                    keyboardMoving = false
+                    ViewCompat.getRootWindowInsets(root)?.let { padForBars(root, it, bottom = true) }
+                }
+            }
+        )
+
+        // The pages are padded clear of the system bars and the keyboard
+        // here, so the web view mustn't pad for them again: its
+        // `env(safe-area-inset-bottom)` would add the gesture bar under the
+        // composer once more, and drop it a frame after the keyboard opens,
+        // which moved the composer as it landed.
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main_navigator_host)) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            insets.inset(bars.left, 0, bars.right, maxOf(ime.bottom, bars.bottom))
+        }
+    }
+
+    /**
+     * The pages keep clear of the gesture bar; the keyboard pushes everything
+     * up instead, so the composer stays above it. Applied once, here:
+     * applying it again further down would double it.
+     */
+    private fun padForBars(view: View, insets: WindowInsetsCompat, bottom: Boolean) {
+        val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+        val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+        view.updatePadding(
+            left = bars.left,
+            right = bars.right,
+            bottom = if (bottom) maxOf(ime.bottom, bars.bottom) else view.paddingBottom
+        )
     }
 
     // endregion
