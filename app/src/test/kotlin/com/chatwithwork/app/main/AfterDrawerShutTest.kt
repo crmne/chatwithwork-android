@@ -117,4 +117,19 @@ class AfterDrawerShutTest {
 
         assertThat(opened).isEmpty()
     }
+
+    @Test
+    fun turningTheDrawerBackOpenPartlyForgetsIt() {
+        drawer.openDrawer(Gravity.START, false)
+        idle()
+        afterDrawerShut.run { opened += "new bot" }
+
+        afterDrawerShut.onDrawerSlide(panel, 0.6f)
+        afterDrawerShut.onDrawerSlide(panel, 0.7f)
+        drawer.closeDrawer(Gravity.START, false)
+        idle()
+        frames.forEach { it() }
+
+        assertThat(opened).isEmpty()
+    }
 }

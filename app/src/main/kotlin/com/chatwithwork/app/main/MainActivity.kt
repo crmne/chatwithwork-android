@@ -1001,7 +1001,6 @@ class MainActivity :
     /** What the page opens is a place, as the native sidebar's rows are; signing out there ends the session here. */
     override fun onSidebarVisit(url: String) {
         if (AppUrls.isSignInForm(url)) {
-            afterDrawerShut.cancel()
             closeSidebarNow()
             showSignedOut(presentSignIn = false)
             return
@@ -1169,6 +1168,8 @@ class MainActivity :
      * comes straight up; the person was in the middle of something.
      */
     private fun showSignedOut(presentSignIn: Boolean) {
+        // Nothing the sidebar asked for opens once the session is gone.
+        afterDrawerShut.cancel()
         if (!viewModel.signedOut) {
             viewModel.signedOut = true
             viewModel.sidebar = null
@@ -1492,6 +1493,8 @@ class MainActivity :
             return
         }
 
+        // A link from outside (a notification) wins over a modal waiting for the drawer.
+        afterDrawerShut.cancel()
         closeSidebarNow()
         val navigator = navigator
         if (navigator == null || !navigator.isReady() || navigator.currentDestination?.fragment?.view == null) {

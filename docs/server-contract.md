@@ -333,7 +333,8 @@ with shared words) swaps in place. The keyboard pushes the composer up and
 the page stays edge to edge, as on any screen. A modal the sidebar opens
 (its New chat, New bot, a row's Rename or Move to project) rises only once
 the drawer has slid shut and the page has been drawn without it
-(`AfterDrawerShut`), so the drawer slides away, then the modal rises over
+(`AfterDrawerShut`; a place or a link chosen meanwhile, signing out, or
+turning the drawer back open drops it), so the drawer slides away, then the modal rises over
 the page alone: the pictures taken as a modal opens (the frame's backdrop,
 and Hotwire Native's own, which the screen under it shows until its page
 draws again after the modal closes) never have the drawer in them, which
