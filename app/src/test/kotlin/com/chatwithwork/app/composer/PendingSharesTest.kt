@@ -1,113 +1,114 @@
 package com.chatwithwork.app.composer
 
-import com.chatwithwork.app.bridge.AttachedMessage
-import com.chatwithwork.app.bridge.WebComposerComponent
-import com.chatwithwork.app.bridge.WebComposerState
 import com.google.common.truth.Truth.assertThat
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonPrimitive
 import org.junit.After
+import org.junit.Before
 import org.junit.Test
 
 class PendingSharesTest {
     private val plan = ComposerFile("plan.pdf", "application/pdf", "AA==")
     private val photo = ComposerFile("photo.jpg", "image/jpeg", "AQ==")
     private val notes = ComposerFile("notes.txt", "text/plain", "Ag==")
+    private val page = 1
+    private val other = 2
 
+    @Before
     @After
     fun empty() {
         PendingShares.returnUnanswered()
+        PendingShares.visitStarted(owner = 0)
         PendingShares.takeFiles()
     }
 
+    private fun taken(name: String) = AttachedFile(name, true)
+
+    private fun kept(name: String, reason: String) = AttachedFile(name, false, reason)
+
     @Test
-    fun `files a composer couldn't take wait again, ahead of any shared since`() {
+    fun `files not taken wait again, ahead of newer ones, and new shares join those waiting`() {
         PendingShares.putFiles(listOf(plan))
         val taken = PendingShares.takeFiles()!!
         PendingShares.putFiles(listOf(photo))
         PendingShares.putBack(taken)
+        PendingShares.putFiles(listOf(notes))
 
-        assertThat(PendingShares.takeFiles()).containsExactly(plan, photo).inOrder()
+        assertThat(PendingShares.takeFiles()).containsExactly(plan, photo, notes).inOrder()
         assertThat(PendingShares.waiting).isFalse()
-    }
-
-    @Test
-    fun `nothing put back leaves nothing waiting`() {
-        PendingShares.putBack(emptyList())
         assertThat(PendingShares.takeFiles()).isNull()
     }
 
     @Test
-    fun `files in flight leave only as the page answers, by reason`() {
-        PendingShares.putFiles(listOf(plan, photo, notes))
-        val (id, sent) = PendingShares.sendFiles()!!
-        assertThat(sent).containsExactly(plan, photo, notes).inOrder()
-        assertThat(PendingShares.takeFiles()).isNull()
-        assertThat(PendingShares.unanswered).isEqualTo(3)
+    fun `each reason leaves, goes again on this page, or waits for the next New chat`() {
+        PendingShares.putFiles(listOf(plan, photo, notes, plan, photo, notes))
+        val (id, sent) = PendingShares.sendFiles(owner = page)!!
+        assertThat(sent).hasSize(6)
+        assertThat(PendingShares.unanswered).isEqualTo(6)
+        assertThat(PendingShares.waiting).isFalse()
 
         PendingShares.settle(
             id,
             listOf(
-                AttachedFile("plan.pdf", true),
-                AttachedFile("photo.jpg", false, "locked"),
-                AttachedFile("notes.txt", false, "refused")
+                taken("plan.pdf"),
+                kept("photo.jpg", "locked"),
+                kept("notes.txt", "refused"),
+                kept("plan.pdf", "failed"),
+                kept("photo.jpg", "unavailable"),
+                kept("notes.txt", "a later reason")
             )
         )
-
         assertThat(PendingShares.unanswered).isEqualTo(0)
-        assertThat(PendingShares.takeFiles()).containsExactly(photo)
+        // Once the composer unlocks, this page gets only what it may try again.
+        assertThat(PendingShares.sendFiles(owner = page, connecting = false)!!.second).containsExactly(photo, photo)
+        assertThat(PendingShares.sendFiles(owner = page)).isNull()
+
+        PendingShares.visitStarted(owner = other)
+        assertThat(PendingShares.sendFiles(owner = other)!!.second).containsExactly(plan, notes).inOrder()
     }
 
     @Test
-    fun `failed, unavailable and reasons not known yet keep the file, removed lets it go`() {
-        PendingShares.putFiles(listOf(plan, photo, notes, plan))
-        val (id, _) = PendingShares.sendFiles()!!
-        PendingShares.settle(
-            id,
-            listOf(
-                AttachedFile("plan.pdf", false, "failed"),
-                AttachedFile("photo.jpg", false, "unavailable"),
-                AttachedFile("notes.txt", false, "removed"),
-                AttachedFile("plan.pdf", false, "a-later-reason")
-            )
-        )
-        assertThat(PendingShares.takeFiles()).containsExactly(plan, photo, plan).inOrder()
+    fun `removed lets go, and the same bytes shared twice stay two files`() {
+        PendingShares.putFiles(listOf(plan, plan))
+        val (id, _) = PendingShares.sendFiles(owner = page)!!
+        PendingShares.settle(id, listOf(kept("plan.pdf", "removed"), kept("plan.pdf", "locked")))
+        assertThat(PendingShares.takeFiles()).containsExactly(plan)
     }
 
     @Test
-    fun `a page gone or quiet for ten minutes gives files back, and a late answer still counts`() {
+    fun `a page that goes away gives back only its own files, for the next New chat`() {
         PendingShares.putFiles(listOf(plan))
-        val (old, _) = PendingShares.sendFiles(now = 0)!!
+        PendingShares.sendFiles(owner = page)
         PendingShares.putFiles(listOf(photo))
-        val (recent, _) = PendingShares.sendFiles(now = PendingShares.UNANSWERED_MS)!!
+        PendingShares.sendFiles(owner = other)
 
-        PendingShares.returnUnanswered(olderThan = PendingShares.UNANSWERED_MS - 1)
+        PendingShares.visitStarted(owner = page)
         assertThat(PendingShares.unanswered).isEqualTo(1)
-        PendingShares.settle(old, listOf(AttachedFile("plan.pdf", true)))
-        assertThat(PendingShares.takeFiles()).isNull()
-
-        PendingShares.returnUnanswered()
-        assertThat(PendingShares.takeFiles()).containsExactly(photo)
-        PendingShares.settle(recent, listOf(AttachedFile("photo.jpg", true)))
-        assertThat(PendingShares.takeFiles()).isNull()
+        assertThat(PendingShares.sendFiles(owner = page)!!.second).containsExactly(plan)
     }
 
     @Test
-    fun `the attach carries its id only for a page that answers, and the answer reads`() {
-        assertThat(WebComposerComponent.attachReply(listOf(plan)).containsKey("id")).isFalse()
-        assertThat(WebComposerComponent.attachReply(listOf(plan), "a1")["id"]!!.jsonPrimitive.content).isEqualTo("a1")
+    fun `a late answer counts wherever the file is now, so a file the page took never comes back`() {
+        PendingShares.putFiles(listOf(plan, photo))
+        val (first, _) = PendingShares.sendFiles(owner = page, now = 0)!!
+        // Ten minutes without a word: the files wait for the next New chat, which takes them again.
+        PendingShares.returnUnanswered(olderThan = PendingShares.UNANSWERED_MS)
+        PendingShares.visitStarted(owner = page)
+        val (second, again) = PendingShares.sendFiles(owner = other)!!
+        assertThat(again).containsExactly(plan, photo).inOrder()
 
-        val json = Json { ignoreUnknownKeys = true }
-        assertThat(json.decodeFromString<WebComposerState>("""{"acceptsFiles":true}""").confirmsAttach).isFalse()
-        assertThat(
-            json.decodeFromString<WebComposerState>("""{"acceptsFiles":true,"confirmsAttach":true}""").confirmsAttach
-        ).isTrue()
-        val answer = json.decodeFromString<AttachedMessage>(
-            """{"id":"a1","taken":false,"files":[{"name":"plan.pdf","taken":true},{"name":null,"taken":false,"reason":"locked"}],"metadata":{"url":"https://chatwithwork.com/1/chats/new"}}"""
-        )
-        assertThat(answer.id).isEqualTo("a1")
-        assertThat(
-            answer.files
-        ).containsExactly(AttachedFile("plan.pdf", true), AttachedFile(null, false, "locked")).inOrder()
+        PendingShares.settle(first, listOf(taken("plan.pdf"), kept("photo.jpg", "unavailable")))
+        assertThat(PendingShares.unanswered).isEqualTo(1)
+        PendingShares.settle(second, listOf(kept("plan.pdf", "failed"), kept("photo.jpg", "failed")))
+
+        PendingShares.visitStarted(owner = other)
+        assertThat(PendingShares.takeFiles()).containsExactly(photo)
+    }
+
+    @Test
+    fun `an attach the reply couldn't carry waits again at once`() {
+        PendingShares.putFiles(listOf(notes))
+        val (id, _) = PendingShares.sendFiles(owner = page)!!
+        PendingShares.unsend(id)
+        assertThat(PendingShares.unanswered).isEqualTo(0)
+        assertThat(PendingShares.sendFiles(owner = page)!!.second).containsExactly(notes)
     }
 }

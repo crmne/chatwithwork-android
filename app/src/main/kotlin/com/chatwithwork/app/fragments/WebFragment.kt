@@ -202,6 +202,12 @@ open class WebFragment : HotwireWebFragment() {
         PullToRefresh.install(spinner, navigator.session.webView) { refresh(displayProgress = false) }
     }
 
+    override fun onDestroy() {
+        // Gone for good: no answer can come for files its page had in flight.
+        PendingShares.returnUnanswered(owner = System.identityHashCode(this))
+        super.onDestroy()
+    }
+
     override fun onDestroyView() {
         skeleton?.remove()
         skeleton = null
@@ -365,8 +371,8 @@ open class WebFragment : HotwireWebFragment() {
         // A file's pages may have been zoomed; the page after them starts whole.
         if (!AppUrls.isFileViewer(location)) unzoom()
         tellPageItsTop()
-        // A page that held shared files is going: they wait again for the next New chat.
-        PendingShares.returnUnanswered()
+        // The page that held shared files is going: they wait again for the next New chat.
+        PendingShares.visitStarted(owner = System.identityHashCode(this))
         super.onVisitStarted(location)
     }
 

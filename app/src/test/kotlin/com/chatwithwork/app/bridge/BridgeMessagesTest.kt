@@ -1,5 +1,6 @@
 package com.chatwithwork.app.bridge
 
+import com.chatwithwork.app.composer.AttachedFile
 import com.chatwithwork.app.composer.ComposerState
 import com.google.common.truth.Truth.assertThat
 import kotlinx.serialization.json.Json
@@ -273,6 +274,23 @@ class BridgeMessagesTest {
         assertThat(dictate["action"]?.jsonPrimitive?.content).isEqualTo("dictate")
 
         assertThat(WebComposerComponent.closeMenusReply().toString()).isEqualTo("""{"action":"closeMenus"}""")
+
+        // A page that answers for shared files: the attach carries an id, and its answer reads by index.
+        assertThat(WebComposerComponent.attachReply(emptyList()).containsKey("id")).isFalse()
+        assertThat(WebComposerComponent.attachReply(emptyList(), "a1")["id"].toString()).isEqualTo("\"a1\"")
+        assertThat(json.decodeFromString<WebComposerState>("""{"acceptsFiles":true}""").confirmsAttach).isFalse()
+        assertThat(
+            json.decodeFromString<WebComposerState>("""{"acceptsFiles":true,"confirmsAttach":true}""").confirmsAttach
+        )
+            .isTrue()
+        val answer = json.decodeFromString<AttachedMessage>(
+            """{"id":"a1","taken":false,"files":[{"name":"plan.pdf","taken":true},""" +
+                """{"name":null,"taken":false,"reason":"locked"}],"metadata":{"url":"https://chatwithwork.com/1/chats/new"}}"""
+        )
+        assertThat(answer.id).isEqualTo("a1")
+        assertThat(
+            answer.files
+        ).containsExactly(AttachedFile("plan.pdf", true), AttachedFile(null, false, "locked")).inOrder()
     }
 
     @Test

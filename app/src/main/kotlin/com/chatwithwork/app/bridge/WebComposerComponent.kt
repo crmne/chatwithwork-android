@@ -62,7 +62,7 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
                     onConnected(state)
                 } else if (state.acceptsFiles && AppUrls.isNewChat(bridgeDelegate.destination.location)) {
                     // Shared files that waited for this composer to unlock.
-                    handFiles(state)
+                    handFiles(state, connecting = false)
                 }
                 // Dictation asked for from outside also starts once the composer can take it (the yes to models).
                 if (AppUrls.isNewChat(bridgeDelegate.destination.location) && state.dictates &&
@@ -77,7 +77,7 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
     /** What waits outside the page for New chat's composer: files shared in, and dictation asked for. */
     private fun onConnected(state: WebComposerState) {
         if (!AppUrls.isNewChat(bridgeDelegate.destination.location)) return
-        if (state.acceptsFiles) handFiles(state)
+        if (state.acceptsFiles) handFiles(state, connecting = true)
     }
 
     /**
@@ -85,13 +85,14 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
      * answers for them (`confirmsAttach`) keeps them in flight until its
      * `attached`; an older one is trusted with them as the reply goes.
      */
-    private fun handFiles(state: WebComposerState) {
+    private fun handFiles(state: WebComposerState, connecting: Boolean) {
         if (!state.confirmsAttach) {
             PendingShares.takeFiles()?.let(::attach)
             return
         }
-        val (id, files) = PendingShares.sendFiles() ?: return
-        if (!replyTo("connect", attachReply(files, id).toString())) PendingShares.settle(id, emptyList())
+        val (id, files) = PendingShares.sendFiles(owner = System.identityHashCode(fragment), connecting = connecting)
+            ?: return
+        if (!replyTo("connect", attachReply(files, id).toString())) PendingShares.unsend(id)
     }
 
     private var back: OnBackPressedCallback? = null

@@ -99,89 +99,149 @@ object ComposerFiles {
  * the process; an intent can only ask for the focus, which sends nothing.
  */
 object PendingShares {
-    private var files: List<ComposerFile>? = null
+    /**
+     * A file shared in, with an identity of its own while it waits, so two
+     * shares of the same bytes stay two, and a late answer about one attempt
+     * finds it wherever it is now.
+     */
+    private class Entry(val key: String, val file: ComposerFile) {
+        /** The attach it's in flight with, until the page answers for it. */
+        var attempt: String? = null
+        var sentAt = 0L
+
+        /** The screen whose page has it in flight. */
+        var owner = 0
+
+        /** Waits for a visit after this one: an upload that failed here isn't tried again on the same page. */
+        var afterVisit = -1L
+    }
+
+    private val entries = mutableListOf<Entry>()
+
+    /** Each attach's files by key, in its order, for the page's answer: kept a while after they came back unanswered. */
+    private val attempts = LinkedHashMap<String, List<String>>()
+    private var visits = 0L
     private var dictation = false
     private var focus = false
-
-    fun putFiles(files: List<ComposerFile>) {
-        this.files = files
-    }
-
-    fun takeFiles(): List<ComposerFile>? = files.also { files = null }
-
-    /** Files a composer was handed and couldn't take, ahead of any shared since. */
-    fun putBack(taken: List<ComposerFile>) {
-        if (taken.isNotEmpty()) files = taken + files.orEmpty()
-    }
-
-    /**
-     * Files handed to a page that answers for them (`confirmsAttach`), by the
-     * id their `attach` carried, until its `attached` says what it took
-     * ([settle]). The page answers every attach while it lives, so only a
-     * page gone away leaves them unanswered: [returnUnanswered] puts them back.
-     */
-    private class InFlight(val files: List<ComposerFile>, val sentAt: Long)
-
-    private val inFlight = LinkedHashMap<String, InFlight>()
-
-    /** Files given back before their answer came, so a late answer can still take back what the page took. */
-    private val returned = LinkedHashMap<String, List<ComposerFile>>()
 
     /** How long files wait for a page's answer: long enough for a large upload on a slow network. */
     const val UNANSWERED_MS = 10 * 60 * 1000L
 
-    /** The files that wait, now in flight under a new id, for a page that answers for them. */
-    fun sendFiles(now: Long = System.currentTimeMillis()): Pair<String, List<ComposerFile>>? {
-        val sent = takeFiles() ?: return null
-        val id = UUID.randomUUID().toString()
-        inFlight[id] = InFlight(sent, now)
-        return id to sent
+    /** Shared files, after any still waiting. */
+    fun putFiles(files: List<ComposerFile>) {
+        entries += files.map { Entry(UUID.randomUUID().toString(), it) }
+    }
+
+    /** For a page that doesn't answer for them: every file not in flight, handed over as the reply goes. */
+    fun takeFiles(): List<ComposerFile>? {
+        val ready = entries.filter { it.attempt == null }
+        if (ready.isEmpty()) return null
+        entries.removeAll(ready)
+        return ready.map { it.file }
+    }
+
+    /** Files a composer was handed and couldn't take, ahead of any shared since. */
+    fun putBack(taken: List<ComposerFile>) {
+        entries.addAll(0, taken.map { Entry(UUID.randomUUID().toString(), it) })
     }
 
     /**
-     * The page's answer for the attach [id]: each file it took, or let go
-     * (`refused`, `removed`), leaves; any other file waits again for the next
-     * New chat. An answer for files already given back takes the same files
-     * out of those waiting.
+     * For a page that answers for them (`confirmsAttach`): the files it may
+     * have now, in flight under a new id until its `attached` ([settle]).
+     * [connecting] is false for a composer that only changed.
+     */
+    fun sendFiles(
+        owner: Int = 0,
+        connecting: Boolean = true,
+        now: Long = System.currentTimeMillis()
+    ): Pair<String, List<ComposerFile>>? {
+        // Files kept for the next New chat go only to a composer connecting after a later visit, never to one that
+        // just changed (a menu, an unlock) on the page that failed them.
+        val ready = entries.filter {
+            it.attempt == null && (it.afterVisit < 0 || (connecting && it.afterVisit < visits))
+        }
+        if (ready.isEmpty()) return null
+        val id = UUID.randomUUID().toString()
+        ready.forEach {
+            it.attempt = id
+            it.sentAt = now
+            it.owner = owner
+        }
+        attempts[id] = ready.map { it.key }
+        while (attempts.size > 50) attempts.remove(attempts.keys.first())
+        return id to ready.map { it.file }
+    }
+
+    /** The attach [id] never reached the page: its files wait again at once. */
+    fun unsend(id: String) {
+        attempts.remove(id)
+        entries.filter { it.attempt == id }.forEach { it.attempt = null }
+    }
+
+    /**
+     * The page's answer for the attach [id], file by file in its order. Taken,
+     * `refused` and `removed` leave, wherever the file is now (an answer that
+     * comes after the file was given back, or sent again, still counts).
+     * `locked` and `unavailable` wait to be handed again, on this page once it
+     * unlocks; `failed`, a reason not known yet, or no word wait for the next
+     * New chat.
      */
     fun settle(id: String?, results: List<AttachedFile>) {
-        val sent = id?.let { inFlight.remove(it) }
-        if (sent != null) {
-            putBack(sent.files.filterIndexed { index, _ -> keeps(results.getOrNull(index)) })
-            return
+        val keys = id?.let { attempts.remove(it) } ?: return
+        keys.forEachIndexed { index, key ->
+            val entry = entries.find { it.key == key } ?: return@forEachIndexed
+            val result = results.getOrNull(index)
+            when {
+                result != null && (
+                    result.taken || result.reason in setOf(
+                        "refused",
+                        "removed"
+                    )
+                    ) -> entries.remove(entry)
+
+                // Given back or sent again since: its newer attempt decides.
+                entry.attempt != id -> Unit
+
+                result?.reason in setOf("locked", "unavailable") -> entry.attempt = null
+
+                else -> {
+                    entry.attempt = null
+                    entry.afterVisit = visits
+                }
+            }
         }
-        val given = id?.let { returned.remove(it) } ?: return
-        val gone = given.filterIndexed { index, _ -> !keeps(results.getOrNull(index)) }
-        var waiting = files ?: return
-        for (file in gone) {
-            val at = waiting.indexOf(file)
-            if (at >= 0) waiting = waiting.filterIndexed { index, _ -> index != at }
-        }
-        files = waiting.ifEmpty { null }
     }
 
     /**
-     * Gives back files in flight that no answer can come for: all of them
-     * (the page went away), or those sent before [olderThan].
+     * Gives back files in flight that no answer can come for: those of the
+     * screen [owner] whose page went away, those sent before [olderThan], or
+     * all of them. They wait for the next New chat; a late answer still
+     * takes out what the page took.
      */
-    fun returnUnanswered(olderThan: Long? = null) {
-        val stale = inFlight.filterValues { olderThan == null || it.sentAt < olderThan }
-        for ((id, flight) in stale) {
-            inFlight.remove(id)
-            returned[id] = flight.files
-            putBack(flight.files)
+    fun returnUnanswered(owner: Int? = null, olderThan: Long? = null) {
+        entries.filter {
+            it.attempt != null && (owner == null || it.owner == owner) && (olderThan == null || it.sentAt < olderThan)
+        }.forEach {
+            it.attempt = null
+            it.afterVisit = visits
         }
-        while (returned.size > 20) returned.remove(returned.keys.first())
+    }
+
+    /**
+     * The screen [owner] starts a visit: files its page had in flight come
+     * back, and every file kept for the next New chat may go to the page
+     * this or a later visit draws.
+     */
+    fun visitStarted(owner: Int) {
+        returnUnanswered(owner = owner)
+        visits++
     }
 
     /** Files in flight, waiting for a page's answer. */
-    val unanswered: Int get() = inFlight.values.sumOf { it.files.size }
-
-    private fun keeps(result: AttachedFile?): Boolean =
-        result == null || (!result.taken && result.reason !in setOf("refused", "removed"))
+    val unanswered: Int get() = entries.count { it.attempt != null }
 
     /** Files or dictation wait for a composer to connect: a New chat already on screen must load again to take them. */
-    val waiting: Boolean get() = files != null || dictation
+    val waiting: Boolean get() = entries.any { it.attempt == null } || dictation
 
     fun askDictation() {
         dictation = true
