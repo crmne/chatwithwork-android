@@ -42,6 +42,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
@@ -68,9 +69,12 @@ import com.chatwithwork.app.composer.NewChatDrafts
 import com.chatwithwork.app.composer.PendingShares
 import com.chatwithwork.app.fragments.ModalBackdrop
 import com.chatwithwork.app.fragments.ModalFrame
+import com.chatwithwork.app.fragments.NewChatHandOff
+import com.chatwithwork.app.fragments.WebFragment
 import com.chatwithwork.app.fragments.WebModalFragment
 import com.chatwithwork.app.fragments.WebScreenHost
 import com.chatwithwork.app.push.LiveAlertsTip
+import com.chatwithwork.app.push.LiveRunRef
 import com.chatwithwork.app.push.LiveTemplate
 import com.chatwithwork.app.push.LiveUpdates
 import com.chatwithwork.app.push.PushNotifications
@@ -152,6 +156,7 @@ class MainActivity :
 
     private lateinit var drawer: DrawerLayout
     private lateinit var afterDrawerShut: AfterDrawerShut
+    private lateinit var keyboardAfterDrawerShut: AfterDrawerShut
 
     private lateinit var root: View
     private lateinit var welcome: View
@@ -166,6 +171,9 @@ class MainActivity :
 
     /** When the navigator last finished a visit (uptime), for a modal's notice to wait on. */
     private var lastVisitCompletedAt = 0L
+
+    /** The page at the navigator's root, the place (Decisions, a chat, a list), as its last visit showed it. */
+    private var rootLocation: String? = null
 
     private var keyboardVisible = false
 
@@ -317,6 +325,7 @@ class MainActivity :
 
         drawer = findViewById(R.id.drawer)
         afterDrawerShut = AfterDrawerShut(drawer)
+        keyboardAfterDrawerShut = AfterDrawerShut(drawer)
         root = findViewById(R.id.root)
         welcome = findViewById(R.id.welcome)
 
@@ -433,15 +442,27 @@ class MainActivity :
             .show()
     }
 
-    /** The chat on screen and its composer, when the composer says an answer is running. */
-    private fun answeringChat(): Pair<String, ComposerView>? {
+    /** The chat on screen, when its composer says an answer is running, with what its Live Update needs. */
+    private class Answering(val chat: String, val run: LiveRunRef?, val mark: String?, val csrfToken: String?)
+
+    /**
+     * The chat on screen when its composer says an answer is running: the
+     * native composer's state where the app draws it, else the page's own
+     * composer's, as the screen last heard it (`web-composer`).
+     */
+    private fun answeringChat(): Answering? {
         val destination = navigator?.currentDestination ?: return null
-        val composer = destination.fragment.view?.findViewById<ComposerView>(R.id.composer) ?: return null
         val location = destination.location
-        return (location to composer).takeIf {
-            composer.isVisible && composer.state.working &&
-                AppUrls.chatNumber(location) != null
+        if (AppUrls.chatNumber(location) == null) return null
+        val composer = destination.fragment.view?.findViewById<ComposerView>(R.id.composer)
+        if (composer != null && composer.isVisible) {
+            val state = composer.state
+            return Answering(location, state.liveRun, state.mark, state.csrfToken).takeIf { state.working }
         }
+        val state =
+            (destination.fragment as? WebFragment)?.webComposerFor(navigator?.session?.webView?.url ?: location)
+                ?: return null
+        return Answering(location, state.liveRun, state.mark, state.csrfToken).takeIf { state.working }
     }
 
     /**
@@ -455,11 +476,11 @@ class MainActivity :
     @SuppressLint("ThreadConstraint")
     private fun showLiveUpdate() {
         if (isChangingConfigurations || viewModel.signedOut) return
-        val (chat, composer) = answeringChat() ?: return
+        val answering = answeringChat() ?: return
+        val chat = answering.chat
         val organization = viewModel.sidebar?.takeIf { it.organization.id == AppUrls.account(chat) }?.organization?.name
-        val run = composer.state.liveRun
-        if (LiveUpdates.show(this, chat, organization, run, composer.state.mark)) {
-            LiveUpdates.follow(applicationContext, chat, composer.state.csrfToken, run?.id)
+        if (LiveUpdates.show(this, chat, organization, answering.run, answering.mark)) {
+            LiveUpdates.follow(applicationContext, chat, answering.csrfToken, answering.run?.id)
             liveUpdate = LiveUpdates.threadFor(chat)
         }
     }
@@ -538,12 +559,18 @@ class MainActivity :
                     closeSidebar.isEnabled = false
                     pollJob?.cancel()
                     sidebar.resetSearch()
+                    sidebarPage.closed()
                 }
 
                 override fun onDrawerStateChanged(newState: Int) {
                     if (newState == DrawerLayout.STATE_IDLE) return
-                    // Starting to open: fetch now, so it's fresh as it lands.
-                    if (!drawer.isDrawerOpen(GravityCompat.START)) refreshSidebar()
+                    // Starting to open: fetch now, so it's fresh as it lands, and
+                    // the page under it loads its places ahead, where the network
+                    // allows (the server's helpers/preload.js).
+                    if (!drawer.isDrawerOpen(GravityCompat.START)) {
+                        refreshSidebar()
+                        navigator?.session?.webView?.evaluateJavascript(PRELOAD_SCRIPT, null)
+                    }
                     // Moving either way, the keyboard goes: opening, the
                     // composer's, and closing, the search's, or typing would
                     // carry on in a field nobody can see.
@@ -643,11 +670,14 @@ class MainActivity :
     override fun openPath(path: String) {
         val location = AppUrls.absolute(path)
         val properties = Hotwire.config.pathConfiguration.properties(location)
-        // New chat and New bot open as the place once the drawer has slid shut
-        // and the page shows without it, and a modal (Rename, Move to project)
-        // rises then (AfterDrawerShut); any other place loads while it slides.
+        // A modal (Rename, Move to project) rises once the drawer has slid shut
+        // and the page shows without it (AfterDrawerShut); every place loads
+        // while it slides, New chat and New bot too, whose keyboard alone
+        // waits for the drawer (WebFragment.offerKeyboard).
         if (AppUrls.opensAsPlace(location)) {
-            afterDrawerShut.run { openNewPage(location) }
+            afterDrawerShut.cancel()
+            closeSidebarNow()
+            openNewPage(location)
             return
         }
         if (properties.context == PresentationContext.MODAL) {
@@ -660,10 +690,16 @@ class MainActivity :
         val navigator = navigator ?: return
         when (Places.opening(properties)) {
             Places.Opening.ROUTE -> navigator.route(location)
+            Places.Opening.REPLACE_ROOT -> replaceRoot(navigator, location)
+        }
+    }
 
-            Places.Opening.REPLACE_ROOT -> navigator.clearAll {
-                navigator.route(location, VisitOptions(action = VisitAction.REPLACE))
-            }
+    /** [location] becomes the root, in one navigation with whatever screens are over it (Places.replacingRoot). */
+    private fun replaceRoot(navigator: Navigator, location: String) {
+        // The root it remembers goes with its screen; the new one's visit says what's there.
+        rootLocation = null
+        NewChatHandOff.withPresentation(location, Places.replacingRoot(navigator.isAtStartDestination())) {
+            navigator.route(location, VisitOptions(action = VisitAction.REPLACE))
         }
     }
 
@@ -672,7 +708,14 @@ class MainActivity :
      * chat does: a place, the root, once the drawer has slid shut. One
      * already up takes the focus, rather than loading again.
      */
-    override fun startNewChat() = afterDrawerShut.run { openNewPage(newChatUrl()) }
+    override fun startNewChat() {
+        afterDrawerShut.cancel()
+        closeSidebarNow()
+        openNewPage(newChatUrl())
+    }
+
+    // Its own wait, so New chat's keyboard never replaces a modal waiting for the drawer.
+    override fun whenDrawerShut(action: () -> Unit) = keyboardAfterDrawerShut.run(action)
 
     /**
      * The bar's New chat: pushed over the page on screen (the path
@@ -702,13 +745,30 @@ class MainActivity :
             if (same && !PendingShares.waiting && focusNewChatOnTop(navigator)) return
             PendingShares.askFocus()
         }
-        navigator.clearAll { navigator.route(location, VisitOptions(action = VisitAction.REPLACE)) }
+        replaceRoot(navigator, location)
     }
 
-    /** New chat already on top: its field takes the focus. */
+    /**
+     * The bar's Decisions: when Decisions is the place under this screen, back
+     * to it (every screen over it closes); otherwise Decisions becomes the
+     * place, as the sidebar opens it. Never a second Decisions on the stack.
+     */
+    override fun openDecisionsFromBar(url: String?) {
+        val navigator = navigator ?: return
+        val decisions = url?.let(AppUrls::absolute) ?: decisionsUrl()
+        if (rootLocation?.let(AppUrls::isDecisions) == true) {
+            if (!navigator.isAtStartDestination()) navigator.clearAll()
+            return
+        }
+        openPath(decisions)
+    }
+
+    /** New chat already on top: its field takes the focus, the app's own or the page's. */
     private fun focusNewChatOnTop(navigator: Navigator): Boolean {
-        if (navigator.currentDestination?.location?.let(AppUrls::isNewChat) != true) return false
-        visibleComposer()?.focusField()
+        val destination = navigator.currentDestination ?: return false
+        if (!AppUrls.isNewChat(destination.location)) return false
+        val composer = visibleComposer()
+        if (composer != null) composer.focusField() else (destination.fragment as? WebFragment)?.focusPageComposer()
         return true
     }
 
@@ -1087,7 +1147,7 @@ class MainActivity :
 
     /** Remembers the chat showing, if it's answering, so a launch soon after reopens it. */
     private fun rememberAnsweringChat() {
-        memory.leftAnswering(answeringChat()?.first, System.currentTimeMillis())
+        memory.leftAnswering(answeringChat()?.chat, System.currentTimeMillis())
     }
 
     // endregion
@@ -1118,22 +1178,70 @@ class MainActivity :
         showSidebar()
     }
 
+    /** The keyboard is sliding in or out, and the pages' bottom follows it frame by frame (setUpInsets). */
+    private var keyboardMoving = false
+
     private fun setUpInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             keyboardVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
-
-            // The pages keep clear of the gesture bar; the keyboard pushes
-            // everything up instead, so the composer stays above it. Applied
-            // once, here: applying it again further down would double it.
-            view.updatePadding(
-                left = bars.left,
-                right = bars.right,
-                bottom = if (keyboardVisible) ime.bottom else bars.bottom
-            )
+            // While the keyboard slides these are already where it ends up:
+            // the animation below moves the bottom there with it instead.
+            padForBars(view, insets, bottom = !keyboardMoving)
             insets
         }
+
+        // The keyboard's slide, frame by frame: the pages' bottom rides on
+        // its top edge, so the page's composer comes up with the keyboard and
+        // goes down with it, rather than hiding behind it until it has
+        // landed, or waiting where it was after it went.
+        ViewCompat.setWindowInsetsAnimationCallback(
+            root,
+            object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
+                override fun onPrepare(animation: WindowInsetsAnimationCompat) {
+                    if (animation.typeMask and WindowInsetsCompat.Type.ime() != 0) keyboardMoving = true
+                }
+
+                override fun onProgress(
+                    insets: WindowInsetsCompat,
+                    runningAnimations: MutableList<WindowInsetsAnimationCompat>
+                ): WindowInsetsCompat {
+                    if (keyboardMoving) padForBars(root, insets, bottom = true)
+                    return insets
+                }
+
+                override fun onEnd(animation: WindowInsetsAnimationCompat) {
+                    if (animation.typeMask and WindowInsetsCompat.Type.ime() == 0) return
+                    keyboardMoving = false
+                    ViewCompat.getRootWindowInsets(root)?.let { padForBars(root, it, bottom = true) }
+                }
+            }
+        )
+
+        // The pages are padded clear of the system bars and the keyboard
+        // here, so the web view mustn't pad for them again: its
+        // `env(safe-area-inset-bottom)` would add the gesture bar under the
+        // composer once more, and drop it a frame after the keyboard opens,
+        // which moved the composer as it landed.
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main_navigator_host)) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            insets.inset(bars.left, 0, bars.right, maxOf(ime.bottom, bars.bottom))
+        }
+    }
+
+    /**
+     * The pages keep clear of the gesture bar; the keyboard pushes everything
+     * up instead, so the composer stays above it. Applied once, here:
+     * applying it again further down would double it.
+     */
+    private fun padForBars(view: View, insets: WindowInsetsCompat, bottom: Boolean) {
+        val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+        val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+        view.updatePadding(
+            left = bars.left,
+            right = bars.right,
+            bottom = if (bottom) maxOf(ime.bottom, bars.bottom) else view.paddingBottom
+        )
     }
 
     // endregion
@@ -1279,6 +1387,7 @@ class MainActivity :
         if (AppUrls.isChat(shown) && !AppUrls.isNewChat(shown)) {
             AppUrls.account(shown)?.let { memory.setLastChat(it, shown) }
         }
+        if (destination.navigator.isAtStartDestination() && !destination.isModal) rootLocation = shown
         openPendingLink(destination.navigator)
         updateChrome()
         sidebarPage.current(shown, connectedPage?.takeIf { it.first == shown }?.second)
@@ -1687,6 +1796,8 @@ class MainActivity :
         } catch (_: ActivityNotFoundException) {
             cameraResult = null
             showSnackbar(getString(R.string.external_link_failed))
+            // Whoever asked still hears back (a page's file input waits for an answer).
+            onResult(null)
         }
     }
 
@@ -1701,7 +1812,10 @@ class MainActivity :
             .addOnSuccessListener { sender ->
                 scanResult = onResult
                 scanner.launch(IntentSenderRequest.Builder(sender).build())
-            }.addOnFailureListener { showSnackbar(getString(R.string.composer_scan_unavailable), long = true) }
+            }.addOnFailureListener {
+                showSnackbar(getString(R.string.composer_scan_unavailable), long = true)
+                onResult(null)
+            }
     }
 
     override fun chooseSaveLocation(name: String, type: String, onResult: (Uri?) -> Unit) {
@@ -1750,6 +1864,9 @@ class MainActivity :
     // endregion
 
     private companion object {
+        /** The page loads Decisions, New chat and New bot ahead, if the network allows and it hasn't lately. */
+        const val PRELOAD_SCRIPT = "window.chatWithWork && window.chatWithWork.preload && window.chatWithWork.preload()"
+
         const val NAVIGATOR = "main"
 
         /** How often, and for how long at most, a modal's notice waits for the screen under it. */

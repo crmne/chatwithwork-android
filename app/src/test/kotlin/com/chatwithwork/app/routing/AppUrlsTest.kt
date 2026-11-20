@@ -199,4 +199,12 @@ class AppUrlsTest {
         assertThat(AppUrls.newChat("482139075")).isEqualTo("$base/482139075/chats/new")
         assertThat(AppUrls.newChat(null)).isEqualTo("$base/chats/new")
     }
+
+    @Test
+    fun `Decisions is Decisions in any of its views, on this server only`() {
+        assertThat(AppUrls.isDecisions("$base/482139075/decisions")).isTrue()
+        assertThat(AppUrls.isDecisions("$base/482139075/decisions?view=now")).isTrue()
+        assertThat(AppUrls.isDecisions("$base/482139075/decisions/7")).isFalse()
+        assertThat(AppUrls.isDecisions("https://example.com/482139075/decisions")).isFalse()
+    }
 }

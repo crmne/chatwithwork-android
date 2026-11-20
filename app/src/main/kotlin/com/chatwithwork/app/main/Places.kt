@@ -33,6 +33,17 @@ object Places {
     }
 
     /**
+     * How a place takes the root from where the navigator stands: the root
+     * itself it replaces; with screens over it, it replaces the root in one
+     * navigation that takes them all with it. Clearing back to the root
+     * first started the root again in between: it took the shared web view
+     * back after the next screen was made, which then never had it to load
+     * its page, and a share into the app while New chat was pushed over a
+     * place stayed on a skeleton, or blank, for good.
+     */
+    fun replacingRoot(atRoot: Boolean): Presentation = if (atRoot) Presentation.REPLACE else Presentation.REPLACE_ROOT
+
+    /**
      * Where the app's own New chat goes in [account]: the organization's New
      * chat while the sidebar is the server's page ([serverSidebar]), whose
      * choices the native sidebar's saved list (a project chosen there,

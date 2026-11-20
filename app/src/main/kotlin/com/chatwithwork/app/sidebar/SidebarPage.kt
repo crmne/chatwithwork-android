@@ -124,6 +124,10 @@ object SidebarPage {
 
         const val REFRESH = "window.chatWithWorkSidebar && window.chatWithWorkSidebar.refresh()"
 
+        /** The drawer closed, however it closed; a page from before `closed` has nothing to call. */
+        const val CLOSED =
+            "window.chatWithWorkSidebar && window.chatWithWorkSidebar.closed && window.chatWithWorkSidebar.closed()"
+
         private fun quote(value: String) = JsonPrimitive(value).toString()
     }
 }

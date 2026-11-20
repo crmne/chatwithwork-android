@@ -304,15 +304,23 @@ clear turn into. So:
 
 - **Where it's opened decides how it's presented.** What the sidebar
   opens (its New chat and New bot, the server's page or the native one) is
-  a place: the drawer slides shut first and the page is drawn without it
-  (`AfterDrawerShut`), then the navigator clears to its root and the page
-  replaces it, as every sidebar row does. So do the ways in from outside:
+  a place: the navigator clears to its root and the page replaces it, as
+  every sidebar row does, while the drawer slides shut (2026-11-20; before,
+  the visit waited for the drawer to shut and be drawn, `AfterDrawerShut`,
+  which now holds only the modals, Rename and Move to project, and New
+  chat's keyboard, which the drawer's slide would put away). So do the ways in from outside:
   the icon's shortcuts, the widget, the tile, the assistant and a share,
   which start the navigator on New chat (or New bot) on a cold start, as
   builds before v3 did, and replace the root otherwise. Opened from a page
   (the bar's New chat over a chat or any place, Bots' New bot, a project's
   New chat, a bot's, Decisions'), the configuration's `default` pushes it
-  with Back to that page. The bar's New chat while New chat is already on
+  with Back to that page. That push turns the page into New chat in place
+  (2026-11-20, `OpensInPlace`): no animation in and no skeleton, the web
+  view going on showing the page until New chat draws, with Back sliding as
+  from any page. A replace with a remembered way back would do the same
+  for the eye, but Back would then be the app's own bookkeeping rather than
+  the stack's, so the push stays and only its motion goes. The path
+  configuration doesn't change. The bar's New chat while New chat is already on
   top focuses its field instead of stacking another.
 - **The turn into the chat replaces that screen** (`NewChatHandOff`). The
   app's composer sends through the page's hidden form, the page draws the
@@ -1081,7 +1089,11 @@ without the page, and for older builds, which the server keeps serving.
   page keeps it on its column as `data-native-current-url`, so a row drawn
   again by a stream is marked too, with nothing more from the app);
   `refresh()` back from the background (`onStart` after `onStop`), since the
-  page's streams may have missed something; `answer(id, confirmed)`.
+  page's streams may have missed something; `answer(id, confirmed)`; and
+  `closed()` (2026-11-20) whenever the drawer closes, however it closes (a
+  back gesture, a swipe, a tap on the scrim, a visit), so the page ends
+  picking rows and closes its menus. A page from before it has no `closed`,
+  and the call does nothing there.
 - **Navigation.** Nothing but the page loads in the drawer:
   `shouldOverrideUrlLoading` lets through only the page's own path, hands
   any other page of this server to the navigator (`visit`) and other sites to
@@ -1394,25 +1406,158 @@ element, subscribed to the person's own chat-list streams. It sends:
 
 No replies.
 
+### Pages loaded ahead
+
+**From 2026-11-20.** The server's `helpers/preload.js` has the main web view
+load Decisions, New chat and New bot ahead once its page is idle, only on a
+network that costs nothing. The app tells it what the network costs
+(`NetworkCost`):
+
+```js
+window.chatWithWorkNetwork = { metered, constrained }
+```
+
+`metered` is a default network without `NET_CAPABILITY_NOT_METERED` (mobile
+data, a hotspot), `constrained` is Data Saver on for this app
+(`ConnectivityManager.restrictBackgroundStatus` is
+`RESTRICT_BACKGROUND_STATUS_ENABLED`). With no network the app sets nothing,
+and the page falls back to `navigator.connection`. The value is set at
+document start in every page of the app's web views (a document-start
+script on this server's origin, replaced on each change; where the WebView
+lacks that, when the cold boot's page finishes), and in the pages already
+open whenever it changes (and taken away there when the network is lost, so
+the page falls back to `navigator.connection`); changing to a network that costs nothing also
+calls `window.chatWithWork?.preload?.()`. As the drawer starts to open, the
+app calls `preload()` in the main web view too, so a person who opens it
+soon after a page appeared still finds the places ready. Nothing of it goes
+to the server.
+
+### Decisions in the bar
+
+**From 2026-11-20.** Builds that register `decisions` show Decisions as the
+top app bar's last button on every page but Decisions, where it stays New
+chat. The server renders the component only for builds that list it: a
+hidden element on every signed-in account page (`application/_native_decisions`,
+`bridge/decisions_controller.js`, `data-bridge-native-action="decisions"`).
+
+| Event | Direction | Data |
+|---|---|---|
+| `connect` | web to app | `{waiting, here, url}` |
+| `count` | web to app | `{waiting}`, whenever it changes |
+
+`waiting` is how many decisions wait for this person in this organization,
+snoozed ones left out, as the sidebar's Decisions row says, live on their
+`[user, :sidebar]` stream; the page loads it again as it comes back from the
+background. `here` is whether this page is Decisions; `url` is Decisions,
+absolute. Nothing goes back to the page.
+
+- **The button** (`DecisionsComponent`, its own menu group, `ORDER_DECISIONS`,
+  80, New chat's place): Phosphor's regular signpost (`ic_bar_decisions`) at
+  the bar's 22dp in its ink. While some wait it takes `lw_attention_ink`,
+  with the count at its top right on `lw_attention_wash` ringed in
+  `lw_attention_edge`, as the sidebar's count: up to 9, then "9+", nothing at
+  zero. TalkBack and the tooltip say "Decisions" or "Decisions, 3 waiting".
+  The shell's New chat hides while it shows, and comes back on Decisions
+  (`here`).
+- **Other trailing buttons** (a chat's side panel, a bot's Setup, a form's
+  Save, share) keep their places before it: Decisions is always the last
+  button on the bar, with only the overflow menu after it.
+- **The tap** goes back to Decisions when it's the place under the screen
+  (every screen over it closes, `clearAll`), and otherwise makes Decisions
+  the place, as the sidebar opens it. There's never a second Decisions on
+  the stack.
+- A server that doesn't render it, and builds without it, keep New chat.
+
 ## 12. The composer
 
-**The page's own composer for now (2026-11-20).** Builds made with
-`AppConfig.NATIVE_COMPOSER = false` (the next internal build, with New chat
-and New bot as pages) don't register `composer`, so it's missing from the
-user agent's `bridge-components` and from `data-bridge-components`, and
-native.css leaves the web composer showing. The page's composer then does
-everything itself: typing, Send (the same form, so New chat still turns
-into its chat in place and the app keeps the screen for it), suggestions,
-the model, web search, files through the WebView's file chooser, and
-dictation through `getUserMedia` (the microphone allowed for this server's
-pages only, `AppWebChromeClient`). The keyboard resizes the page
-(`adjustResize`, and the activity pads for the IME), so it never covers the
-composer. What the native composer drove is off in those builds: Live
-Updates started from an answer left `working`, files shared into a new chat
-(shared words still arrive through `?text=`), New chat's kept draft, the
-glow, its haptics, and the skeletons' composer bone. The rest of this
-section describes the native composer, which turning the constant back on
-restores.
+**The page's own composer (2026-11-20).** Builds made with
+`AppConfig.NATIVE_COMPOSER = false` (from 1.2.13) don't register `composer`,
+so it's missing from the user agent's `bridge-components` and from
+`data-bridge-components`, and native.css leaves the web composer showing. The
+page's composer then does everything itself: typing, Send (the same form, so
+New chat still turns into its chat in place and the app keeps the screen for
+it), suggestions, the model, web search, the slash menu, files, and dictation
+through `getUserMedia` (the microphone allowed for this server's pages only,
+`AppWebChromeClient`; Hotwire Native asks for `RECORD_AUDIO` the first time).
+The rest of this section after "The web composer" describes the native
+composer, which turning the constant back on restores.
+
+### The web composer
+
+Those builds register `web-composer` instead (never both: `BridgeComponents`
+registers it exactly when it leaves `composer` out). Its Stimulus controller,
+the server's `bridge/web_composer_controller.js`, sits on `#new_message`
+beside `bridge--composer`, and tells the app what it needs from a composer it
+doesn't draw:
+
+| Event | Direction | Data |
+|---|---|---|
+| `connect`, then `state` whenever it changes | web to app | `{working, waiting, run, revision, startedAt, mark, csrfToken, acceptsFiles, dictates, menu}` |
+| reply to `connect` | app to web | `{action: "attach", files: [{name, type, data}]}` (data base64, `ComposerFile`), `{action: "dictate"}`, `{action: "closeMenus"}` |
+
+`working`, `waiting`, `run`, `revision`, `startedAt` (unix seconds) and `mark`
+are `bridge--composer`'s own. `acceptsFiles` is false while the composer is
+locked; `dictates` is whether its microphone is offered now (an install that
+transcribes, and the person's yes to models); `menu` is whether one of its
+menus is open (+, the model picker, the mode picker, the slash menu). A chat draws its composer again
+as an answer starts and ends, and New chat's composer connects again as it
+turns into its chat (`address:replaced`): each connects again, and the app
+replies to the latest `connect`.
+
+- **Live Updates.** Each screen keeps the latest state (`WebFragment.webComposer`,
+  forgotten as another visit starts on it). Leaving a chat while it's
+  `working` starts its Live Update from that state, as from the native
+  composer's: the chat's URL, `liveRun` from `run`, `revision` and
+  `startedAt`, `mark`, and `csrfToken` for following it (section 9, "Live
+  Updates"), and a launch soon after reopens that chat.
+- **Files shared into a new chat** (section 7, "Sharing into the app") wait
+  for New chat's composer: on its `connect` with `acceptsFiles`, or a later
+  `state` with it once a locked composer unlocks, the app replies `attach`
+  with them, which the page uploads as any file it takes. Files the reply
+  can't carry wait for the next New chat. The page ignores `attach` while
+  locked and says nothing, so a lock between the reply and the page acting
+  on it still loses them; only an answer from the page that it took them
+  would close that. Shared words still arrive through `?text=`.
+- **Dictate from the widget or a shortcut** waits the same way: on New chat's
+  `connect` with `dictates`, the app asks for the microphone if Android
+  hasn't allowed it yet, then replies `dictate`, which clicks the page's
+  microphone, so everything it checks holds. Without the permission it says
+  so in a snackbar.
+- **The focus.** The page focuses New chat's composer as it loads; the app
+  gives the web view the focus and asks for the keyboard (`WebFragment`).
+  New chat opened again while it's already on top (the bar, a shortcut)
+  focuses the page's composer from the app. After Send the page decides
+  the keyboard: in a chat it keeps the focus through the composer's redraw,
+  so the keyboard stays up; New chat, New bot's sentence and Decisions' All
+  clear let it go down once as they turn into the chat (the shared web view
+  also loses the focus as it moves to the chat's screen), and the app never
+  brings it back.
+- **Back closes a menu.** While `menu` is true the app takes Back (a callback
+  added after the navigator's, on the screen's view) and replies
+  `closeMenus`, which closes the composer's dropdowns and slash menu; Back
+  then goes back as before. While the sidebar covers the page, Back is the
+  drawer's, and the menu waits for the next one. Without it, Back with the + menu open left the
+  app from a place, the menu still drawn. A page without `menu` sends none,
+  and Back is the navigator's.
+- **Files from the + menu.** Its Attach files is the page's own file input:
+  on this server's pages, for an input that takes several files of any kind
+  (the composer's), the app answers it with a sheet of Camera, Photos
+  (Android's photo picker), Files and Scan (ML Kit's document scanner, one
+  PDF). Anything narrower (a type, or a single file, which the sheet's
+  pickers can't keep to), and other sites, get Hotwire Native's chooser
+  (`WebFileChooser`).
+- **The keyboard.** The app pads the pages for the system bars and the
+  keyboard, and follows the keyboard's slide frame by frame
+  (`WindowInsetsAnimationCompat`), so the composer rides on its top edge as
+  it opens and closes. The web view gets those insets already used up, so
+  `env(safe-area-inset-bottom)` is 0 in the app and the page never pads for
+  the gesture bar a second time. The VirtualKeyboard API is no use here: the
+  WebView (149) has `navigator.virtualKeyboard` but never fires
+  `geometrychange`.
+- **Haptics.** Send's `turbo:submit-start->bridge--haptic#vibrate` (`light`)
+  ticks as on the web.
+- **Not in these builds:** New chat's kept draft (the page keeps its own
+  draft per chat), and the skeletons' composer bone.
 
 **Composer parity (2026-10-30).** Each model may also send `iconName`
 (the model maker’s key), `icon` (the web asset’s absolute URL), and

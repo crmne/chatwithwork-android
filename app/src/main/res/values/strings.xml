@@ -4,6 +4,12 @@
 
     <!-- The sidebar -->
     <string name="new_chat">New chat</string>
+    <!-- The top app bar's Decisions button (docs/server-contract.md, "Decisions in the bar"). -->
+    <string name="bar_decisions">Decisions</string>
+    <plurals name="bar_decisions_waiting">
+        <item quantity="one">Decisions, %d waiting</item>
+        <item quantity="other">Decisions, %d waiting</item>
+    </plurals>
     <string name="settings">Settings</string>
     <string name="sidebar_open">Open the sidebar</string>
     <string name="sidebar_search">Search chats</string>

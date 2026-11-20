@@ -58,6 +58,9 @@ object AppUrls {
     /** The Decisions page, inside [account] when it's known. */
     fun decisions(account: String?): String = page("/decisions", account)
 
+    /** Decisions, any of its views (`?view=now`, snoozed). */
+    fun isDecisions(url: String): Boolean = isAppUrl(url) && pathWithinAccount(url) == "/decisions"
+
     // Rails' AccountSlug::PATTERN: seven digits or more.
     private val accountPrefix = Regex("^/(\\d{7,})(?=/|$)")
 

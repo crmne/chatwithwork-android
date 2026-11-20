@@ -19,6 +19,8 @@ import androidx.navigation.navOptions
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.R
+import com.chatwithwork.app.bridge.ComposerHost
+import com.chatwithwork.app.bridge.WebComposerState
 import com.chatwithwork.app.composer.ComposerView
 import com.chatwithwork.app.routing.AppUrls
 import dev.hotwire.core.config.Hotwire
@@ -68,6 +70,28 @@ open class WebFragment : HotwireWebFragment() {
 
     /** This screen is that chat, taking over the shared web view that already shows its question. */
     private var handedOver = false
+
+    /** New chat or New bot opened from a page, which it turns into in place (OpensInPlace). */
+    private var openedInPlace = false
+
+    /**
+     * The page's own composer as it last said (`web-composer`), where the app
+     * draws none: whether an answer runs, for a Live Update as the person
+     * leaves. It holds for the page it came from ([webComposerUrl]) only, so
+     * a failed refresh keeps it and another page's leaves it behind.
+     */
+    var webComposer: WebComposerState? = null
+        private set
+    private var webComposerUrl: String? = null
+
+    fun keepWebComposer(state: WebComposerState, url: String) {
+        webComposer = state
+        webComposerUrl = url
+    }
+
+    /** The composer state, when it came from the page now at [url]. */
+    fun webComposerFor(url: String?): WebComposerState? =
+        webComposer?.takeIf { url != null && webComposerUrl?.let { samePage(it, url) } == true }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
         inflater.inflate(R.layout.fragment_web, container, false)
@@ -122,6 +146,13 @@ open class WebFragment : HotwireWebFragment() {
                     if (handed.focused) focusField()
                 }
             }
+        }
+
+        // New chat or New bot opened from a page turns the page into it in
+        // place: the web view goes on showing the page until New chat draws.
+        if (!skeletonShown && OpensInPlace.take(location)) {
+            skeletonShown = true
+            openedInPlace = true
         }
 
         val kind = PageSkeleton.kind(location, pathProperties.skeleton)
@@ -194,6 +225,7 @@ open class WebFragment : HotwireWebFragment() {
         toolbar.menu.add(GROUP_SHELL, ITEM_NEW_CHAT, ORDER_NEW_CHAT, R.string.new_chat).apply {
             icon = ContextCompat.getDrawable(toolbar.context, R.drawable.ic_new_chat)
             setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+            isVisible = !decisionsInBar
             setOnMenuItemClickListener {
                 host?.startNewChatOverPage()
                 true
@@ -255,6 +287,17 @@ open class WebFragment : HotwireWebFragment() {
             }
         }
         val toModal = newPathProperties.context == PresentationContext.MODAL
+        if (OpensInPlace.applies(newLocation, toModal, newPathProperties.presentation, action)) {
+            OpensInPlace.expect(newLocation)
+            return navOptions {
+                anim {
+                    enter = NO_ANIMATION
+                    exit = NO_ANIMATION
+                    popEnter = HotwireR.anim.enter_slide_in_left
+                    popExit = HotwireR.anim.exit_slide_out_right
+                }
+            }
+        }
         val anims =
             ModalMotion.anims(
                 fromModal = isModal,
@@ -292,15 +335,19 @@ open class WebFragment : HotwireWebFragment() {
 
     // The chrome client belongs to the screen showing the web view, so a page
     // that retitles itself (a chat's automatic title) retitles this screen.
-    override fun createWebChromeClient(): HotwireWebChromeClient = AppWebChromeClient(navigator.session) { title ->
+    override fun createWebChromeClient(): HotwireWebChromeClient = AppWebChromeClient(
+        navigator.session,
+        host = { activity as? ComposerHost }
+    ) { title ->
         if (isAdded && view != null) fragmentViewModel.setTitle(title)
     }
 
     @SuppressLint("InflateParams") // Hotwire Native adds it to its own container.
     override fun createProgressView(location: String): View =
-        // The skeleton already covers the page, or the chat a question turned into
-        // already shows; Hotwire Native still wants a view to show.
-        if (skeleton?.covering == true || handedOver) {
+        // The skeleton already covers the page, the chat a question turned into
+        // already shows, or the page goes on showing until New chat opened in
+        // place draws; Hotwire Native still wants a view to show.
+        if (skeleton?.covering == true || handedOver || openedInPlace) {
             View(requireContext())
         } else {
             layoutInflater.inflate(R.layout.view_progress, null)
@@ -321,6 +368,8 @@ open class WebFragment : HotwireWebFragment() {
     }
 
     override fun onVisitCompleted(location: String, completedOffline: Boolean) {
+        // Only the opening visit keeps the page under it; a later one (a retry) shows its progress.
+        openedInPlace = false
         topBar?.follow(navigator.session.webView)
         super.onVisitCompleted(location, completedOffline)
         allowZoom(AppUrls.isFileViewer(location))
@@ -329,6 +378,15 @@ open class WebFragment : HotwireWebFragment() {
             keyboardOffered = true
             if (!AppConfig.NATIVE_COMPOSER && AppUrls.opensAsPlace(location)) offerKeyboard()
         }
+    }
+
+    /** The page put Decisions at the bar's end (DecisionsComponent), in New chat's place. */
+    private var decisionsInBar = false
+
+    /** Decisions takes the bar's last place, or gives it back to New chat (on Decisions itself). */
+    fun showDecisionsInBar(shown: Boolean) {
+        decisionsInBar = shown
+        toolbarForNavigation()?.menu?.findItem(ITEM_NEW_CHAT)?.isVisible = !shown
     }
 
     /** Asked once per screen: a page coming back from a pushed one doesn't bring the keyboard up again. */
@@ -342,8 +400,29 @@ open class WebFragment : HotwireWebFragment() {
      * focused.
      */
     private fun offerKeyboard() {
+        // Opened from the sidebar, the page loads as the drawer slides; the
+        // keyboard waits for it to have shut, which would otherwise put it away.
+        host?.whenDrawerShut {
+            if (!isAdded || view == null) return@whenDrawerShut
+            val webView = navigator.session.webView
+            webView.requestFocus()
+            showKeyboardSoon(webView)
+        }
+    }
+
+    /**
+     * New chat already on screen, opened again (a shortcut, the bar): its
+     * composer takes the focus, and the keyboard with it.
+     */
+    fun focusPageComposer() {
+        if (view == null) return
         val webView = navigator.session.webView
         webView.requestFocus()
+        webView.evaluateJavascript(PageScripts.FOCUS_COMPOSER, null)
+        showKeyboardSoon(webView)
+    }
+
+    private fun showKeyboardSoon(webView: View) {
         webView.post {
             if (isAdded && view != null) {
                 WindowCompat.getInsetsController(requireActivity().window, webView).show(WindowInsetsCompat.Type.ime())
@@ -376,6 +455,7 @@ open class WebFragment : HotwireWebFragment() {
     }
 
     override fun onVisitErrorReceived(location: String, error: VisitError) {
+        openedInPlace = false
         skeleton?.remove()
         super.onVisitErrorReceived(location, error)
         if (error is HttpError.ClientError.Unauthorized) host?.onSignedOut(this)
@@ -391,6 +471,7 @@ open class WebFragment : HotwireWebFragment() {
     override fun onColdBootPageCompleted(location: String) {
         super.onColdBootPageCompleted(location)
         PageScripts.install(navigator.session.webView)
+        NetworkCost.apply(navigator.session.webView)
         tellPageItsTop()
     }
 
@@ -448,6 +529,12 @@ interface WebScreenHost {
 
     /** The bar's New chat: pushed over this page, with Back to it. */
     fun startNewChatOverPage()
+
+    /** Runs [action] now, or once the sidebar has slid shut and the screen has been drawn without it. */
+    fun whenDrawerShut(action: () -> Unit)
+
+    /** The bar's Decisions (DecisionsComponent): back to it if it's the place under this screen, else it as the place. */
+    fun openDecisionsFromBar(url: String?)
 
     /** The organization's home, in [destination], answered 404 (a server from before it): open the chat list instead. */
     fun onHomeMissing(destination: HotwireDestination)

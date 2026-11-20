@@ -129,6 +129,14 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
     }
 
     /**
+     * The drawer closed (a back gesture, a swipe, the scrim, a visit): the
+     * page ends picking rows and closes its menus, as the web's drawer does.
+     */
+    fun closed() {
+        if (isShowing) webView.evaluateJavascript(SidebarPage.Script.CLOSED, null)
+    }
+
+    /**
      * The activity ending (a theme change makes another): stops the page and
      * its streams, and lets go of the web view, which holds the activity.
      * Nothing it posted runs after this.
