@@ -341,9 +341,11 @@ class SidebarDrawer(private val root: View, private val actions: Actions) {
 
         private fun bindDecisions(view: View, row: SidebarRow.Decisions) {
             val waiting = row.count > 0
-            view.findViewById<ImageView>(R.id.sidebar_decisions_icon).setImageDrawable(
-                symbol("checklist", ink(R.color.lw_ink_muted), sizeDp = 20f)
-            )
+            // The web's Decisions icon, Phosphor's signpost (Decision::ICON).
+            view.findViewById<ImageView>(R.id.sidebar_decisions_icon).apply {
+                setImageResource(R.drawable.ic_signpost)
+                imageTintList = ColorStateList.valueOf(ink(R.color.lw_ink_muted))
+            }
             view.findViewById<TextView>(R.id.sidebar_decisions_count).apply {
                 text = row.count.toString()
                 isVisible = waiting
