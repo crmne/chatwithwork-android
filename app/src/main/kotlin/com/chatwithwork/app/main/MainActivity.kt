@@ -695,7 +695,11 @@ class MainActivity :
     private fun openNewPage(location: String) {
         val navigator = navigator ?: return
         if (AppUrls.isNewChat(location)) {
-            if (location == navigator.currentDestination?.location && focusNewChatOnTop(navigator)) return
+            // The same New chat already on top only takes the focus, unless files or
+            // dictation wait for a composer to connect, which only a fresh page does.
+            // Pushed over a page, it becomes the root instead, as a place.
+            val same = location == navigator.currentDestination?.location && navigator.isAtStartDestination()
+            if (same && !PendingShares.waiting && focusNewChatOnTop(navigator)) return
             PendingShares.askFocus()
         }
         navigator.clearAll { navigator.route(location, VisitOptions(action = VisitAction.REPLACE)) }

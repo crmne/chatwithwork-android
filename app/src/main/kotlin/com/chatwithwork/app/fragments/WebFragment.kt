@@ -215,7 +215,7 @@ open class WebFragment : HotwireWebFragment() {
         handingOff = true
         val composer =
             view?.findViewById<ComposerView>(R.id.composer)?.takeIf { it.visibility == View.VISIBLE }?.let {
-                NewChatHandOff.Composer(it.state, it.fieldFocused)
+                NewChatHandOff.Composer(it.state, it.typing)
             }
         NewChatHandOff.expect(proposal.location, composer)
         if (navigator.isAtStartDestination()) return null

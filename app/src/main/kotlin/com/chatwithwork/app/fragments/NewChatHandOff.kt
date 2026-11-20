@@ -34,7 +34,8 @@ object NewChatHandOff {
 
     /**
      * The composer as the screen giving way last drew it (answering, with its
-     * Stop), and whether its field had the keyboard: the chat's screen draws
+     * Stop), and whether its field had the keyboard up (one the person put
+     * away stays away): the chat's screen draws
      * it so until the chat's page connects its own, rather than showing no
      * composer while the page arrives.
      */
@@ -77,18 +78,22 @@ object NewChatHandOff {
      * replaces the current screen, which over a pushed page isn't the root.
      * Hotwire Native caches each location's properties and decides the
      * presentation synchronously as it routes, so the override lasts exactly
-     * that one decision. Should the cache have been cleared meanwhile (the
-     * server's configuration arriving), the chat's own rule holds: it replaces
-     * the root, as builds before v4 did.
+     * that one decision. The server's configuration arriving meanwhile would
+     * clear that cache: it waits on the configuration's lock, which this holds
+     * (Hotwire Native takes the same lock to apply a configuration and to
+     * read properties, and the routing reads on this thread).
      */
     fun withPresentation(location: String, presentation: Presentation, route: () -> Unit) {
-        val properties = Hotwire.config.pathConfiguration.properties(location)
-        val before = properties[PRESENTATION]
-        properties[PRESENTATION] = presentation.name.lowercase()
-        try {
-            route()
-        } finally {
-            if (before == null) properties.remove(PRESENTATION) else properties[PRESENTATION] = before
+        val configuration = Hotwire.config.pathConfiguration
+        synchronized(configuration) {
+            val properties = configuration.properties(location)
+            val before = properties[PRESENTATION]
+            properties[PRESENTATION] = presentation.name.lowercase()
+            try {
+                route()
+            } finally {
+                if (before == null) properties.remove(PRESENTATION) else properties[PRESENTATION] = before
+            }
         }
     }
 

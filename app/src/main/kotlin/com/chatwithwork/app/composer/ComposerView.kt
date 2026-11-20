@@ -164,8 +164,8 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
     val text: String get() = input.text?.toString().orEmpty()
 
-    /** Whether the field has the focus (and so, mostly, the keyboard). */
-    val fieldFocused: Boolean get() = input.hasFocus()
+    /** Whether the field has the focus and the keyboard is up for it (a dismissed keyboard leaves the focus). */
+    val typing: Boolean get() = input.hasFocus() && keyboardShowing
 
     // The gutter the layout gives the composer, kept on phones; on a tablet the composer centres under the page's
     // column instead of spanning the screen.
