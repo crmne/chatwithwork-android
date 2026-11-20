@@ -1521,7 +1521,10 @@ replies to the latest `connect`.
   the attach's order; the app sends an `id` with the attach and keeps the
   files in flight until then (`PendingShares`). A file taken, `refused` or
   `removed` leaves; `locked` and `unavailable` wait to be handed again, to
-  this composer once a `state` says it takes files; `failed` and any reason
+  this composer once a `state` says it takes files (an answer that comes
+  after that state hands them again at once, but only once per state, so a
+  page that answers `unavailable` straight away isn't sent them in a loop);
+  `failed` and any reason
   the app doesn't know wait for a New chat after another visit, so a failing
   upload isn't retried on the same page. Files in flight go back when the
   screen that sent them starts another visit or is destroyed, or ten minutes
