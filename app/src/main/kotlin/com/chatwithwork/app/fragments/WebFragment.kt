@@ -368,6 +368,8 @@ open class WebFragment : HotwireWebFragment() {
     }
 
     override fun onVisitCompleted(location: String, completedOffline: Boolean) {
+        // Only the opening visit keeps the page under it; a later one (a retry) shows its progress.
+        openedInPlace = false
         topBar?.follow(navigator.session.webView)
         super.onVisitCompleted(location, completedOffline)
         allowZoom(AppUrls.isFileViewer(location))
@@ -453,6 +455,7 @@ open class WebFragment : HotwireWebFragment() {
     }
 
     override fun onVisitErrorReceived(location: String, error: VisitError) {
+        openedInPlace = false
         skeleton?.remove()
         super.onVisitErrorReceived(location, error)
         if (error is HttpError.ClientError.Unauthorized) host?.onSignedOut(this)
