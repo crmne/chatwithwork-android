@@ -1452,12 +1452,12 @@ replies to the latest `connect`.
 - **The focus.** The page focuses New chat's composer as it loads; the app
   gives the web view the focus and asks for the keyboard (`WebFragment`).
   New chat opened again while it's already on top (the bar, a shortcut)
-  focuses the page's composer from the app. When New chat's question hands
-  its screen to the chat (section 5), the shared web view moves to the
-  chat's screen and loses the focus on the way; if the page's composer had
-  the keyboard up as it went, the chat's screen gives the focus back
-  (`NewChatHandOff.takeKeyboard`), so the keyboard comes back up after a
-  short dip rather than staying down.
+  focuses the page's composer from the app. After Send the page decides
+  the keyboard: in a chat it keeps the focus through the composer's redraw,
+  so the keyboard stays up; New chat, New bot's sentence and Decisions' All
+  clear let it go down once as they turn into the chat (the shared web view
+  also loses the focus as it moves to the chat's screen), and the app never
+  brings it back.
 - **Back closes a menu.** While `menu` is true the app takes Back (a callback
   added after the navigator's, on the screen's view) and replies
   `closeMenus`, which closes the composer's dropdowns and slash menu; Back

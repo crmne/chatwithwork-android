@@ -44,24 +44,11 @@ object NewChatHandOff {
     var composer: Composer? = null
         private set
 
-    /**
-     * Where the app draws no composer: whether the page's had the keyboard up
-     * as the screen gave way. The web view moves to the chat's screen, which
-     * takes the focus from it, so that screen gives it back.
-     */
-    private var keyboard = false
-
     /** [chat] is about to replace the screen it was sent from, whose composer showed [composer]. */
-    fun expect(
-        chat: String,
-        composer: Composer? = null,
-        now: Long = SystemClock.uptimeMillis(),
-        keyboard: Boolean = false
-    ) {
+    fun expect(chat: String, composer: Composer? = null, now: Long = SystemClock.uptimeMillis()) {
         expected = chat
         expectedAt = now
         this.composer = composer
-        this.keyboard = keyboard
     }
 
     /**
@@ -73,15 +60,9 @@ object NewChatHandOff {
     fun take(location: String, now: Long = SystemClock.uptimeMillis()): Boolean {
         val handed = expected == location && now - expectedAt in 0..EXPECTED_FOR_MS
         if (handed || now - expectedAt > EXPECTED_FOR_MS) expected = null
-        if (!handed) {
-            composer = null
-            keyboard = false
-        }
+        if (!handed) composer = null
         return handed
     }
-
-    /** Whether the page's composer had the keyboard as its chat was handed over, taken once. */
-    fun takeKeyboard(): Boolean = keyboard.also { keyboard = false }
 
     /** The composer handed over with the chat, taken once. */
     fun takeComposer(): Composer? = composer.also { composer = null }

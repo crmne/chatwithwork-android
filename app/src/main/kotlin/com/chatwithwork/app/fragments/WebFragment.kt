@@ -12,7 +12,6 @@ import androidx.appcompat.R as AppCompatR
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.NavOptions
@@ -126,7 +125,6 @@ open class WebFragment : HotwireWebFragment() {
             handedOver = true
             skeletonShown = true
             navigator.session.webView.title?.let(fragmentViewModel::setTitle)
-            keyboardHandedOver = NewChatHandOff.takeKeyboard()
             NewChatHandOff.takeComposer()?.let { handed ->
                 view.findViewById<ComposerView>(R.id.composer)?.apply {
                     show(handed.state)
@@ -163,16 +161,7 @@ open class WebFragment : HotwireWebFragment() {
         // Shown again (a hand-off the navigator dropped): it moves as any screen does.
         handingOff = false
         takeOverPullToRefresh()
-        // The shared web view, moved here from the screen it was typed on,
-        // lost the focus on the way: its composer takes it back with the keyboard.
-        if (keyboardHandedOver) {
-            keyboardHandedOver = false
-            focusPageComposer()
-        }
     }
-
-    /** The page's composer had the keyboard as this chat took the screen over (NewChatHandOff). */
-    private var keyboardHandedOver = false
 
     override fun onStartAfterModalResult(result: SessionModalResult) {
         super.onStartAfterModalResult(result)
@@ -240,11 +229,7 @@ open class WebFragment : HotwireWebFragment() {
             view?.findViewById<ComposerView>(R.id.composer)?.takeIf { it.visibility == View.VISIBLE }?.let {
                 NewChatHandOff.Composer(it.state, it.typing)
             }
-        val webView = navigator.session.webView
-        val keyboard =
-            composer == null && webView.hasFocus() &&
-                ViewCompat.getRootWindowInsets(webView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
-        NewChatHandOff.expect(proposal.location, composer, keyboard = keyboard)
+        NewChatHandOff.expect(proposal.location, composer)
         if (navigator.isAtStartDestination()) return null
         routingHandOff = true
         try {
