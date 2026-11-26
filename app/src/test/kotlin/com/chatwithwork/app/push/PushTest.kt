@@ -45,6 +45,14 @@ class PushTest {
     }
 
     @Test
+    fun `reads an idea, a bot to try, which rings like an answer`() {
+        val idea = Push.from(mapOf("kind" to "idea", "path" to path, "title" to "A bot to try", "body" to "Inbox triage: Shows you the few emails that need you today."))
+        assertThat(idea?.kind).isEqualTo(Push.Kind.IDEA)
+        assertThat(idea?.waitsForPerson).isFalse()
+        assertThat(idea?.notificationId).isNull()
+    }
+
+    @Test
     fun `knows when a change was decided elsewhere`() {
         assertThat(Push.from(mapOf("kind" to "resolved", "path" to path))?.kind).isEqualTo(Push.Kind.RESOLVED)
     }
