@@ -1,6 +1,8 @@
 package com.chatwithwork.app.fragments
 
+import android.view.View
 import android.webkit.WebView
+import java.util.WeakHashMap
 
 /**
  * A little JavaScript the app adds to every page it loads.
@@ -55,8 +57,44 @@ object PageScripts {
      * clear of it (docs/server-contract.md). 0 where the page starts below it.
      */
     fun setTopBarHeight(webView: WebView, height: Int) {
-        if (webView.width > 0) webView.evaluateJavascript(topBarHeightScript(height, webView.width), null)
+        // A web view not laid out yet (a screen coming back after Android ended the app, the shared web view
+        // between screens) has no width to scale by: it's told once it has one, where it was never told and the
+        // page ran under the bar.
+        whenLaidOut(webView) { width -> webView.evaluateJavascript(topBarHeightScript(height, width), null) }
     }
+
+    /**
+     * Runs [action] with [view]'s width now, or once it has one. A newer
+     * action for the same view takes the place of one still waiting.
+     */
+    internal fun whenLaidOut(view: View, action: (Int) -> Unit) {
+        waiting.remove(view)?.let(view::removeOnLayoutChangeListener)
+        if (view.width > 0) return action(view.width)
+
+        val listener =
+            object : View.OnLayoutChangeListener {
+                override fun onLayoutChange(
+                    laidOut: View,
+                    l: Int,
+                    t: Int,
+                    r: Int,
+                    b: Int,
+                    ol: Int,
+                    ot: Int,
+                    or: Int,
+                    ob: Int
+                ) {
+                    if (laidOut.width <= 0) return
+                    laidOut.removeOnLayoutChangeListener(this)
+                    waiting.remove(laidOut)
+                    action(laidOut.width)
+                }
+            }
+        waiting[view] = listener
+        view.addOnLayoutChangeListener(listener)
+    }
+
+    private val waiting = WeakHashMap<View, View.OnLayoutChangeListener>()
 
     internal fun topBarHeightScript(height: Int, viewWidth: Int): String = "document.documentElement.style" +
         ".setProperty('--native-top-bar-height', ($height * window.innerWidth / $viewWidth) + 'px')"

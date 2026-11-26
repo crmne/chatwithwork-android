@@ -184,6 +184,9 @@ open class WebFragment : HotwireWebFragment() {
         // Shown again (a hand-off the navigator dropped): it moves as any screen does.
         handingOff = false
         takeOverPullToRefresh()
+        // Back in the foreground, or on top again: the page may have loaded whole meanwhile (a deploy's new scripts,
+        // its process ended), which forgets how much of its top the bar covers.
+        if (view != null) tellPageItsTop()
     }
 
     override fun onStartAfterModalResult(result: SessionModalResult) {
