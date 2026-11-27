@@ -36,6 +36,9 @@ object NewChatDrafts {
     /** The draft for [location]'s organization, taken: it's in the field from now on. */
     fun take(location: String): String? = if (AppUrls.isNewChat(location)) drafts.remove(key(location)) else null
 
+    /** Whether words wait for New chat in [location]'s organization, so going back to it is worth it. */
+    fun has(location: String): Boolean = AppUrls.isNewChat(location) && drafts.containsKey(key(location))
+
     /** Sent: nothing waits any more. */
     fun clear(location: String) {
         if (AppUrls.isNewChat(location)) drafts.remove(key(location))

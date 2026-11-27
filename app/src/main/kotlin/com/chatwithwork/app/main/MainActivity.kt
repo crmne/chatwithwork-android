@@ -69,6 +69,7 @@ import com.chatwithwork.app.composer.ComposerView
 import com.chatwithwork.app.composer.NewChatDrafts
 import com.chatwithwork.app.composer.PastedContent
 import com.chatwithwork.app.composer.PendingShares
+import com.chatwithwork.app.fragments.BackMotion
 import com.chatwithwork.app.fragments.ModalBackdrop
 import com.chatwithwork.app.fragments.ModalFrame
 import com.chatwithwork.app.fragments.NewChatHandOff
@@ -299,6 +300,21 @@ class MainActivity :
 
     private fun currentModal(): WebModalFragment? = navigator?.currentDestination?.fragment as? WebModalFragment
 
+    /** The places the person was at, for back at a place (PlaceHistory, GoingBack). */
+    private val places = PlaceHistory()
+
+    /**
+     * Back at a place goes back to the place before, else home
+     * (GoingBack.step); enabled only then, so at the home with nothing
+     * before it the system leaves the app, with its predictive animation.
+     */
+    private val goBack =
+        object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                (backStep() as? GoingBack.Step.GoTo)?.let { returnTo(it.location) } ?: updateGoingBack()
+            }
+        }
+
     /** Back closes the sidebar first. Added after Hotwire's own, so it goes first. */
     private val closeSidebar =
         object : OnBackPressedCallback(false) {
@@ -335,6 +351,8 @@ class MainActivity :
         setUpSidebar()
         setUpWelcome()
         setUpInsets()
+        places.restore(savedInstanceState?.getStringArrayList(PLACES_KEY))
+        onBackPressedDispatcher.addCallback(this, goBack)
         onBackPressedDispatcher.addCallback(this, closeModal)
         onBackPressedDispatcher.addCallback(this, closeSidebar)
 
@@ -359,6 +377,7 @@ class MainActivity :
             visibleComposer()?.let { NewChatDrafts.keep(destination.location, it.text) }
         }
         NewChatDrafts.save(outState)
+        if (!viewModel.signedOut) outState.putStringArrayList(PLACES_KEY, places.saved())
         super.onSaveInstanceState(outState)
     }
 
@@ -554,12 +573,14 @@ class MainActivity :
             object : DrawerLayout.SimpleDrawerListener() {
                 override fun onDrawerOpened(drawerView: View) {
                     closeSidebar.isEnabled = true
+                    updateGoingBack()
                     sidebarPage.retryIfFailed()
                     startPolling()
                 }
 
                 override fun onDrawerClosed(drawerView: View) {
                     closeSidebar.isEnabled = false
+                    updateGoingBack()
                     pollJob?.cancel()
                     sidebar.resetSearch()
                     sidebarPage.closed()
@@ -1187,6 +1208,50 @@ class MainActivity :
             }
         )
         showSidebar()
+        updateGoingBack()
+    }
+
+    /** What back does now (GoingBack.step), with the place before this one as PlaceHistory keeps it. */
+    private fun backStep(): GoingBack.Step? {
+        val navigator = navigator ?: return null
+        if (viewModel.signedOut || viewModel.signingIn) return null
+        val destination = navigator.currentDestination ?: return null
+        val modal = destination.pathProperties.context == PresentationContext.MODAL
+        val depth = if (navigator.isAtStartDestination() && !modal) 1 else 2
+        val here = rootLocation ?: destination.location
+        return GoingBack.step(
+            sidebarOpen = drawer.isDrawerVisible(GravityCompat.START),
+            depth = depth,
+            previous = places.next(::worthReturningTo),
+            atHome = isHome(here),
+            home = decisionsUrl()
+        )
+    }
+
+    private fun updateGoingBack() {
+        goBack.isEnabled = backStep() is GoingBack.Step.GoTo
+    }
+
+    /** An empty New chat isn't worth going back to; one with words waiting is. */
+    private fun worthReturningTo(location: String): Boolean =
+        !AppUrls.isNewChat(location) || NewChatDrafts.has(location)
+
+    /** The person's home in the app: Decisions (docs/server-contract.md, "Places"), or the start that leads there. */
+    private fun isHome(location: String): Boolean =
+        AppUrls.isDecisions(location) || AppUrls.isStartHome(location) || PlaceHistory.same(location, decisionsUrl())
+
+    /** Back opens [location] as the place, moving as a pop does (BackMotion); it adds nothing to the history. */
+    private fun returnTo(location: String) {
+        places.returnTo(location)
+        BackMotion.expect(location)
+        openPath(location)
+    }
+
+    override fun onPlaceFailed(destination: HotwireDestination, location: String) {
+        if (navigator?.currentDestination !== destination || !places.failed(location)) return
+        // Gone, or no longer theirs: on to the place before it, or the home, never the home again if that failed.
+        val next = places.next(::worthReturningTo) ?: decisionsUrl().takeUnless { isHome(location) } ?: return
+        root.post { returnTo(next) }
     }
 
     /** The keyboard is sliding in or out, and the pages' bottom follows it frame by frame (setUpInsets). */
@@ -1328,6 +1393,7 @@ class MainActivity :
             sidebarPage.reset()
             memory.hasSignedIn = false
             memory.forgetLastChats()
+            places.clear()
             // Words typed by whoever was signed in never wait for the next person.
             NewChatDrafts.clearAll()
             PushNotifications.forget(this)
@@ -1349,6 +1415,7 @@ class MainActivity :
         viewModel.account = null
         viewModel.sidebar = null
         sidebarPage.reset()
+        places.clear()
         memory.hasSignedIn = true
         showWelcome(false)
         delegate.resetNavigators()
@@ -1398,7 +1465,10 @@ class MainActivity :
         if (AppUrls.isChat(shown) && !AppUrls.isNewChat(shown)) {
             AppUrls.account(shown)?.let { memory.setLastChat(it, shown) }
         }
-        if (destination.navigator.isAtStartDestination() && !destination.isModal) rootLocation = shown
+        if (destination.navigator.isAtStartDestination() && !destination.isModal) {
+            rootLocation = shown
+            places.arrived(shown, atHome = isHome(shown))
+        }
         openPendingLink(destination.navigator)
         updateChrome()
         sidebarPage.current(shown, connectedPage?.takeIf { it.first == shown }?.second)
@@ -1414,6 +1484,8 @@ class MainActivity :
         viewModel.account = account
         memory.lastAccount = account
         if (previous != account) {
+            // Another organization's places aren't this one's to go back to.
+            if (previous != null) places.clear()
             viewModel.sidebarStale = true
             refreshSidebar()
         }
@@ -1425,6 +1497,7 @@ class MainActivity :
      * has (New chat among them, a place in its stead).
      */
     private fun moveToOrganization(account: String, location: String) {
+        places.clear()
         viewModel.account = account
         viewModel.sidebar = null
         memory.lastAccount = account
@@ -1922,6 +1995,9 @@ class MainActivity :
         const val PRELOAD_SCRIPT = "window.chatWithWork && window.chatWithWork.preload && window.chatWithWork.preload()"
 
         const val NAVIGATOR = "main"
+
+        /** The places back goes back to (PlaceHistory), in the saved state. */
+        const val PLACES_KEY = "places"
 
         /** How often, and for how long at most, a modal's notice waits for the screen under it. */
         const val NOTICE_POLL_MS = 100L
