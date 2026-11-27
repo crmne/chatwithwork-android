@@ -20,6 +20,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.R
 import com.chatwithwork.app.bridge.ComposerHost
+import com.chatwithwork.app.bridge.WebComposerComponent
 import com.chatwithwork.app.bridge.WebComposerState
 import com.chatwithwork.app.composer.ComposerView
 import com.chatwithwork.app.composer.PendingShares
@@ -85,9 +86,14 @@ open class WebFragment : HotwireWebFragment() {
         private set
     private var webComposerUrl: String? = null
 
-    fun keepWebComposer(state: WebComposerState, url: String) {
+    /** The `web-composer` that said it, to hand the page files pasted or dropped (PastedContent). */
+    var webComposerComponent: WebComposerComponent? = null
+        private set
+
+    fun keepWebComposer(state: WebComposerState, url: String, component: WebComposerComponent? = null) {
         webComposer = state
         webComposerUrl = url
+        if (component != null) webComposerComponent = component
     }
 
     /** The composer state, when it came from the page now at [url]. */

@@ -112,6 +112,8 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
 
     override fun remove(id: String) = reply("remove") { put("id", id) }
 
+    override fun attachPasted(uris: List<Uri>, release: () -> Unit) = attachUris(uris, release)
+
     override fun layout(height: Int, width: Int) {
         replyTo("connect", layoutReply(height, width).toString())
     }
@@ -222,11 +224,19 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
         ?.settings
         ?.userAgentString
 
-    private fun attachUris(uris: List<Uri>) {
-        val activity = activity ?: return
-        if (uris.isEmpty()) return
+    private fun attachUris(uris: List<Uri>, release: () -> Unit = {}) {
+        val activity = activity
+        if (activity == null || uris.isEmpty()) {
+            release()
+            return
+        }
         activity.lifecycleScope.launch {
-            val read = ComposerFiles.read(activity, uris)
+            val read =
+                try {
+                    ComposerFiles.read(activity, uris)
+                } finally {
+                    release()
+                }
             read.tooBig.forEach { name ->
                 (activity as? SnackbarHost)?.showSnackbar(
                     activity.getString(R.string.composer_file_too_big, name),

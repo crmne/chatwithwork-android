@@ -113,6 +113,7 @@
     <string name="composer_web_search">Search the web</string>
     <string name="composer_file_too_big">%1$s is over 25 MB, too big to attach here.</string>
     <string name="composer_file_unreadable">That file couldn\'t be read.</string>
+    <string name="composer_files_not_now">Files can\'t be added here right now.</string>
     <string name="composer_scan_unavailable">Scanning needs Google Play services, which this phone doesn\'t have.</string>
     <string name="dictation_listening">Listening</string>
     <string name="dictation_transcribing">Transcribing</string>

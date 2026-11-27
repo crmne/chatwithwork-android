@@ -1557,6 +1557,28 @@ replies to the latest `connect`.
   the reply and the page acting on it lost the files. A page without
   `confirmsAttach` (a server before 2026-11-20) is trusted with them as the
   reply goes, as before. Shared words still arrive through `?text=`.
+- **Pictures from the keyboard, and drops (2026-11-27).** Gboard's
+  clipboard, its suggestion to paste what was just copied, GIFs, stickers
+  and image keyboards insert a picture as rich content (`commitContent`),
+  never as a paste, and Chromium's web view takes none: the keyboard said
+  "Chat with Work does not support image pasting here". The app's web view
+  (`AppWebView`) takes rich content the platform's way
+  (`ViewCompat.setOnReceiveContentListener`, `PastedContent`): while the
+  screen's latest `web-composer` state, for the page now showing, has
+  `acceptsFiles`, the field tells the keyboard it takes `image/*`, and a
+  picture inserted is read (under the keyboard's grant) and replied as
+  `attach {files}` without an `id`, so it uploads like any file the page
+  takes, with its limits and its dialog for one it refuses; the chip shows
+  how the upload went, and the `attached` that follows settles nothing in
+  the app. A drop from another app (tablets, split screen) that holds files
+  goes the same way; a drop of words is the page's. Where no composer takes
+  files now, nothing is offered to the keyboard, and a picture that comes
+  anyway is turned down in a snackbar. Long-press Paste needs none of this:
+  Chromium offers Paste for a picture and gives the page an ordinary paste
+  with it, which the page attaches, or pastes as words when the clip has
+  words of its own (a spreadsheet range with a picture of it beside).
+  The native composer's field takes the same content by the same rule.
+  Nothing changes in the contract.
 - **Dictate from the widget or a shortcut** waits the same way: on New chat's
   `connect` with `dictates`, the app asks for the microphone if Android
   hasn't allowed it yet, then replies `dictate`, which clicks the page's

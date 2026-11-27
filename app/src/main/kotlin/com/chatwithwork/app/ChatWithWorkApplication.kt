@@ -5,6 +5,7 @@ import android.content.Context
 import android.webkit.CookieManager
 import androidx.core.content.ContextCompat
 import com.chatwithwork.app.bridge.BridgeComponents
+import com.chatwithwork.app.composer.AppWebView
 import com.chatwithwork.app.fragments.FirstPaint
 import com.chatwithwork.app.fragments.NetworkCost
 import com.chatwithwork.app.fragments.WebFragment
@@ -68,9 +69,10 @@ class ChatWithWorkApplication : Application() {
      * No white flash before a page paints: the web view starts on the canvas
      * color. No scroll bars either: native screens don't show them, and a
      * page that's a little too wide would otherwise keep a bar along the
-     * bottom edge.
+     * bottom edge. It takes pictures and files pasted, inserted by the
+     * keyboard, or dropped into the page's composer (AppWebView).
      */
-    private fun makeWebView(context: Context): HotwireWebView = HotwireWebView(context).apply {
+    private fun makeWebView(context: Context): HotwireWebView = AppWebView(context).apply {
         FirstPaint.install(this)
         NetworkCost.install(this)
         setBackgroundColor(ContextCompat.getColor(context, R.color.lw_canvas))

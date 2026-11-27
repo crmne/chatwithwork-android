@@ -4,6 +4,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.LifecycleOwner
 import com.chatwithwork.app.R
+import com.chatwithwork.app.composer.AppWebView
 import com.chatwithwork.app.composer.AttachedFile
 import com.chatwithwork.app.composer.ComposerFile
 import com.chatwithwork.app.composer.PendingShares
@@ -16,6 +17,7 @@ import dev.hotwire.core.bridge.BridgeComponentFactory
 import dev.hotwire.core.bridge.BridgeDelegate
 import dev.hotwire.core.bridge.Message
 import dev.hotwire.navigation.destinations.HotwireDestination
+import dev.hotwire.navigation.fragments.HotwireWebFragment
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -33,7 +35,8 @@ import kotlinx.serialization.json.put
  *   [WebComposerState]. The screen keeps the latest ([WebFragment.webComposer]),
  *   so a Live Update can follow an answer left running.
  * - App to web, as replies to the latest `connect`: `attach {files}` (files
- *   shared into New chat), `dictate` (the widget's or a shortcut's Dictate,
+ *   shared into New chat, and pictures and files pasted, inserted by the
+ *   keyboard or dropped, [attachPasted]), `dictate` (the widget's or a shortcut's Dictate,
  *   which clicks the page's microphone once Android allows the microphone),
  *   and `closeMenus` (Back while one of the composer's menus is open, `menu`).
  */
@@ -65,8 +68,12 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
                 PendingShares.returnUnanswered(olderThan = System.currentTimeMillis() - PendingShares.UNANSWERED_MS)
                 (fragment as? WebFragment)?.keepWebComposer(
                     state,
-                    message.metadata?.url ?: bridgeDelegate.destination.location
+                    message.metadata?.url ?: bridgeDelegate.destination.location,
+                    this
                 )
+                (fragment as? HotwireWebFragment)?.navigator?.session?.webView?.let {
+                    (it as? AppWebView)?.composerChanged()
+                }
                 takeBack(state.menu)
                 if (message.event == "connect") {
                     connectedAt = PendingShares.visit
@@ -160,6 +167,16 @@ class WebComposerComponent(name: String, private val bridgeDelegate: BridgeDeleg
         if (files.isEmpty()) return
         if (!replyTo("connect", attachReply(files).toString())) PendingShares.putBack(files)
     }
+
+    /**
+     * Files pasted, inserted by the keyboard, or dropped (PastedContent), for
+     * this composer now, as a reply to its `connect`, uploaded like any file
+     * the page takes: its limits, and its dialog for one it refuses. The
+     * page's `attached` for them settles nothing here (no `id`): the chip
+     * shows how each upload went. False when there's no `connect` to answer.
+     */
+    fun attachPasted(files: List<ComposerFile>): Boolean =
+        files.isNotEmpty() && replyTo("connect", attachReply(files).toString())
 
     /**
      * Android's microphone prompt first, where it's still to answer, so the

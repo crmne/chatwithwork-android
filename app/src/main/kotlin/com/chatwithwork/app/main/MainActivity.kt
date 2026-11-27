@@ -63,9 +63,11 @@ import com.chatwithwork.app.bridge.SidebarComponent
 import com.chatwithwork.app.bridge.SidebarHost
 import com.chatwithwork.app.bridge.SnackbarHost
 import com.chatwithwork.app.bridge.SymbolDrawable
+import com.chatwithwork.app.bridge.WebComposerComponent
 import com.chatwithwork.app.composer.ComposerFiles
 import com.chatwithwork.app.composer.ComposerView
 import com.chatwithwork.app.composer.NewChatDrafts
+import com.chatwithwork.app.composer.PastedContent
 import com.chatwithwork.app.composer.PendingShares
 import com.chatwithwork.app.fragments.ModalBackdrop
 import com.chatwithwork.app.fragments.ModalFrame
@@ -149,6 +151,7 @@ class MainActivity :
     SidebarHost,
     ComposerHost,
     FileSaveHost,
+    PastedContent.Host,
     SidebarDrawer.Actions,
     SidebarWebView.Listener {
     private val viewModel: MainViewModel by viewModels()
@@ -1626,6 +1629,49 @@ class MainActivity :
             if (read.files.isNotEmpty()) PendingShares.putFiles(read.files)
             open(text?.into(newChatUrl()) ?: newChatUrl())
         }
+    }
+
+    override fun composerTakesFiles(): Boolean = pastedFilesComposer() != null
+
+    /**
+     * Files pasted, inserted by the keyboard, or dropped on the page: read
+     * now, while their grant lasts, then handed to the composer on screen,
+     * the same way as files shared in, with the same limits.
+     */
+    override fun receivePasted(uris: List<Uri>, release: () -> Unit) {
+        // The composer that took them: a page that changed while they were read doesn't get them instead.
+        val composer = pastedFilesComposer()
+        if (composer == null) {
+            release()
+            showSnackbar(getString(R.string.composer_files_not_now), long = true)
+            return
+        }
+        lifecycleScope.launch {
+            val read =
+                try {
+                    ComposerFiles.read(this@MainActivity, uris)
+                } finally {
+                    release()
+                }
+            read.tooBig.forEach { showSnackbar(getString(R.string.composer_file_too_big, it), long = true) }
+            if (read.unreadable) showSnackbar(getString(R.string.composer_file_unreadable), long = true)
+            if (read.files.isEmpty()) return@launch
+            if (pastedFilesComposer() !== composer || !composer.attachPasted(read.files)) {
+                showSnackbar(getString(R.string.composer_files_not_now), long = true)
+            }
+        }
+    }
+
+    /**
+     * The page's composer on screen, when its latest word, for the page now
+     * showing, is that it takes files. Not while the sidebar covers the page.
+     */
+    private fun pastedFilesComposer(): WebComposerComponent? {
+        if (coversPage) return null
+        val destination = navigator?.currentDestination ?: return null
+        val fragment = destination.fragment as? WebFragment ?: return null
+        val state = fragment.webComposerFor(navigator?.session?.webView?.url ?: destination.location) ?: return null
+        return fragment.webComposerComponent.takeIf { state.acceptsFiles }
     }
 
     private fun open(url: String) {

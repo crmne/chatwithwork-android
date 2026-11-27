@@ -4,6 +4,7 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Rect
+import android.net.Uri
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.AttributeSet
@@ -80,6 +81,13 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         fun chooseModel()
 
         fun remove(id: String)
+
+        /**
+         * Pictures or files pasted into the field or inserted by the keyboard
+         * (PastedContent), to attach, readable until [release], which the
+         * read calls once it's done, whatever happened.
+         */
+        fun attachPasted(uris: List<Uri>, release: () -> Unit)
 
         /** Overlay height and web viewport width in the same native units. */
         fun layout(height: Int, width: Int)
@@ -197,6 +205,15 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         super.onFinishInflate()
         box.background = composerBackground
         input.setOnFocusChangeListener { _, _ -> updateLook() }
+        // Pictures and files pasted or from the keyboard attach as picked ones do; words stay words.
+        ViewCompat.setOnReceiveContentListener(input, PastedContent.KEYBOARD_TYPES) { _, payload ->
+            val files = PastedContent.files(payload.clip)
+            if (files.isEmpty() || !state.acceptsFiles) return@setOnReceiveContentListener payload
+            val grant = PastedContent.keyboardGrant(payload)
+            val release = { grant?.releasePermission() ?: Unit }
+            post { actions?.attachPasted(files, release) ?: release() }
+            null
+        }
         val ink = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface)
         plus.setOnClickListener { actions?.openSheet() }
         mode.setOnClickListener { actions?.openChanges() }
