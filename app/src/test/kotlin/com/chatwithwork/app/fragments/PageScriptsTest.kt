@@ -25,8 +25,8 @@ class PageScriptsTest {
         val view = View(RuntimeEnvironment.getApplication())
         val told = mutableListOf<String>()
 
-        PageScripts.whenLaidOut(view) { told += "120 at $it" }
-        PageScripts.whenLaidOut(view) { told += "280 at $it" }
+        PageScripts.whenLaidOut(view) { _, width -> told += "120 at $width" }
+        PageScripts.whenLaidOut(view) { _, width -> told += "280 at $width" }
         assertThat(told).isEmpty()
 
         view.layout(0, 0, 1080, 2000)
@@ -39,7 +39,7 @@ class PageScriptsTest {
         view.layout(0, 0, 1080, 2000)
         val told = mutableListOf<Int>()
 
-        PageScripts.whenLaidOut(view) { told += it }
+        PageScripts.whenLaidOut(view) { _, width -> told += width }
         assertThat(told).containsExactly(1080)
     }
 }
