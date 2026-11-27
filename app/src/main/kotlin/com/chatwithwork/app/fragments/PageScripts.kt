@@ -78,16 +78,6 @@ object PageScripts {
         })()
         """.trimIndent()
 
-    /**
-     * Whether the page's composer keeps a New chat draft: `chat_controller.js`
-     * saves what's typed there and not sent in localStorage, one per
-     * organization. Answers `true` or `false`.
-     */
-    const val HAS_NEW_CHAT_DRAFT =
-        "(() => { try { return Object.keys(window.localStorage).some(key => " +
-            "key.startsWith('chat-with-work:draft:new_chat_') && " +
-            "(window.localStorage.getItem(key) || '').trim() !== '') } catch (_) { return false } })()"
-
     /** Takes what [DELETES] noted, as a JSON array of paths (evaluateJavascript's answer, [deletedPaths]). */
     const val TAKE_DELETED =
         "(() => { const deleted = window.__chatWithWorkDeleted || []; window.__chatWithWorkDeleted = []; return deleted })()"

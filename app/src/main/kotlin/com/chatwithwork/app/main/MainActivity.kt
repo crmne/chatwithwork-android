@@ -1237,19 +1237,22 @@ class MainActivity :
 
     /** An empty New chat isn't worth going back to; one with words waiting is. */
     private fun worthReturningTo(location: String): Boolean =
-        !AppUrls.isNewChat(location) || NewChatDrafts.has(location) || webNewChatDraft
+        !AppUrls.isNewChat(location) || NewChatDrafts.has(location) || webNewChatDrafts.has(AppUrls.account(location))
+
+    /** Words left in New chat's page composer, per organization (WebNewChatDrafts). */
+    private val webNewChatDrafts = WebNewChatDrafts()
 
     /**
-     * Whether the page's own composer keeps words typed in New chat and not
-     * sent (`chat_controller.js` keeps them in the web view's localStorage
-     * under `chat-with-work:draft:new_chat_<organization>`), read after every
-     * visit, since the app's NewChatDrafts holds only the native composer's.
+     * Reads which organizations' New chat keeps words, on the page at
+     * [location], then runs [then]: back's choice waits for it, and whether
+     * back goes anywhere is weighed again once it's in.
      */
-    private var webNewChatDraft = false
-
-    private fun readWebNewChatDraft() {
-        navigator?.session?.webView?.evaluateJavascript(PageScripts.HAS_NEW_CHAT_DRAFT) {
-            webNewChatDraft = it == "true"
+    private fun readWebNewChatDrafts(location: String?, then: () -> Unit = {}) {
+        val webView = navigator?.session?.webView ?: return then()
+        webView.evaluateJavascript(WebNewChatDrafts.SCRIPT) { answer ->
+            webNewChatDrafts.read(location?.let(AppUrls::account), answer)
+            updateGoingBack()
+            then()
         }
     }
 
@@ -1294,13 +1297,12 @@ class MainActivity :
             return
         }
         // Gone, or no longer theirs: on to the place before it, or the home, never the home again if that failed.
-        val next = places.next(::worthReturningTo) ?: decisionsUrl().takeUnless { isHome(location) }
-        if (next == null) {
-            updateGoingBack()
-            return
+        // The choice waits for what New chat's page composer keeps, which may have changed since the last visit.
+        readWebNewChatDrafts(null) {
+            val next = places.next(::worthReturningTo) ?: decisionsUrl().takeUnless { isHome(location) }
+            // Only while that place still shows: a link opened meanwhile (a notification) stays.
+            if (next != null && navigator?.currentDestination === destination) returnTo(next)
         }
-        // Only while that place still shows: a link opened meanwhile (a notification) stays.
-        root.post { if (navigator?.currentDestination === destination) returnTo(next) }
     }
 
     /** The keyboard is sliding in or out, and the pages' bottom follows it frame by frame (setUpInsets). */
@@ -1519,7 +1521,7 @@ class MainActivity :
             places.arrived(shown, atHome = isHome(shown))
         }
         forgetDeleted()
-        readWebNewChatDraft()
+        readWebNewChatDrafts(shown)
         openPendingLink(destination.navigator)
         updateChrome()
         sidebarPage.current(shown, connectedPage?.takeIf { it.first == shown }?.second)
