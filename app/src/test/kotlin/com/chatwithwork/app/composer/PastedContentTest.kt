@@ -68,7 +68,18 @@ class PastedContentTest {
     }
 
     @Test
+    fun `a file path, or this app's own files, is never read`() {
+        val path = Uri.parse("file:///data/data/com.chatwithwork.app/shared_prefs/session.xml")
+        val own = Uri.parse("content://com.chatwithwork.app.fileprovider/shared/report.pdf")
+        assertThat(PastedContent.files(listOf(Item(uri = path)))).isEmpty()
+        assertThat(PastedContent.files(listOf(Item(uri = own)))).isEmpty()
+        assertThat(PastedContent.files(listOf(Item(uri = path), Item(uri = picture)))).containsExactly(picture)
+    }
+
+    @Test
     fun `HTML has words only where it says something`() {
+        assertThat(PastedContent.hasWords("<img alt=\"a > b\" src=\"chart.png\">")).isFalse()
+        assertThat(PastedContent.hasWords("<td title='x > y'>North</td>")).isTrue()
         assertThat(PastedContent.hasWords("<meta charset=\"utf-8\"><img src=\"a.png\">")).isFalse()
         assertThat(PastedContent.hasWords("<style>td { color: red }</style><img src=\"a.png\">&nbsp;")).isFalse()
         assertThat(PastedContent.hasWords("<!-- StartFragment --><b>North</b>")).isTrue()

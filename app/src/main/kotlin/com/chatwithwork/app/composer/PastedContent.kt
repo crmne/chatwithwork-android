@@ -64,8 +64,17 @@ object PastedContent {
         }
     }.orEmpty()
 
-    /** Content (or file) addresses are files; a web link is words. */
-    fun isFile(uri: Uri): Boolean = uri.scheme in setOf("content", "file")
+    /**
+     * A file the composer may read: another app's content, under the grant it
+     * came with. Never a `file://` path, which this app would open with its own
+     * rights (a drop can carry one without a grant, naming a file private to
+     * this app), and never this app's own provider, which would hand back the
+     * app's own files. A web link is words.
+     */
+    fun isFile(uri: Uri): Boolean = uri.scheme == "content" && uri.authority?.startsWith(OWN_AUTHORITIES) == false
+
+    /** Every build's own providers (`com.chatwithwork.app`, `.debug`, `.staging`) start with this. */
+    private const val OWN_AUTHORITIES = "com.chatwithwork.app"
 
     /** The HTML's own words, as the web reads `textContent`: tags, comments, entities and spacing aside. */
     fun hasWords(html: String?): Boolean {
@@ -74,7 +83,8 @@ object PastedContent {
             html
                 .replace(Regex("(?is)<(script|style|head)\\b.*?</\\1>"), " ")
                 .replace(Regex("(?s)<!--.*?-->"), " ")
-                .replace(Regex("(?s)<[^>]*>"), " ")
+                // A tag ends at the first > outside its quoted attributes.
+                .replace(Regex("""<(?:[^>"']|"[^"]*"|'[^']*')*>"""), " ")
                 .replace(Regex("&(nbsp|#160|#xa0);", RegexOption.IGNORE_CASE), " ")
         return text.isNotBlank()
     }
