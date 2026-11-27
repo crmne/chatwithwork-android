@@ -60,17 +60,26 @@ class PlaceHistory(private val cap: Int = CAP) {
     }
 
     /**
-     * [location] failed to load (gone, or no longer the person's). True when
-     * back had opened it, so back goes on to the next place, or the home.
+     * [location], the place on screen now, didn't load: [gone] when it
+     * answered a client error (deleted, no longer the person's), else it may
+     * load later (a server error, no connection). The person is at it either
+     * way. True when back had opened it and it's gone, so back goes on to
+     * the next place, or the home; a gone place never goes on the list. A
+     * failed return adds nothing, as a return never does; a failed visit of
+     * its own puts the place left on the list, as one that loads does.
      */
-    fun failed(location: String): Boolean {
+    fun failed(location: String, gone: Boolean = true, atHome: Boolean = false): Boolean {
         val wasReturn = same(location, returningTo) || same(location, returned)
-        stops.removeAll { same(it, location) }
-        if (!wasReturn) return false
-        returningTo = null
-        returned = null
-        current = location
-        return true
+        if (wasReturn) {
+            returningTo = null
+            returned = null
+            current = location
+            stops.removeAll { same(it, location) }
+        } else {
+            arrived(location, atHome)
+        }
+        if (gone) forget(location)
+        return wasReturn && gone
     }
 
     /**
@@ -83,19 +92,6 @@ class PlaceHistory(private val cap: Int = CAP) {
         gone.removeAll { same(it, location) }
         gone.addFirst(location)
         while (gone.size > GONE_KEPT) gone.removeLast()
-    }
-
-    /**
-     * [location] couldn't load (a server error, no connection) but may come
-     * back: when back had opened it, the person is there now, so the return
-     * is over and the next place they open puts it back on the list, to try
-     * again from.
-     */
-    fun unreachable(location: String) {
-        if (!same(location, returningTo)) return
-        returningTo = null
-        returned = null
-        current = location
     }
 
     /** A new session or organization: nothing to go back to. */

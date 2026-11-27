@@ -1237,7 +1237,21 @@ class MainActivity :
 
     /** An empty New chat isn't worth going back to; one with words waiting is. */
     private fun worthReturningTo(location: String): Boolean =
-        !AppUrls.isNewChat(location) || NewChatDrafts.has(location)
+        !AppUrls.isNewChat(location) || NewChatDrafts.has(location) || webNewChatDraft
+
+    /**
+     * Whether the page's own composer keeps words typed in New chat and not
+     * sent (`chat_controller.js` keeps them in the web view's localStorage
+     * under `chat-with-work:draft:new_chat_<organization>`), read after every
+     * visit, since the app's NewChatDrafts holds only the native composer's.
+     */
+    private var webNewChatDraft = false
+
+    private fun readWebNewChatDraft() {
+        navigator?.session?.webView?.evaluateJavascript(PageScripts.HAS_NEW_CHAT_DRAFT) {
+            webNewChatDraft = it == "true"
+        }
+    }
 
     /** The person's home in the app: Decisions (docs/server-contract.md, "Places"), or the start that leads there. */
     private fun isHome(location: String): Boolean =
@@ -1269,18 +1283,16 @@ class MainActivity :
     }
 
     override fun onPlaceFailed(destination: HotwireDestination, location: String, gone: Boolean) {
-        if (navigator?.currentDestination !== destination) return
-        if (!gone) {
-            // It may load later: the return is over, and the person is there, to try again or go on.
-            places.unreachable(location)
-            if (destination.navigator.isAtStartDestination()) rootLocation = location
+        // Only a place: a drill-down that fails keeps its back to the screen under it.
+        if (navigator?.currentDestination !== destination || !destination.navigator.isAtStartDestination()) return
+        // The root is now the place that failed, so back there reads it, not the place left: a home that failed
+        // leaves the app rather than opening the home again.
+        rootLocation = location
+        if (!places.failed(location, gone, atHome = isHome(location))) {
+            // One that may load later stays to try again; either way back goes on from here.
             updateGoingBack()
             return
         }
-        if (!places.failed(location)) return
-        // The root is now the place that failed, so back there reads it, not the place left: a home that failed
-        // leaves the app rather than opening the home again.
-        if (destination.navigator.isAtStartDestination()) rootLocation = location
         // Gone, or no longer theirs: on to the place before it, or the home, never the home again if that failed.
         val next = places.next(::worthReturningTo) ?: decisionsUrl().takeUnless { isHome(location) }
         if (next == null) {
@@ -1507,6 +1519,7 @@ class MainActivity :
             places.arrived(shown, atHome = isHome(shown))
         }
         forgetDeleted()
+        readWebNewChatDraft()
         openPendingLink(destination.navigator)
         updateChrome()
         sidebarPage.current(shown, connectedPage?.takeIf { it.first == shown }?.second)

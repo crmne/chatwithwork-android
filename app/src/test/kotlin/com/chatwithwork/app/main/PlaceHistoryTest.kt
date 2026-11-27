@@ -132,7 +132,7 @@ class PlaceHistoryTest {
 
         // Back to A, which answers a server error: the person is at A now.
         places.returnTo(places.next()!!)
-        places.unreachable(chatA)
+        assertThat(places.failed(chatA, gone = false)).isFalse()
         assertThat(places.returningTo).isNull()
 
         // Opening C after is a visit of its own, never taken for back's arrival: A goes on the list.
@@ -155,12 +155,32 @@ class PlaceHistoryTest {
     }
 
     @Test
-    fun `a place that fails without back opening it changes nothing but leaves the history`() {
+    fun `a place that fails on a visit of its own is where the person is, and back goes to the place before`() {
+        val places = PlaceHistory()
+        places.visit(home)
+        places.visit(chatA)
+
+        // B answers a server error: back from it goes to A, then home.
+        assertThat(places.failed(chatB, gone = false)).isFalse()
+        assertThat(places.entries).containsExactly(chatA, home).inOrder()
+
+        // C is gone: never put back on the list after.
+        assertThat(places.failed(chatC)).isFalse()
+        places.visit(chatA)
+        assertThat(places.entries).doesNotContain(chatC)
+        assertThat(places.back()).isEqualTo(chatB)
+    }
+
+    @Test
+    fun `a return that's gone stays off the list, even when another place opens first`() {
         val places = PlaceHistory()
         places.visit(chatA)
         places.visit(chatB)
 
-        assertThat(places.failed(chatA)).isFalse()
+        places.returnTo(chatA)
+        assertThat(places.failed(chatA)).isTrue()
+        // A notification opens C before back goes on: A, the place left, never goes back on the list.
+        places.visit(chatC)
         assertThat(places.entries).isEmpty()
     }
 
