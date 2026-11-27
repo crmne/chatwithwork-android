@@ -73,6 +73,10 @@ class PastedContentTest {
         val own = Uri.parse("content://com.chatwithwork.app.fileprovider/shared/report.pdf")
         assertThat(PastedContent.files(listOf(Item(uri = path)))).isEmpty()
         assertThat(PastedContent.files(listOf(Item(uri = own)))).isEmpty()
+        val ownElsewhere = Uri.parse("content://10@com.chatwithwork.app.fileprovider/shared/report.pdf")
+        assertThat(PastedContent.files(listOf(Item(uri = ownElsewhere)))).isEmpty()
+        val otherProfile = Uri.parse("content://10@com.android.providers.media.documents/document/image%3A12")
+        assertThat(PastedContent.files(listOf(Item(uri = otherProfile)))).containsExactly(otherProfile)
         assertThat(PastedContent.files(listOf(Item(uri = path), Item(uri = picture)))).containsExactly(picture)
     }
 

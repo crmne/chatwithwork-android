@@ -71,7 +71,9 @@ object PastedContent {
      * this app), and never this app's own provider, which would hand back the
      * app's own files. A web link is words.
      */
-    fun isFile(uri: Uri): Boolean = uri.scheme == "content" && uri.authority?.startsWith(OWN_AUTHORITIES) == false
+    fun isFile(uri: Uri): Boolean = uri.scheme == "content" &&
+        // Another user's or profile's content names it first ("10@authority").
+        uri.authority?.substringAfter('@')?.startsWith(OWN_AUTHORITIES) == false
 
     /** Every build's own providers (`com.chatwithwork.app`, `.debug`, `.staging`) start with this. */
     private const val OWN_AUTHORITIES = "com.chatwithwork.app"
