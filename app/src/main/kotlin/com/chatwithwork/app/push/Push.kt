@@ -31,7 +31,10 @@ data class Push(
         FAILED("failed"),
 
         /** The change was approved, denied, or answered elsewhere: take the notification away. */
-        RESOLVED("resolved")
+        RESOLVED("resolved"),
+
+        /** A bot to try (the server's ideas), in the catalog's words only; it opens the bot's card. */
+        IDEA("idea")
     }
 
     val defaultBody: Int
@@ -40,6 +43,7 @@ data class Push(
             Kind.ANSWERED -> R.string.push_answered_body
             Kind.HANDED_OFF -> R.string.push_handed_off_body
             Kind.FAILED -> R.string.push_failed_body
+            Kind.IDEA -> R.string.push_idea_body
             Kind.APPROVAL_WAITING, Kind.RESOLVED -> R.string.push_approval_body
         }
 

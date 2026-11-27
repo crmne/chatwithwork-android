@@ -222,6 +222,7 @@
     <string name="channel_answers_description">An answer is ready, a chat couldn\'t finish, or a bot handed a conversation to your team.</string>
     <string name="push_answered_body">Your answer is ready.</string>
     <string name="push_handed_off_body">A bot handed a conversation to your team.</string>
+    <string name="push_idea_body">A bot to try.</string>
     <string name="push_failed_body">A chat couldn\'t finish its answer.</string>
     <string name="notifications_offer_title">Want a nudge when it\'s ready?</string>
     <string name="notifications_offer_approval">Chat with Work can tell you when a change waits for your approval, so you can leave the app while it works.</string>

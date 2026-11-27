@@ -798,7 +798,13 @@ names are fine.
   change was decided or the question answered somewhere else, so the app
   removes that chat's notification. Send `resolved` with `"priority":
   "normal"` and only `kind`, `path` and `thread`. (Unknown kinds are
-  ignored, so iOS can adopt `resolved` later.)
+  ignored, so iOS can adopt `resolved` later.) `idea` (2026-11-26): a
+  bot to try, sent at most once a day to someone who wasn't in the app
+  that day, with `"priority": "normal"`, `title` "A bot to try", `body`
+  the recipe's name and what it's worth (catalog words, the same for
+  everyone, so no `notification_id`), `path` the bot's card
+  (`/<account>/bots/proposals/new?recipe=...`), and `thread`
+  `idea-<account>`. It shows on the answers channel, like `answered`.
 - `path` (required): the page to open, starting with `/` on this server.
   Anything else is dropped.
 - `thread`: one notification per chat; a newer one replaces it. Defaults
