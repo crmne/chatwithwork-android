@@ -313,6 +313,9 @@ class MainActivity :
                 if (step is GoingBack.Step.GoHome) {
                     BackMotion.expect(step.location)
                     openPath(step.location)
+                    // The root is the home from now on, even if it fails to load: back there then leaves the app
+                    // rather than asking for the home again.
+                    rootLocation = step.location
                 } else {
                     updateGoingBack()
                 }
