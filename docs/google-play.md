@@ -6,6 +6,37 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.16
+
+Version 1.2.16 (10216) replaces 1.2.15 on Internal testing, which never went
+further, and is the version that goes to review. It keeps everything 1.2.15
+brought (pictures from the keyboard, the floating bar, the ideas push), and
+back follows Google's navigation principles for a drawer's top-level
+destinations ([#86](https://github.com/crmne/chatwithwork-android/pull/86);
+Carmine, 2026-11-28: "Do what Google says"): at any place but the home, back
+opens the home, Decisions, sliding in as a pop does, and at the home it leaves
+the app. A chat opened from a notification or a link goes home on back, then
+out. The place history 1.2.15 kept (#83) is gone. What's new is
+`changelogs/10216.txt`, which says what 1.2.15's did with the new back. Tag
+`v1.2.16`.
+
+The signed, Firebase-enabled bundle was built with `script/bundle-release
+v1.2.16` from a85dde4 on 2026-11-28 (sha256
+`0cb9da405b3de320c392ff2914272374f17787a28a9d4debe555b51e5c05e5da`), signed
+with the same upload key as 1.2.15; bundletool reads versionCode 10216 and
+versionName 1.2.16, and its `android_v4.json` is byte-identical to
+crmne/chatwithwork main's (e8bc5958). #86 passed `testDebugUnitTest lintDebug
+spotlessCheck assembleDebug assembleStaging assembleRelease` (397 tests) and
+CI before it merged. Upload it to Internal testing only.
+
+Validation, on the Mac mini's phone emulator (Pixel 9, Android 17, WebView
+149) against production with the App Review demo login (synthetic content): a
+universal APK made from the bundle signed in; a question asked from
+Decisions' composer turned into a new chat and was answered; back from it went
+to Decisions; the sidebar opened and back closed it; two chats opened from the
+sidebar one after the other, then back went to Decisions and back again left
+the app.
+
 ## Release 1.2.15
 
 Version 1.2.15 (10215) takes pictures from the keyboard into the composer
