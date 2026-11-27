@@ -133,6 +133,39 @@ class PlaceHistoryTest {
     }
 
     @Test
+    fun `a chat deleted on screen is never put on the list, so back from Decisions skips it`() {
+        val places = PlaceHistory()
+        places.visit(chatA)
+        places.visit(chatB)
+        // Its own Delete: the chat gives way to Decisions, and the page says what it deleted after.
+        places.visit(home)
+        places.forget(chatB)
+        assertThat(places.entries).containsExactly(chatA)
+
+        // Said before the visit lands, it never goes on at all.
+        places.visit(chatC)
+        places.forget(chatC)
+        places.visit(home)
+        assertThat(places.entries).containsExactly(chatA)
+
+        assertThat(places.back()).isEqualTo(chatA)
+        assertThat(places.back()).isEqualTo(home)
+    }
+
+    @Test
+    fun `a chat deleted from the sidebar leaves the list wherever it is`() {
+        val places = PlaceHistory()
+        places.visit(chatA)
+        places.visit(chatB)
+        places.visit(chatC)
+        places.forget(chatA)
+
+        assertThat(places.entries).containsExactly(chatB)
+        assertThat(places.back()).isEqualTo(chatB)
+        assertThat(places.back()).isEqualTo(home)
+    }
+
+    @Test
     fun `a cold start on a chat has nothing before it, so back goes home, then leaves`() {
         val places = PlaceHistory()
         places.visit(chatA)

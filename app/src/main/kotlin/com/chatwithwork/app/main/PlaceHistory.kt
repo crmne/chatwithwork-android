@@ -14,6 +14,9 @@ import java.net.URI
 class PlaceHistory(private val cap: Int = CAP) {
     private val stops = ArrayDeque<String>()
 
+    /** Places deleted lately (forget), which the place left never puts back. */
+    private val gone = ArrayDeque<String>()
+
     /** The place on screen, as the last arrival said. */
     var current: String? = null
         private set
@@ -39,7 +42,7 @@ class PlaceHistory(private val cap: Int = CAP) {
             if (atHome) stops.clear()
             return
         }
-        if (previous == null || same(previous, location)) return
+        if (previous == null || same(previous, location) || gone.any { same(it, previous) }) return
         stops.addFirst(previous)
         while (stops.size > cap) stops.removeLast()
     }
@@ -68,8 +71,21 @@ class PlaceHistory(private val cap: Int = CAP) {
         return true
     }
 
+    /**
+     * [location] is gone (deleted from its menu, or from the sidebar): off
+     * the list, and never put on it as the place left, which a delete on
+     * screen is (the chat gives way to Decisions).
+     */
+    fun forget(location: String) {
+        stops.removeAll { same(it, location) }
+        gone.removeAll { same(it, location) }
+        gone.addFirst(location)
+        while (gone.size > GONE_KEPT) gone.removeLast()
+    }
+
     /** A new session or organization: nothing to go back to. */
     fun clear() {
+        gone.clear()
         stops.clear()
         current = null
         returningTo = null
@@ -86,6 +102,8 @@ class PlaceHistory(private val cap: Int = CAP) {
 
     companion object {
         const val CAP = 5
+
+        private const val GONE_KEPT = 20
 
         /**
          * Query keys a page changes as it's used, not where it is: Decisions

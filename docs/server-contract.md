@@ -96,10 +96,16 @@ flashes as toasts). What differs on Android:
   ping-pong between two places; a place already on it moves to the top;
   back reaching the home clears it, so back at the home always leaves; an
   empty New chat (no words waiting, `NewChatDrafts`) isn't worth going
-  back to, so the chat it started stands in its place; a place that
-  answers a client error (a deleted chat, lost access) is skipped for the
-  one before it, or the home; and a new organization or session starts
-  it over. A chat opened from a notification or a link has nothing
+  back to, so the chat it started stands in its place; a chat deleted
+  from its own menu or from the sidebar (the page's rows, or the native
+  sidebar's Delete, which the page on screen sends) leaves the list, as the
+  app learns from the page (`PageScripts.DELETES` notes each confirmed
+  delete's path, and the app takes them after every visit and as the
+  sidebar closes), so back from Decisions never opens it; a place that
+  answers a client error is skipped for the one before it, or the home
+  (a chat that's gone or no longer the person's redirects to the chat
+  list instead, so only the list above keeps back off one); and a new
+  organization or session starts it over. A chat opened from a notification or a link has nothing
   before it, so back goes home, then out. Back with the sidebar open
   closes it, and in a drill-down or a modal pops one step, as before. The
   app enables its back callback only when it goes to a place

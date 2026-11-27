@@ -73,6 +73,7 @@ import com.chatwithwork.app.fragments.BackMotion
 import com.chatwithwork.app.fragments.ModalBackdrop
 import com.chatwithwork.app.fragments.ModalFrame
 import com.chatwithwork.app.fragments.NewChatHandOff
+import com.chatwithwork.app.fragments.PageScripts
 import com.chatwithwork.app.fragments.WebFragment
 import com.chatwithwork.app.fragments.WebModalFragment
 import com.chatwithwork.app.fragments.WebScreenHost
@@ -580,6 +581,7 @@ class MainActivity :
 
                 override fun onDrawerClosed(drawerView: View) {
                     closeSidebar.isEnabled = false
+                    forgetDeleted()
                     updateGoingBack()
                     pollJob?.cancel()
                     sidebar.resetSearch()
@@ -1125,6 +1127,7 @@ class MainActivity :
 
     /** What the page opens is a place, as the native sidebar's rows are; signing out there ends the session here. */
     override fun onSidebarVisit(url: String) {
+        forgetDeleted()
         if (AppUrls.isSignInForm(url)) {
             closeSidebarNow()
             showSignedOut(presentSignIn = false)
@@ -1245,6 +1248,24 @@ class MainActivity :
         places.returnTo(location)
         BackMotion.expect(location)
         openPath(location)
+    }
+
+    /**
+     * Drops from the places back goes to whatever a page deleted since last
+     * asked (PageScripts.DELETES): a chat from its own menu, which then gives
+     * way to Decisions, or from the sidebar (its page's rows, or the native
+     * sidebar's Delete, which the page on screen sends), so back from
+     * Decisions never opens a chat that's gone. Only confirmed deletes count.
+     */
+    private fun forgetDeleted() {
+        val forget = { paths: List<String> ->
+            paths.forEach { places.forget(AppUrls.absolute(it)) }
+            if (paths.isNotEmpty()) updateGoingBack()
+        }
+        navigator?.session?.webView?.evaluateJavascript(PageScripts.TAKE_DELETED) {
+            forget(PageScripts.deletedPaths(it))
+        }
+        sidebarPage.takeDeleted(forget)
     }
 
     override fun onPlaceFailed(destination: HotwireDestination, location: String) {
@@ -1469,6 +1490,7 @@ class MainActivity :
             rootLocation = shown
             places.arrived(shown, atHome = isHome(shown))
         }
+        forgetDeleted()
         openPendingLink(destination.navigator)
         updateChrome()
         sidebarPage.current(shown, connectedPage?.takeIf { it.first == shown }?.second)
