@@ -4,9 +4,6 @@ import android.view.View
 import android.webkit.WebView
 import java.lang.ref.WeakReference
 import java.util.WeakHashMap
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.jsonArray
 
 /**
  * A little JavaScript the app adds to every page it loads.
@@ -19,8 +16,6 @@ import kotlinx.serialization.json.jsonArray
  * finger is at its top. It's added on `window`, so it runs after Hotwire's
  * listener on `document` and has the last word. Pages can still opt out of
  * the pull with `data-native-prevent-pull-to-refresh`.
- *
- * And it notes what the page deleted ([DELETES]), so back never goes to it.
  */
 object PageScripts {
     private val script =
@@ -49,58 +44,12 @@ object PageScripts {
         })()
         """.trimIndent()
 
-    /**
-     * Every path a form on the page deleted (a chat from its own menu, or
-     * from a row of the sidebar page), kept on `window` until the app takes
-     * them ([TAKE_DELETED]) and drops them from the places back goes to
-     * (PlaceHistory.forget). A method link's form says its method as
-     * turbo-rails sends it, a POST with `_method`, as the sidebar page's own
-     * `native_sidebar_controller.js` reads it. Pages of this one server
-     * only: nothing leaves the page but paths.
-     */
-    val DELETES =
-        """
-        (() => {
-          if (window.__chatWithWorkDeletes) return
-          window.__chatWithWorkDeletes = true
-          window.__chatWithWorkDeleted = []
-
-          document.addEventListener("turbo:submit-end", (event) => {
-            const { success, formSubmission } = event.detail || {}
-            if (!success || !formSubmission) return
-            const form = formSubmission.formElement
-            const url = new URL(formSubmission.fetchRequest?.url || form?.action || "", window.location.href)
-            if (url.origin !== window.location.origin) return
-            const method = (url.searchParams.get("_method") || form?.querySelector("input[name=_method]")?.value ||
-              form?.getAttribute("method") || "").toLowerCase()
-            if (method === "delete") window.__chatWithWorkDeleted.push(url.pathname)
-          })
-        })()
-        """.trimIndent()
-
-    /** Takes what [DELETES] noted, as a JSON array of paths (evaluateJavascript's answer, [deletedPaths]). */
-    const val TAKE_DELETED =
-        "(() => { const deleted = window.__chatWithWorkDeleted || []; window.__chatWithWorkDeleted = []; return deleted })()"
-
-    /** The paths in [TAKE_DELETED]'s answer; none from anything else (a page without the script answers null). */
-    fun deletedPaths(answer: String?): List<String> = runCatching {
-        Json.parseToJsonElement(answer ?: "null").jsonArray.mapNotNull { element ->
-            (element as? JsonPrimitive)?.takeIf { it.isString }?.content?.takeIf {
-                it.startsWith("/") &&
-                    !it.startsWith("//")
-            }
-        }
-    }.getOrDefault(emptyList())
-
     /** The page's composer takes the focus, where the app draws none of its own (`web-composer`). */
     const val FOCUS_COMPOSER =
         "document.querySelector(\"#new_message [data-chat-target~='input']\")?.focus({ preventScroll: true })"
 
-    /** Both scripts, the first ended, so the second isn't read as a call on its result. */
-    internal val installed: String get() = script + ";\n" + DELETES
-
     fun install(webView: WebView) {
-        webView.evaluateJavascript(installed, null)
+        webView.evaluateJavascript(script, null)
     }
 
     /**

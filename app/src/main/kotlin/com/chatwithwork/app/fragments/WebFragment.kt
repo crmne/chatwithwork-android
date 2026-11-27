@@ -484,8 +484,6 @@ open class WebFragment : HotwireWebFragment() {
     override fun onVisitErrorReceivedWithCachedSnapshotAvailable(location: String, error: VisitError) {
         skeleton?.remove()
         super.onVisitErrorReceivedWithCachedSnapshotAvailable(location, error)
-        // The page's snapshot shows, but the place itself is gone just the same.
-        reportPlaceFailed(location, error)
     }
 
     override fun onVisitErrorReceived(location: String, error: VisitError) {
@@ -495,14 +493,6 @@ open class WebFragment : HotwireWebFragment() {
         if (error is HttpError.ClientError.Unauthorized) host?.onSignedOut(this)
         // A server from before the organization's home answers it 404: the chat list instead.
         if (AppUrls.homeMissing(location, (error as? HttpError)?.statusCode)) host?.onHomeMissing(this)
-        reportPlaceFailed(location, error)
-    }
-
-    /** A place that's gone, or no longer the person's: back, which may have opened it, goes on past it. */
-    private fun reportPlaceFailed(location: String, error: VisitError) {
-        if (error is HttpError.ClientError.Unauthorized) return
-        val status = (error as? HttpError)?.statusCode
-        host?.onPlaceFailed(this, location, gone = status != null && status in HTTP_CLIENT_ERRORS)
     }
 
     override fun onVisitRendered(location: String) {
@@ -581,13 +571,6 @@ interface WebScreenHost {
     /** The organization's home, in [destination], answered 404 (a server from before it): open the chat list instead. */
     fun onHomeMissing(destination: HotwireDestination)
 
-    /**
-     * [location], in [destination], didn't load: [gone] when it answered a
-     * client error (deleted, forbidden), which back goes on past if it opened
-     * it; otherwise (a server error, no connection) it may load later.
-     */
-    fun onPlaceFailed(destination: HotwireDestination, location: String, gone: Boolean)
-
     /** A page's skeleton is up: something page-shaped is on screen. */
     fun onSkeletonShown()
 
@@ -608,5 +591,3 @@ private const val ITEM_NEW_CHAT = 0x0C001
 private const val ORDER_NEW_CHAT = 80
 
 private const val NO_ANIMATION = 0
-
-private val HTTP_CLIENT_ERRORS = 400..499

@@ -9,9 +9,9 @@ import dev.hotwire.core.turbo.nav.PresentationContext
 
 /**
  * Everything the sidebar opens is a place, never a step: it becomes the one
- * root screen, with the sidebar's button and no back arrow, so places never
- * stack; the system back walks the app's own list of them instead
- * (PlaceHistory; docs/server-contract.md, section 2). The
+ * root screen, with the sidebar's button and no back arrow, and there's no
+ * history of places to walk back through: the system back at one goes
+ * home, then out (GoingBack; docs/server-contract.md, section 2). The
  * path configuration names the places every link opens as the root
  * (`replace_root`: chats, Decisions, Bots, the lists, Settings); a page it
  * pushes elsewhere (a bot from Bots, a project from Projects) is a place
