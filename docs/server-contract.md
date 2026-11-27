@@ -105,7 +105,10 @@ flashes as toasts). What differs on Android:
   and buttons. Where the page runs under it, the web view reaches the top
   of the screen and the app sets `--native-top-bar-height` on `<html>` to
   how much of the page the bar covers (status bar included, in CSS pixels;
-  `0px` on a page that starts below it). A chat always runs under it; any
+  `0px` on a page that starts below it), as each visit starts, as a page
+  finishes loading whole, and each time the screen starts again (back in
+  the foreground, or on top again), once the web view is laid out: told
+  before it was, the page never heard and ran under the bar. A chat always runs under it; any
   other page only where the path configuration's `page_under_top_bar` is
   `true`, which `android_v4.json` (and v3 and v2 before it) sets for every page once the server's
   `native.css` keeps every page's start, and anything sticky at its top,

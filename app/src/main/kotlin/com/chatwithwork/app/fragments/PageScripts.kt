@@ -1,6 +1,9 @@
 package com.chatwithwork.app.fragments
 
+import android.view.View
 import android.webkit.WebView
+import java.lang.ref.WeakReference
+import java.util.WeakHashMap
 
 /**
  * A little JavaScript the app adds to every page it loads.
@@ -55,8 +58,49 @@ object PageScripts {
      * clear of it (docs/server-contract.md). 0 where the page starts below it.
      */
     fun setTopBarHeight(webView: WebView, height: Int) {
-        if (webView.width > 0) webView.evaluateJavascript(topBarHeightScript(height, webView.width), null)
+        // A web view not laid out yet (a screen coming back after Android ended the app, the shared web view
+        // between screens) has no width to scale by: it's told once it has one, where it was never told and the
+        // page ran under the bar.
+        whenLaidOut(webView) { laidOut, width ->
+            (laidOut as WebView).evaluateJavascript(topBarHeightScript(height, width), null)
+        }
     }
+
+    /**
+     * Runs [action] with [view] and its width now, or once it has one. A
+     * newer action for the same view takes the place of one still waiting.
+     * The action gets the view rather than holding it, and the waiting list
+     * holds its listener weakly (the view's own listeners hold it), so a view
+     * dropped before it's laid out is never kept by the list.
+     */
+    internal fun whenLaidOut(view: View, action: (View, Int) -> Unit) {
+        waiting.remove(view)?.get()?.let(view::removeOnLayoutChangeListener)
+        if (view.width > 0) return action(view, view.width)
+
+        val listener =
+            object : View.OnLayoutChangeListener {
+                override fun onLayoutChange(
+                    laidOut: View,
+                    l: Int,
+                    t: Int,
+                    r: Int,
+                    b: Int,
+                    ol: Int,
+                    ot: Int,
+                    or: Int,
+                    ob: Int
+                ) {
+                    if (laidOut.width <= 0) return
+                    laidOut.removeOnLayoutChangeListener(this)
+                    waiting.remove(laidOut)
+                    action(laidOut, laidOut.width)
+                }
+            }
+        waiting[view] = WeakReference(listener)
+        view.addOnLayoutChangeListener(listener)
+    }
+
+    private val waiting = WeakHashMap<View, WeakReference<View.OnLayoutChangeListener>>()
 
     internal fun topBarHeightScript(height: Int, viewWidth: Int): String = "document.documentElement.style" +
         ".setProperty('--native-top-bar-height', ($height * window.innerWidth / $viewWidth) + 'px')"
