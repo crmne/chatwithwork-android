@@ -127,10 +127,12 @@ flashes as toasts). What differs on Android:
   every page) and the page runs under the bar, the app also sets
   `data-native-top-bar="floating"` on `<html>` (and removes it elsewhere),
   and `native.css` puts a fixed `body::before` over the page's top, as
-  tall as `--native-top-bar-height` plus 1.75rem: the canvas at 62% over a
-  12px `backdrop-filter` blur, easing out over its last 1.75rem, never
-  taking a touch, and the canvas alone under reduced transparency. The app
-  then draws nothing there. A server without the flag (an older
+  tall as `--native-top-bar-height` plus 2px: a 6px `backdrop-filter`
+  blur, no colour but a little canvas under the status bar, strongest at
+  the top, light at the title's line and gone just below the buttons,
+  never taking a touch, and off under reduced transparency. The app then
+  draws nothing there, and gives the title a soft shadow in the canvas
+  colour so it reads over busy content. A server without the flag (an older
   self-hosted install) gets the app's own fade instead, the canvas down
   past the title and an ease into the page.
 - **Titles.** The app shows `<title>` in its top app bar, and follows it

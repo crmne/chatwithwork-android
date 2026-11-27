@@ -108,6 +108,15 @@
         <item name="android:letterSpacing">-0.015</item>
     </style>
 
+    <!-- The floating top bar's title: over the page's blur with no wash behind it, so a soft shadow in the canvas
+         keeps it readable over busy content (code, tables, pictures). -->
+    <style name="TextAppearance.ChatWithWork.BarTitle" parent="TextAppearance.ChatWithWork.TitleLarge">
+        <item name="android:shadowColor">@color/lw_canvas</item>
+        <item name="android:shadowRadius">10</item>
+        <item name="android:shadowDx">0</item>
+        <item name="android:shadowDy">0</item>
+    </style>
+
     <style name="TextAppearance.ChatWithWork.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
         <item name="android:fontFamily">@font/geist</item>
         <item name="fontFamily">@font/geist</item>
@@ -210,7 +219,7 @@
     <style name="Widget.ChatWithWork.Toolbar" parent="Widget.Material3.Toolbar.Surface">
         <item name="android:background">@android:color/transparent</item>
         <item name="materialThemeOverlay">@style/ThemeOverlay.ChatWithWork.Toolbar</item>
-        <item name="titleTextAppearance">?attr/textAppearanceTitleLarge</item>
+        <item name="titleTextAppearance">@style/TextAppearance.ChatWithWork.BarTitle</item>
         <item name="titleTextColor">?attr/colorOnSurface</item>
         <item name="navigationIconTint">?attr/colorOnSurface</item>
         <item name="titleMarginStart">12dp</item>
