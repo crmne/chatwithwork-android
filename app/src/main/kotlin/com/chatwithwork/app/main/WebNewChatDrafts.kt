@@ -29,6 +29,17 @@ class WebNewChatDrafts {
     /** Whether New chat in [account] keeps words; false while the app doesn't know its key. */
     fun has(account: String?): Boolean = keys[account]?.let { it in drafted } ?: false
 
+    /** The keys learned, for the saved state, as `account=key`: the history they serve outlives the process too. */
+    fun saved(): ArrayList<String> = ArrayList(keys.map { (account, key) -> "$account=$key" })
+
+    fun restore(saved: List<String>?) {
+        saved?.forEach { entry ->
+            val account = entry.substringBefore("=", "")
+            val key = entry.substringAfter("=", "")
+            if (account.isNotEmpty() && key.isNotEmpty()) keys.putIfAbsent(account, key)
+        }
+    }
+
     data class Reading(val key: String?, val drafted: Set<String>)
 
     companion object {

@@ -25,6 +25,20 @@ class WebNewChatDraftsTest {
     }
 
     @Test
+    fun `the keys learned outlive the process, and the words are read again from the page`() {
+        val drafts = WebNewChatDrafts()
+        drafts.read("482139075", answer("""{"key":"new_chat_7","drafted":[]}"""))
+
+        val restored = WebNewChatDrafts()
+        restored.restore(drafts.saved())
+        assertThat(restored.has("482139075")).isFalse()
+        restored.read("482139075", answer("""{"key":null,"drafted":["new_chat_7"]}"""))
+        assertThat(restored.has("482139075")).isTrue()
+        restored.restore(listOf("broken", "=x", "y="))
+        assertThat(restored.saved()).containsExactly("482139075=new_chat_7")
+    }
+
+    @Test
     fun `an organization whose key the app hasn't seen keeps none`() {
         val drafts = WebNewChatDrafts()
         drafts.read(null, answer("""{"key":"new_chat_7","drafted":["new_chat_7"]}"""))

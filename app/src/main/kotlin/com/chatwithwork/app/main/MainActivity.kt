@@ -353,6 +353,7 @@ class MainActivity :
         setUpWelcome()
         setUpInsets()
         places.restore(savedInstanceState?.getStringArrayList(PLACES_KEY))
+        webNewChatDrafts.restore(savedInstanceState?.getStringArrayList(NEW_CHAT_KEYS_KEY))
         onBackPressedDispatcher.addCallback(this, goBack)
         onBackPressedDispatcher.addCallback(this, closeModal)
         onBackPressedDispatcher.addCallback(this, closeSidebar)
@@ -378,7 +379,10 @@ class MainActivity :
             visibleComposer()?.let { NewChatDrafts.keep(destination.location, it.text) }
         }
         NewChatDrafts.save(outState)
-        if (!viewModel.signedOut) outState.putStringArrayList(PLACES_KEY, places.saved())
+        if (!viewModel.signedOut) {
+            outState.putStringArrayList(PLACES_KEY, places.saved())
+            outState.putStringArrayList(NEW_CHAT_KEYS_KEY, webNewChatDrafts.saved())
+        }
         super.onSaveInstanceState(outState)
     }
 
@@ -2051,6 +2055,9 @@ class MainActivity :
 
         /** The places back goes back to (PlaceHistory), in the saved state. */
         const val PLACES_KEY = "places"
+
+        /** The organizations' New chat draft keys the pages named (WebNewChatDrafts), in the saved state. */
+        const val NEW_CHAT_KEYS_KEY = "new_chat_keys"
 
         /** How often, and for how long at most, a modal's notice waits for the screen under it. */
         const val NOTICE_POLL_MS = 100L
