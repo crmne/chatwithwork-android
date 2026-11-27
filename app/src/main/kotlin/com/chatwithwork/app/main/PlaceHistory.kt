@@ -32,7 +32,9 @@ class PlaceHistory(private val cap: Int = CAP) {
 
     /** A place, [location], shows as the root; [atHome] when it's the person's home. */
     fun arrived(location: String, atHome: Boolean) {
-        val back = returningTo != null
+        // Back's arrival only: anything else (a redirect, a place opened after a return that never loaded) is a
+        // visit of its own, which puts the place left on the list.
+        val back = same(returningTo, location)
         returningTo = null
         returned = location.takeIf { back }
         val previous = current
@@ -81,6 +83,19 @@ class PlaceHistory(private val cap: Int = CAP) {
         gone.removeAll { same(it, location) }
         gone.addFirst(location)
         while (gone.size > GONE_KEPT) gone.removeLast()
+    }
+
+    /**
+     * [location] couldn't load (a server error, no connection) but may come
+     * back: when back had opened it, the person is there now, so the return
+     * is over and the next place they open puts it back on the list, to try
+     * again from.
+     */
+    fun unreachable(location: String) {
+        if (!same(location, returningTo)) return
+        returningTo = null
+        returned = null
+        current = location
     }
 
     /** A new session or organization: nothing to go back to. */

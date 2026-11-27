@@ -500,10 +500,9 @@ open class WebFragment : HotwireWebFragment() {
 
     /** A place that's gone, or no longer the person's: back, which may have opened it, goes on past it. */
     private fun reportPlaceFailed(location: String, error: VisitError) {
+        if (error is HttpError.ClientError.Unauthorized) return
         val status = (error as? HttpError)?.statusCode
-        if (status != null && status in HTTP_CLIENT_ERRORS && error !is HttpError.ClientError.Unauthorized) {
-            host?.onPlaceFailed(this, location)
-        }
+        host?.onPlaceFailed(this, location, gone = status != null && status in HTTP_CLIENT_ERRORS)
     }
 
     override fun onVisitRendered(location: String) {
@@ -582,8 +581,12 @@ interface WebScreenHost {
     /** The organization's home, in [destination], answered 404 (a server from before it): open the chat list instead. */
     fun onHomeMissing(destination: HotwireDestination)
 
-    /** [location], in [destination], answered a client error (gone, forbidden): back goes on past it if it opened it. */
-    fun onPlaceFailed(destination: HotwireDestination, location: String)
+    /**
+     * [location], in [destination], didn't load: [gone] when it answered a
+     * client error (deleted, forbidden), which back goes on past if it opened
+     * it; otherwise (a server error, no connection) it may load later.
+     */
+    fun onPlaceFailed(destination: HotwireDestination, location: String, gone: Boolean)
 
     /** A page's skeleton is up: something page-shaped is on screen. */
     fun onSkeletonShown()

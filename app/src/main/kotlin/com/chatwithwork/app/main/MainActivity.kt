@@ -1268,8 +1268,16 @@ class MainActivity :
         sidebarPage.takeDeleted(forget)
     }
 
-    override fun onPlaceFailed(destination: HotwireDestination, location: String) {
-        if (navigator?.currentDestination !== destination || !places.failed(location)) return
+    override fun onPlaceFailed(destination: HotwireDestination, location: String, gone: Boolean) {
+        if (navigator?.currentDestination !== destination) return
+        if (!gone) {
+            // It may load later: the return is over, and the person is there, to try again or go on.
+            places.unreachable(location)
+            if (destination.navigator.isAtStartDestination()) rootLocation = location
+            updateGoingBack()
+            return
+        }
+        if (!places.failed(location)) return
         // The root is now the place that failed, so back there reads it, not the place left: a home that failed
         // leaves the app rather than opening the home again.
         if (destination.navigator.isAtStartDestination()) rootLocation = location

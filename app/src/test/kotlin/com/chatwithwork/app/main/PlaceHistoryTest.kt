@@ -123,6 +123,38 @@ class PlaceHistoryTest {
     }
 
     @Test
+    fun `a return that can't load ends there, and the place stays to try again`() {
+        val places = PlaceHistory()
+        val chatD = "$base/chats/4"
+        places.visit(chatD)
+        places.visit(chatA)
+        places.visit(chatB)
+
+        // Back to A, which answers a server error: the person is at A now.
+        places.returnTo(places.next()!!)
+        places.unreachable(chatA)
+        assertThat(places.returningTo).isNull()
+
+        // Opening C after is a visit of its own, never taken for back's arrival: A goes on the list.
+        places.visit(chatC)
+        assertThat(places.entries).containsExactly(chatA, chatD).inOrder()
+        assertThat(places.back()).isEqualTo(chatA)
+        assertThat(places.back()).isEqualTo(chatD)
+    }
+
+    @Test
+    fun `only back's own place arriving counts as going back`() {
+        val places = PlaceHistory()
+        places.visit(chatA)
+        places.visit(chatB)
+
+        // Back opens A, but another place arrives first (a notification): that's a visit, B goes on the list.
+        places.returnTo(chatA)
+        places.visit(chatC)
+        assertThat(places.entries).containsExactly(chatB)
+    }
+
+    @Test
     fun `a place that fails without back opening it changes nothing but leaves the history`() {
         val places = PlaceHistory()
         places.visit(chatA)
