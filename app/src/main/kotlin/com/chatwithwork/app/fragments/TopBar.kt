@@ -12,6 +12,7 @@ import android.webkit.WebView
 import android.widget.RelativeLayout
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
+import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.chatwithwork.app.R
@@ -19,10 +20,21 @@ import dev.hotwire.navigation.R as HotwireR
 import java.lang.ref.WeakReference
 
 /**
- * Every screen's top bar (fragment_web): no surface, no hairline, one
- * compact row whose title and buttons sit straight on the page, and under
- * them a fade that eases what scrolls up into the canvas. Chats, pages,
+ * Every screen's top bar (fragment_web): no surface of its own, one compact
+ * row floating over the page. The navigation button (the sidebar, back, or
+ * close) is a round surface at the start, the bar's actions share one pill
+ * at the end ([BarPill]), and the title sits between them. Chats, pages,
  * and modals all draw it, through this one class.
+ *
+ * What's behind the title and buttons:
+ * - A page under the bar on a server that draws the backdrop itself
+ *   ([PathConfigurationProperties.pageDrawsTopBarBackdrop]): the page fades
+ *   what scrolls up under the bar into its canvas, translucent even at the
+ *   top and gone just below the buttons (native.css, for
+ *   `<html data-native-top-bar="floating">`, which [floating] has the app
+ *   set), so the app draws nothing there.
+ * - Anywhere else, the app's fade: the canvas down past the title, then an
+ *   ease into the page.
  *
  * Where the page meets it depends on whether the page keeps clear of it:
  * - [under]: the page runs up under the bar and leaves room for it itself,
@@ -33,15 +45,20 @@ import java.lang.ref.WeakReference
  *   fade's last stretch, past the bar's edge, comes in as the page scrolls
  *   ([follow]), so a page at its top shows its first line whole.
  */
-class TopBar(root: View, val under: Boolean) {
+class TopBar(root: View, val under: Boolean, pageBackdrop: Boolean = false) {
     private val bar: View = root.findViewById(R.id.app_bar)
     private val fade: View = root.findViewById(R.id.top_fade)
     private val spinners =
         listOf(HotwireR.id.hotwire_webView_container, HotwireR.id.hotwire_error_refresh)
             .mapNotNull { root.findViewById<SwipeRefreshLayout>(it) }
 
+    /** Whether the page draws what's behind the bar (it runs under it, on a server whose stylesheet does). */
+    val floating: Boolean = under && pageBackdrop
+
     init {
         fade.background = fade(root.context)
+        fade.isVisible = !floating
+        BarPill.install(root.findViewById(R.id.toolbar))
         if (!under) {
             root.findViewById<View>(R.id.page_area).updateLayoutParams<RelativeLayout.LayoutParams> {
                 addRule(RelativeLayout.BELOW, R.id.app_bar)
@@ -120,3 +137,13 @@ val HashMap<String, Any>.pageUnderTopBar: Boolean
     get() = get(PAGE_UNDER_TOP_BAR) as? Boolean ?: false
 
 const val PAGE_UNDER_TOP_BAR = "page_under_top_bar"
+
+/**
+ * The page draws the backdrop behind the floating top bar itself (a fade of
+ * what scrolls under it into the canvas, native.css), for `<html data-native-top-bar="floating">`.
+ * Without it (an older server) the app draws its fade there.
+ */
+val HashMap<String, Any>.pageDrawsTopBarBackdrop: Boolean
+    get() = get(PAGE_DRAWS_TOP_BAR_BACKDROP) as? Boolean ?: false
+
+const val PAGE_DRAWS_TOP_BAR_BACKDROP = "page_draws_top_bar_backdrop"

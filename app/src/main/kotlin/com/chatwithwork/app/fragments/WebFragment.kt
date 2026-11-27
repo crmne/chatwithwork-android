@@ -131,7 +131,11 @@ open class WebFragment : HotwireWebFragment() {
             if (!isModal) addShellActions(toolbar)
         }
 
-        topBar = TopBar(view, under = AppUrls.isChat(location) || pathProperties.pageUnderTopBar).apply {
+        topBar = TopBar(
+            view,
+            under = AppUrls.isChat(location) || pathProperties.pageUnderTopBar,
+            pageBackdrop = pathProperties.pageDrawsTopBarBackdrop
+        ).apply {
             onCoveredChanged(::tellPageItsTop)
         }
 
@@ -221,7 +225,7 @@ open class WebFragment : HotwireWebFragment() {
 
     /** The web view is shared: each screen says how much of its top is covered as it takes over. */
     private fun tellPageItsTop() {
-        PageScripts.setTopBarHeight(navigator.session.webView, topBar?.covered ?: 0)
+        PageScripts.setTopBarHeight(navigator.session.webView, topBar?.covered ?: 0, topBar?.floating == true)
     }
 
     /** The sidebar's button on the root, and New chat on every screen but a modal. */

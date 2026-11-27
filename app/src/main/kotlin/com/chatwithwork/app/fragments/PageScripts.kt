@@ -56,13 +56,16 @@ object PageScripts {
      * Tells the page how much of its top the app's bar covers, in the page's
      * own pixels: a chat runs under the bar and keeps what it opens with
      * clear of it (docs/server-contract.md). 0 where the page starts below it.
+     * Where it [floats] over a page that draws what's behind it, `<html>`
+     * says so (`data-native-top-bar="floating"`), and the page fades what
+     * scrolls up under the bar (TopBar).
      */
-    fun setTopBarHeight(webView: WebView, height: Int) {
+    fun setTopBarHeight(webView: WebView, height: Int, floats: Boolean = false) {
         // A web view not laid out yet (a screen coming back after Android ended the app, the shared web view
         // between screens) has no width to scale by: it's told once it has one, where it was never told and the
         // page ran under the bar.
         whenLaidOut(webView) { laidOut, width ->
-            (laidOut as WebView).evaluateJavascript(topBarHeightScript(height, width), null)
+            (laidOut as WebView).evaluateJavascript(topBarHeightScript(height, width, floats), null)
         }
     }
 
@@ -102,6 +105,12 @@ object PageScripts {
 
     private val waiting = WeakHashMap<View, WeakReference<View.OnLayoutChangeListener>>()
 
-    internal fun topBarHeightScript(height: Int, viewWidth: Int): String = "document.documentElement.style" +
-        ".setProperty('--native-top-bar-height', ($height * window.innerWidth / $viewWidth) + 'px')"
+    internal fun topBarHeightScript(height: Int, viewWidth: Int, floats: Boolean = false): String =
+        "document.documentElement.style" +
+            ".setProperty('--native-top-bar-height', ($height * window.innerWidth / $viewWidth) + 'px');" +
+            if (floats) {
+                "document.documentElement.dataset.nativeTopBar = 'floating'"
+            } else {
+                "delete document.documentElement.dataset.nativeTopBar"
+            }
 }

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The top bar's navigation button (the sidebar, back, close): a round floating surface, 48dp in the
+     56dp row, with the same hairline as the actions' pill (BarPill), and the ripple inside it. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/ripple">
+    <item android:id="@android:id/mask">
+        <inset android:insetTop="@dimen/top_bar_button_inset" android:insetBottom="@dimen/top_bar_button_inset">
+            <shape android:shape="oval">
+                <solid android:color="@android:color/white" />
+            </shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetTop="@dimen/top_bar_button_inset" android:insetBottom="@dimen/top_bar_button_inset">
+            <shape android:shape="oval">
+                <solid android:color="@color/lw_surface" />
+                <stroke android:width="@dimen/top_bar_button_stroke" android:color="@color/lw_line" />
+            </shape>
+        </inset>
+    </item>
+</ripple>

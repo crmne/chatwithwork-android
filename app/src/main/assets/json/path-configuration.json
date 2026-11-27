@@ -7,6 +7,7 @@
       ],
       "properties": {
         "context": "default",
+        "page_draws_top_bar_backdrop": true,
         "page_under_top_bar": true,
         "pull_to_refresh_enabled": true,
         "query_string_presentation": "replace",

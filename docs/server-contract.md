@@ -100,9 +100,11 @@ flashes as toasts). What differs on Android:
   above the gesture bar, and moves it above the keyboard.
   `env(safe-area-inset-*)` is 0 in the Android web view: don't pad for it.
   `viewport-fit=cover` makes no difference here. Every screen, a chat, a
-  page, or a modal, has the same bar (`TopBar`): no surface or hairline,
-  one 56dp row, and what scrolls up fades into the canvas behind the title
-  and buttons. Where the page runs under it, the web view reaches the top
+  page, or a modal, has the same bar (`TopBar`): no surface of its own,
+  one 56dp row floating over the page, its navigation button (the
+  sidebar, back, or close) a round surface at the start, its actions on
+  one pill at the end (`BarPill`), both 48dp, Live Wire's surface with its
+  hairline and a soft lift, and the title between them. Where the page runs under it, the web view reaches the top
   of the screen and the app sets `--native-top-bar-height` on `<html>` to
   how much of the page the bar covers (status bar included, in CSS pixels;
   `0px` on a page that starts below it), as each visit starts, as a page
@@ -118,6 +120,20 @@ flashes as toasts). What differs on Android:
   and `.native-hidden` stay hidden, so the bar and its fade are the only
   ones. `scroll_controller.js` and the panel sheet keep a chat's new
   question and the sheet clear of the bar too.
+- **What's behind the bar (2026-11-27).** The page draws it (Android
+  couldn't blur a web view from outside it anyway: a RenderNode recording
+  of the web view comes out empty): where the path configuration's
+  `page_draws_top_bar_backdrop` is `true` (`android_v4.json` sets it on
+  every page) and the page runs under the bar, the app also sets
+  `data-native-top-bar="floating"` on `<html>` (and removes it elsewhere),
+  and `native.css` puts a fixed `body::before` over the page's top, as
+  tall as `--native-top-bar-height` plus 2px: a fade of the canvas,
+  translucent even at the top (88% under the status bar), easing through
+  the title's row, where what's behind still shows faintly, to nothing
+  just below the buttons, never taking a touch. The app then draws
+  nothing there. A server without the flag (an older
+  self-hosted install) gets the app's own fade instead, the canvas down
+  past the title and an ease into the page.
 - **Titles.** The app shows `<title>` in its top app bar, and follows it
   when the page changes it later (`onReceivedTitle`): a chat's `<title>`
   changes as its automatic title arrives, or someone renames it. Until the server

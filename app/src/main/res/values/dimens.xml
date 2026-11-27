@@ -7,4 +7,10 @@
     <dimen name="top_fade_overhang">-20dp</dimen>
     <!-- Every screen's top bar: one row, as tall as a phone's compact top bar, its buttons still 48dp targets. -->
     <dimen name="top_bar_height">56dp</dimen>
+    <!-- The bar's floating surfaces (TopBar): a 48dp circle or pill in the 56dp row, 8dp from the screen's edges. -->
+    <dimen name="top_bar_button_inset">4dp</dimen>
+    <dimen name="top_bar_edge">8dp</dimen>
+    <dimen name="top_bar_button_stroke">1dp</dimen>
+    <dimen name="top_bar_button_elevation">3dp</dimen>
+    <dimen name="top_bar_text_action_padding">16dp</dimen>
 </resources>

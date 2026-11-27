@@ -14,8 +14,15 @@ class PageScriptsTest {
         assertThat(PageScripts.topBarHeightScript(280, 1080))
             .isEqualTo(
                 "document.documentElement.style" +
-                    ".setProperty('--native-top-bar-height', (280 * window.innerWidth / 1080) + 'px')"
+                    ".setProperty('--native-top-bar-height', (280 * window.innerWidth / 1080) + 'px');" +
+                    "delete document.documentElement.dataset.nativeTopBar"
             )
+    }
+
+    @Test
+    fun `marks a page the bar floats over, which draws what's behind it`() {
+        assertThat(PageScripts.topBarHeightScript(280, 1080, floats = true))
+            .endsWith(";document.documentElement.dataset.nativeTopBar = 'floating'")
     }
 
     // A screen coming back after Android ended the app tells the page before its web view is laid out: the page ran
