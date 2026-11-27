@@ -3,10 +3,10 @@ package com.chatwithwork.app.fragments
 import android.os.SystemClock
 
 /**
- * The system back at a place opens the place before it as the root
- * (PlaceHistory): underneath a replace like any place, it moves as a pop
- * does, the place sliding in from the left and the one left sliding away to
- * the right, so it never reads as going forward.
+ * The system back at a place opens the home, Decisions, as the root
+ * (GoingBack): underneath a replace like any place, it moves as a pop
+ * does, the home sliding in from the left and the place left sliding away
+ * to the right, so it never reads as going forward.
  */
 object BackMotion {
     private var expected: String? = null
