@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import com.chatwithwork.app.AppConfig
 import com.chatwithwork.app.R
+import com.chatwithwork.app.fragments.PageScripts
 import com.chatwithwork.app.routing.AppUrls
 import java.net.URI
 
@@ -213,7 +214,17 @@ class SidebarWebView(private val container: FrameLayout, private val native: Vie
         }
     }
 
+    /** The paths the page deleted since last asked (PageScripts.DELETES), for back to forget. */
+    fun takeDeleted(answer: (List<String>) -> Unit) {
+        if (isShowing) webView.evaluateJavascript(PageScripts.TAKE_DELETED) { answer(PageScripts.deletedPaths(it)) }
+    }
+
     private inner class Client : WebViewClient() {
+        // Notes what its rows' menus delete (a chat), so back never goes to it.
+        override fun onPageFinished(view: WebView, url: String?) {
+            view.evaluateJavascript(PageScripts.DELETES, null)
+        }
+
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             if (!request.isForMainFrame) return false
             val url = request.url.toString()

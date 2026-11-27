@@ -49,4 +49,27 @@ class PageScriptsTest {
         PageScripts.whenLaidOut(view) { _, width -> told += width }
         assertThat(told).containsExactly(1080)
     }
+
+    @Test
+    fun `what a page deleted comes back as its paths, and nothing else does`() {
+        assertThat(PageScripts.deletedPaths("""["/482139075/chats/42","/482139075/chats/7/pin"]"""))
+            .containsExactly("/482139075/chats/42", "/482139075/chats/7/pin")
+            .inOrder()
+        assertThat(PageScripts.deletedPaths("[]")).isEmpty()
+        assertThat(PageScripts.deletedPaths("null")).isEmpty()
+        assertThat(PageScripts.deletedPaths(null)).isEmpty()
+        assertThat(PageScripts.deletedPaths("\"oops\"")).isEmpty()
+        assertThat(PageScripts.deletedPaths("""["//evil.example/x", "https://evil.example/x", 3, "/ok"]"""))
+            .containsExactly("/ok")
+    }
+
+    @Test
+    fun `the page notes only deletes it sent, as turbo-rails sends them`() {
+        assertThat(PageScripts.DELETES).contains("turbo:submit-end")
+        assertThat(PageScripts.DELETES).contains("_method")
+        assertThat(PageScripts.DELETES).contains("if (!success || !formSubmission) return")
+        // Two IIFEs one after the other call the first's result with the second unless something ends the first.
+        assertThat(PageScripts.DELETES.trimStart()).startsWith("(() =>")
+        assertThat(PageScripts.installed).contains("})();\n(() =>")
+    }
 }

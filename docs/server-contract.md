@@ -80,15 +80,38 @@ flashes as toasts). What differs on Android:
   chat, Decisions, Bots, a bot, Projects, a project, Settings,
   Instructions, and New chat and New bot (section 5, "New chat and New bot
   are pages"). A place replaces the one root screen, which has the
-  sidebar's menu button and never back, so places never stack and there's
-  no history of them to walk back through (Carmine, 2026-11-05). Only a
+  sidebar's menu button and never back, so places never stack
+  (Carmine, 2026-11-05). Only a
   drill-down is pushed over a place, with back to it (a bot from Bots, a
   Settings tab from the Settings list, New chat from the bar's button);
   forms and pickers are modals
-  (section 5). The system back at a place leaves the app, as at any root:
-  a drawer's start destination here would be one more stop on the way
-  out, and the app keeps no history of places. Back on a modal closes it,
-  never the app. The
+  (section 5). The system back at a place works as a browser's back
+  (Carmine, 2026-11-27): it opens the place the person was at before, as
+  a place (the sidebar's button, no back arrow, moving as a pop does), or,
+  with nothing before it, the home (Decisions, `links.decisions` or
+  `waiting.url` in the sidebar's JSON), and at the home with nothing
+  before it, it leaves the app. The places are the app's own short list
+  (`PlaceHistory`, the newest five, in memory and the saved state, nothing
+  from the server): going back adds nothing to it, so there's no
+  ping-pong between two places; a place already on it moves to the top;
+  back reaching the home clears it, so back at the home always leaves; an
+  empty New chat (no words waiting, `NewChatDrafts`) isn't worth going
+  back to, so the chat it started stands in its place; a chat deleted
+  from its own menu or from the sidebar (the page's rows, or the native
+  sidebar's Delete, which the page on screen sends) leaves the list, as the
+  app learns from the page (`PageScripts.DELETES` notes each confirmed
+  delete's path, and the app takes them after every visit and as the
+  sidebar closes), so back from Decisions never opens it; a place that
+  answers a client error is skipped for the one before it, or the home
+  (a chat that's gone or no longer the person's redirects to the chat
+  list instead, so only the list above keeps back off one); and a new
+  organization or session starts it over. A chat opened from a notification or a link has nothing
+  before it, so back goes home, then out. Back with the sidebar open
+  closes it, and in a drill-down or a modal pops one step, as before. The
+  app enables its back callback only when it goes to a place
+  (`GoingBack.step`), so the predictive back gesture shows the system's
+  own animation on the way out. Back on a modal closes it, never the app.
+  The
   sidebar, Material 3's modal navigation drawer, opens from the menu
   button on the root or a swipe from the edge, and the app draws it from
   the server's JSON (section 11). Every screen but a modal has New chat in
