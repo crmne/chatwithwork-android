@@ -112,6 +112,8 @@ class ComposerComponent(name: String, private val bridgeDelegate: BridgeDelegate
 
     override fun remove(id: String) = reply("remove") { put("id", id) }
 
+    override fun attachPasted(uris: List<Uri>) = attachUris(uris)
+
     override fun layout(height: Int, width: Int) {
         replyTo("connect", layoutReply(height, width).toString())
     }
