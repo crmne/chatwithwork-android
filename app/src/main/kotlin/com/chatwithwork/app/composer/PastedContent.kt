@@ -64,16 +64,6 @@ object PastedContent {
         }
     }.orEmpty()
 
-    /**
-     * Whether a clip with this description may hold a file, for a drag to
-     * be taken before its contents can be read: anything that isn't only
-     * words or links.
-     */
-    fun mayHoldFiles(description: ClipDescription?): Boolean {
-        description ?: return false
-        return (0 until description.mimeTypeCount).any { description.getMimeType(it) !in WORDS }
-    }
-
     /** Content (or file) addresses are files; a web link is words. */
     fun isFile(uri: Uri): Boolean = uri.scheme in setOf("content", "file")
 
@@ -88,14 +78,6 @@ object PastedContent {
                 .replace(Regex("&(nbsp|#160|#xa0);", RegexOption.IGNORE_CASE), " ")
         return text.isNotBlank()
     }
-
-    private val WORDS =
-        setOf(
-            ClipDescription.MIMETYPE_TEXT_PLAIN,
-            ClipDescription.MIMETYPE_TEXT_HTML,
-            ClipDescription.MIMETYPE_TEXT_URILIST,
-            ClipDescription.MIMETYPE_TEXT_INTENT
-        )
 
     /**
      * The screen that takes what's received: MainActivity, which hands the
@@ -138,7 +120,11 @@ object PastedContent {
             null
         }
 
-    private fun keyboardGrant(payload: ContentInfoCompat): InputContentInfo? {
+    /**
+     * The keyboard's grant to read what it inserted, to release once it's
+     * read; null for anything else (a paste or a drop, read under their own).
+     */
+    fun keyboardGrant(payload: ContentInfoCompat): InputContentInfo? {
         if (payload.source != ContentInfoCompat.SOURCE_INPUT_METHOD ||
             Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1
         ) {

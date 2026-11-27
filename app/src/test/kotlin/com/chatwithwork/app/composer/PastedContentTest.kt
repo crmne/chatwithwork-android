@@ -75,15 +75,6 @@ class PastedContentTest {
         assertThat(PastedContent.hasWords(null)).isFalse()
     }
 
-    @Test
-    fun `a drag may hold files unless it is only words or links`() {
-        assertThat(PastedContent.mayHoldFiles(ClipDescription("", arrayOf("image/png")))).isTrue()
-        assertThat(PastedContent.mayHoldFiles(ClipDescription("", arrayOf("text/plain", "application/pdf")))).isTrue()
-        assertThat(PastedContent.mayHoldFiles(ClipDescription("", arrayOf("text/plain", "text/html")))).isFalse()
-        assertThat(PastedContent.mayHoldFiles(ClipDescription("", arrayOf("text/uri-list")))).isFalse()
-        assertThat(PastedContent.mayHoldFiles(null)).isFalse()
-    }
-
     private class Host(base: android.content.Context) :
         ContextWrapper(base),
         PastedContent.Host {

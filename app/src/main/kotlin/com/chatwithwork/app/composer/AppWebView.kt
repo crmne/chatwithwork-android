@@ -66,7 +66,8 @@ class AppWebView(context: Context) : HotwireWebView(context) {
     override fun onDragEvent(event: DragEvent): Boolean {
         when (event.action) {
             DragEvent.ACTION_DRAG_STARTED -> {
-                draggingFiles = PastedContent.mayHoldFiles(event.clipDescription) && host?.composerTakesFiles() == true
+                // A text file can say only text/plain: whether it's files or words is decided at the drop (files).
+                draggingFiles = event.clipDescription != null && host?.composerTakesFiles() == true
                 return super.onDragEvent(event) || draggingFiles
             }
 

@@ -82,8 +82,12 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
 
         fun remove(id: String)
 
-        /** Pictures or files pasted into the field or inserted by the keyboard (PastedContent), to attach. */
-        fun attachPasted(uris: List<Uri>)
+        /**
+         * Pictures or files pasted into the field or inserted by the keyboard
+         * (PastedContent), to attach, readable until [release], which the
+         * read calls once it's done, whatever happened.
+         */
+        fun attachPasted(uris: List<Uri>, release: () -> Unit)
 
         /** Overlay height and web viewport width in the same native units. */
         fun layout(height: Int, width: Int)
@@ -205,7 +209,9 @@ class ComposerView(context: Context, attrs: AttributeSet? = null) : LinearLayout
         ViewCompat.setOnReceiveContentListener(input, PastedContent.KEYBOARD_TYPES) { _, payload ->
             val files = PastedContent.files(payload.clip)
             if (files.isEmpty() || !state.acceptsFiles) return@setOnReceiveContentListener payload
-            post { actions?.attachPasted(files) }
+            val grant = PastedContent.keyboardGrant(payload)
+            val release = { grant?.releasePermission() ?: Unit }
+            post { actions?.attachPasted(files, release) ?: release() }
             null
         }
         val ink = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface)

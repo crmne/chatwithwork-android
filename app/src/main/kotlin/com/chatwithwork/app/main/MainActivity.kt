@@ -1639,7 +1639,9 @@ class MainActivity :
      * the same way as files shared in, with the same limits.
      */
     override fun receivePasted(uris: List<Uri>, release: () -> Unit) {
-        if (pastedFilesComposer() == null) {
+        // The composer that took them: a page that changed while they were read doesn't get them instead.
+        val composer = pastedFilesComposer()
+        if (composer == null) {
             release()
             showSnackbar(getString(R.string.composer_files_not_now), long = true)
             return
@@ -1654,7 +1656,7 @@ class MainActivity :
             read.tooBig.forEach { showSnackbar(getString(R.string.composer_file_too_big, it), long = true) }
             if (read.unreadable) showSnackbar(getString(R.string.composer_file_unreadable), long = true)
             if (read.files.isEmpty()) return@launch
-            if (pastedFilesComposer()?.attachPasted(read.files) != true) {
+            if (pastedFilesComposer() !== composer || !composer.attachPasted(read.files)) {
                 showSnackbar(getString(R.string.composer_files_not_now), long = true)
             }
         }
