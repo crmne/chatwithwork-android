@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   A web screen, chat, page, or modal: the page with the native composer floating over chat pages
-  (hidden elsewhere), and over it the top bar every screen shares (TopBar): no surface or hairline,
-  its title and buttons on top_fade, which fades what scrolls up into the canvas. The page runs under
+  (hidden elsewhere), and over it the top bar every screen shares (TopBar): a round navigation button,
+  the title, and the actions' pill floating over the page, which blurs what scrolls up under them itself
+  (TopBar), or over top_fade, the canvas easing into the page, where it doesn't. The page runs under
   the bar where it keeps clear of it, and starts below it elsewhere (TopBar moves it). The ids are
   Hotwire Native's: it finds the toolbar (titles from the page's <title>) and the hotwire_view (the
   shared web view, progress, and error states).
@@ -54,7 +55,8 @@
         android:importantForAccessibility="no"
         android:visibility="gone" />
 
-    <!-- Reaches past the bar: the last of the fade softens the page's edge. -->
+    <!-- Behind the bar where the page doesn't draw its own backdrop (TopBar): the canvas, easing into the page past
+         the bar. -->
     <View
         android:id="@+id/top_fade"
         android:layout_width="match_parent"

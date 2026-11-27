@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A top bar button with no fill at rest: the ripple shows the circle only under a finger. -->
+<!-- A button inside the top bar's pill: no fill at rest, and a 48dp circle under a finger. -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/ripple">
     <item android:id="@android:id/mask">
-        <shape android:shape="oval">
-            <solid android:color="@android:color/white" />
-        </shape>
+        <inset android:insetTop="@dimen/top_bar_button_inset" android:insetBottom="@dimen/top_bar_button_inset">
+            <shape android:shape="oval">
+                <solid android:color="@android:color/white" />
+            </shape>
+        </inset>
     </item>
 </ripple>
