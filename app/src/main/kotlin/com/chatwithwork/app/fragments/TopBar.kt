@@ -28,12 +28,11 @@ import java.lang.ref.WeakReference
  *
  * What's behind the title and buttons:
  * - A page under the bar on a server that draws the backdrop itself
- *   ([PathConfigurationProperties.pageDrawsTopBarBackdrop]): the page blurs
- *   what scrolls up under the bar, in its canvas, easing back into the page
- *   past it (native.css, for `<html data-native-top-bar="floating">`, which
- *   [floating] has the app set). Only the page can: Android can't blur a web
- *   view's pixels from outside it (a RenderNode recording of the web view
- *   comes out empty), so the app draws nothing there.
+ *   ([PathConfigurationProperties.pageDrawsTopBarBackdrop]): the page fades
+ *   what scrolls up under the bar into its canvas, translucent even at the
+ *   top and gone just below the buttons (native.css, for
+ *   `<html data-native-top-bar="floating">`, which [floating] has the app
+ *   set), so the app draws nothing there.
  * - Anywhere else, the app's fade: the canvas down past the title, then an
  *   ease into the page.
  *
@@ -140,8 +139,8 @@ val HashMap<String, Any>.pageUnderTopBar: Boolean
 const val PAGE_UNDER_TOP_BAR = "page_under_top_bar"
 
 /**
- * The page draws the backdrop behind the floating top bar itself (a blur of
- * what scrolls under it, native.css), for `<html data-native-top-bar="floating">`.
+ * The page draws the backdrop behind the floating top bar itself (a fade of
+ * what scrolls under it into the canvas, native.css), for `<html data-native-top-bar="floating">`.
  * Without it (an older server) the app draws its fade there.
  */
 val HashMap<String, Any>.pageDrawsTopBarBackdrop: Boolean

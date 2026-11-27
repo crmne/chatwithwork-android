@@ -57,7 +57,7 @@ object PageScripts {
      * own pixels: a chat runs under the bar and keeps what it opens with
      * clear of it (docs/server-contract.md). 0 where the page starts below it.
      * Where it [floats] over a page that draws what's behind it, `<html>`
-     * says so (`data-native-top-bar="floating"`), and the page blurs what
+     * says so (`data-native-top-bar="floating"`), and the page fades what
      * scrolls up under the bar (TopBar).
      */
     fun setTopBarHeight(webView: WebView, height: Int, floats: Boolean = false) {

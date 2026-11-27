@@ -120,19 +120,18 @@ flashes as toasts). What differs on Android:
   and `.native-hidden` stay hidden, so the bar and its fade are the only
   ones. `scroll_controller.js` and the panel sheet keep a chat's new
   question and the sheet clear of the bar too.
-- **What's behind the bar (2026-11-27).** Android can't blur a web view's
-  pixels from outside it (a RenderNode recording of the web view comes out
-  empty), so the page draws the backdrop: where the path configuration's
+- **What's behind the bar (2026-11-27).** The page draws it (Android
+  couldn't blur a web view from outside it anyway: a RenderNode recording
+  of the web view comes out empty): where the path configuration's
   `page_draws_top_bar_backdrop` is `true` (`android_v4.json` sets it on
   every page) and the page runs under the bar, the app also sets
   `data-native-top-bar="floating"` on `<html>` (and removes it elsewhere),
   and `native.css` puts a fixed `body::before` over the page's top, as
-  tall as `--native-top-bar-height` plus 2px: a 6px `backdrop-filter`
-  blur, no colour but a little canvas under the status bar, strongest at
-  the top, light at the title's line and gone just below the buttons,
-  never taking a touch, and off under reduced transparency. The app then
-  draws nothing there, and gives the title a soft shadow in the canvas
-  colour so it reads over busy content. A server without the flag (an older
+  tall as `--native-top-bar-height` plus 2px: a fade of the canvas,
+  translucent even at the top (88% under the status bar), easing through
+  the title's row, where what's behind still shows faintly, to nothing
+  just below the buttons, never taking a touch. The app then draws
+  nothing there. A server without the flag (an older
   self-hosted install) gets the app's own fade instead, the canvas down
   past the title and an ease into the page.
 - **Titles.** The app shows `<title>` in its top app bar, and follows it
