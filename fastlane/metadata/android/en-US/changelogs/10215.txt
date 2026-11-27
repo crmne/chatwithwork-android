@@ -1,0 +1,1 @@
+Paste pictures into the composer straight from the keyboard: Gboard's clipboard, its suggestion to paste what you just copied, stickers and GIFs now attach, and so do files you drop on it from another app. The top bar's buttons float over the page, with the page fading behind the title. Back at a place takes you to the place you were at before, then home, then out of the app.

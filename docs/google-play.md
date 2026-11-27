@@ -6,6 +6,41 @@ Everything Play Console asks for, and where it lives. The listing is in
 can be pasted by hand or uploaded with `fastlane supply` (not set up here:
 it needs a Play service account key, which never goes in this repository).
 
+## Release 1.2.15
+
+Version 1.2.15 (10215) takes pictures from the keyboard into the composer
+([#84](https://github.com/crmne/chatwithwork-android/pull/84)): Gboard's
+clipboard, its suggestion to paste what was just copied, stickers and GIFs
+attach like picked files, where Gboard said the app doesn't support image
+pasting, and so do files dropped from another app. The top bar's buttons
+float over the page, a round one for the sidebar or back and the actions on
+one pill, with the page fading behind the title
+([#85](https://github.com/crmne/chatwithwork-android/pull/85); the fade is
+the server's `native.css`, in production since crmne/chatwithwork 8f87414d).
+Back at a place goes to the place before, then home, then out
+([#83](https://github.com/crmne/chatwithwork-android/pull/83)). The app also
+shows the server's ideas push, a bot to try
+([#82](https://github.com/crmne/chatwithwork-android/pull/82)), which the
+server sends only once its ideas switch is on. What's new is
+`changelogs/10215.txt`. Tag `v1.2.15`.
+
+The signed, Firebase-enabled bundle was built with `script/bundle-release
+v1.2.15` from aa0a832 on 2026-11-27 (sha256
+`d2494c84085a079f9428a5bc003d40204f4f3927da04d79ab2772eee756457dd`), signed
+with the same upload key as 1.2.14; bundletool reads versionCode 10215 and
+versionName 1.2.15, and its `android_v4.json` is byte-identical to
+crmne/chatwithwork main's (8207fa5c). Each of #82, #83, #84 and #85 passed
+`testDebugUnitTest lintDebug spotlessCheck assembleDebug` and CI before it
+merged. Upload it to Internal testing only.
+
+Validation, on the Mac mini's phone emulator (Pixel 9, Android 17, WebView
+149) against production with the App Review demo login (synthetic content): a
+universal APK made from the bundle signed in; a picture copied in Chrome went
+into Decisions' composer from Gboard's Image suggestion as a chip, and the
+question with it was sent and answered in a new chat; the bar showed the
+round sidebar button and the pill (panel, Decisions, overflow) with the page
+fading under it; Decisions from the bar, then Back, came back to the chat.
+
 ## Release 1.2.14
 
 Version 1.2.14 (10214) keeps the web composer and brings back what the
