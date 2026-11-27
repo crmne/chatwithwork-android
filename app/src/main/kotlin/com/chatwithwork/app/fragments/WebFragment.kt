@@ -484,6 +484,8 @@ open class WebFragment : HotwireWebFragment() {
     override fun onVisitErrorReceivedWithCachedSnapshotAvailable(location: String, error: VisitError) {
         skeleton?.remove()
         super.onVisitErrorReceivedWithCachedSnapshotAvailable(location, error)
+        // The page's snapshot shows, but the place itself is gone just the same.
+        reportPlaceFailed(location, error)
     }
 
     override fun onVisitErrorReceived(location: String, error: VisitError) {
@@ -493,7 +495,11 @@ open class WebFragment : HotwireWebFragment() {
         if (error is HttpError.ClientError.Unauthorized) host?.onSignedOut(this)
         // A server from before the organization's home answers it 404: the chat list instead.
         if (AppUrls.homeMissing(location, (error as? HttpError)?.statusCode)) host?.onHomeMissing(this)
-        // A place that's gone, or no longer the person's: back, which may have opened it, goes on past it.
+        reportPlaceFailed(location, error)
+    }
+
+    /** A place that's gone, or no longer the person's: back, which may have opened it, goes on past it. */
+    private fun reportPlaceFailed(location: String, error: VisitError) {
         val status = (error as? HttpError)?.statusCode
         if (status != null && status in HTTP_CLIENT_ERRORS && error !is HttpError.ClientError.Unauthorized) {
             host?.onPlaceFailed(this, location)

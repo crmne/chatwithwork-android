@@ -1270,9 +1270,17 @@ class MainActivity :
 
     override fun onPlaceFailed(destination: HotwireDestination, location: String) {
         if (navigator?.currentDestination !== destination || !places.failed(location)) return
+        // The root is now the place that failed, so back there reads it, not the place left: a home that failed
+        // leaves the app rather than opening the home again.
+        if (destination.navigator.isAtStartDestination()) rootLocation = location
         // Gone, or no longer theirs: on to the place before it, or the home, never the home again if that failed.
-        val next = places.next(::worthReturningTo) ?: decisionsUrl().takeUnless { isHome(location) } ?: return
-        root.post { returnTo(next) }
+        val next = places.next(::worthReturningTo) ?: decisionsUrl().takeUnless { isHome(location) }
+        if (next == null) {
+            updateGoingBack()
+            return
+        }
+        // Only while that place still shows: a link opened meanwhile (a notification) stays.
+        root.post { if (navigator?.currentDestination === destination) returnTo(next) }
     }
 
     /** The keyboard is sliding in or out, and the pages' bottom follows it frame by frame (setUpInsets). */
