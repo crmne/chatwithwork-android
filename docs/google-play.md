@@ -27,7 +27,10 @@ with the same upload key as 1.2.15; bundletool reads versionCode 10216 and
 versionName 1.2.16, and its `android_v4.json` is byte-identical to
 crmne/chatwithwork main's (e8bc5958). #86 passed `testDebugUnitTest lintDebug
 spotlessCheck assembleDebug assembleStaging assembleRelease` (397 tests) and
-CI before it merged. Upload it to Internal testing only.
+CI before it merged. It went to Internal testing only, on 2026-11-28 at 01:05
+Europe/Berlin, in place of 1.2.15 (not included in the release), with
+`changelogs/10216.txt` as its release notes; Play warned only that there are
+no native debug symbols, as before.
 
 Validation, on the Mac mini's phone emulator (Pixel 9, Android 17, WebView
 149) against production with the App Review demo login (synthetic content): a
